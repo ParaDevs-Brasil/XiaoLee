@@ -1,0 +1,449 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Quicksand', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Gradientes de Fundo */
+  --bg-gradient-start: #fdf2f8; /* pink-50 */
+  --bg-gradient-middle: #faf5ff; /* purple-50 */
+  --bg-gradient-end: #eff6ff; /* blue-50 */
+  
+  /* Cores de Texto */
+  --text-primary: #1f2937; /* gray-800 */
+  --text-secondary: #6b7280; /* gray-500 */
+  --text-accent: #ec4899; /* pink-500 */
+  --text-placeholder: #f472b6; /* pink-400 com 70% opacidade */
+  --text-kawaii: #e879f9; /* fuchsia-400 */
+
+  /* Cores de Navbar */
+  --navbar-bg-start: rgba(251, 207, 232, 0.8); /* pink-200/80 */
+  --navbar-bg-middle: rgba(233, 213, 255, 0.7); /* purple-200/70 */
+  --navbar-bg-end: rgba(219, 234, 254, 0.8); /* blue-200/80 */
+  --navbar-border: rgba(251, 207, 232, 0.4); /* pink-200/40 */
+  --navbar-text-gradient-start: #ec4899; /* pink-500 */
+  --navbar-text-gradient-middle: #a855f7; /* purple-500 */
+  --navbar-text-gradient-end: #3b82f6; /* blue-500 */
+
+  /* Cores de Botões */
+  --btn-primary-bg-start: #f472b6; /* pink-400 */
+  --btn-primary-bg-middle: #ec4899; /* pink-500 */
+  --btn-primary-bg-end: #a855f7; /* purple-500 */
+  --btn-primary-hover-bg-start: #ec4899;
+  --btn-primary-hover-bg-middle: #d946ef;
+  --btn-primary-hover-bg-end: #8b5cf6;
+  --btn-primary-ring: rgba(251, 146, 60, 0.5); /* pink-300/50 */
+  --btn-primary-text: #ffffff;
+
+  --btn-secondary-bg-start: #60a5fa; /* blue-400 */
+  --btn-secondary-bg-middle: #6366f1; /* indigo-500 */
+  --btn-secondary-bg-end: #a855f7; /* purple-500 */
+  --btn-secondary-hover-bg-start: #3b82f6;
+  --btn-secondary-hover-bg-middle: #4f46e5;
+  --btn-secondary-hover-bg-end: #9333ea;
+  --btn-secondary-ring: rgba(147, 197, 253, 0.5); /* blue-300/50 */
+
+  /* Cores de Painéis e Modais */
+  --panel-bg-start: rgba(251, 241, 245, 0.8);
+  --panel-bg-middle: rgba(250, 245, 255, 0.7);
+  --panel-bg-end: rgba(239, 246, 255, 0.8);
+  --panel-border: rgba(216, 180, 254, 0.3);
+  
+  --panel-header-bg-start: rgba(233, 213, 255, 0.5);
+  --panel-header-bg-end: rgba(251, 207, 232, 0.5);
+  --panel-header-border: rgba(216, 180, 254, 0.3);
+  --panel-header-text-start: #a855f7;
+  --panel-header-text-middle: #ec4899;
+  --panel-header-text-end: #3b82f6;
+
+  /* Cores do Chat */
+  --chat-bubble-user-bg-border: #d8b4fe; /* purple-300 */
+  --chat-bubble-user-bg-start: #ffffff;
+  --chat-bubble-user-bg-end: #f5d0fe; /* fuchsia-200 */
+  --chat-bubble-user-text: #374151; /* gray-700 */
+  --chat-bubble-user-border-start: #f472b6; /* pink-400 */
+  --chat-bubble-user-border-middle: #a855f7; /* purple-400 */
+  --chat-bubble-user-border-end: #3b82f6; /* blue-400 */
+  --chat-bubble-user-avatar-start: #f472b6; /* pink-400 */
+  --chat-bubble-user-avatar-end: #a855f7; /* purple-400 */
+  --chat-bubble-user-accent: #ec4899; /* pink-500 */
+  --chat-bubble-user-accent-light: rgba(236, 72, 153, 0.7);
+  --chat-bubble-user-tail-start: #f472b6;
+  --chat-bubble-user-tail-end: #a855f7;
+
+  --chat-bubble-assistant-bg-border: #f472b6; /* pink-400 */
+  --chat-bubble-assistant-bg-start: #faf5ff; /* purple-50 */
+  --chat-bubble-assistant-bg-end: #fdf2f8; /* pink-50 */
+  --chat-bubble-assistant-text: #374151; /* gray-700 */
+  --chat-bubble-assistant-border-start: #a855f7; /* purple-400 */
+  --chat-bubble-assistant-border-middle: #f472b6; /* pink-400 */
+  --chat-bubble-assistant-border-end: #f97316; /* orange-500 */
+  --chat-bubble-assistant-avatar-start: #a855f7;
+  --chat-bubble-assistant-avatar-middle: #f472b6;
+  --chat-bubble-assistant-avatar-end: #f97316;
+  --chat-bubble-assistant-accent: #a855f7;
+  --chat-bubble-assistant-accent-light: rgba(168, 85, 247, 0.7);
+  --chat-bubble-assistant-tail-start: #a855f7;
+  --chat-bubble-assistant-tail-end: #f472b6;
+
+  --chat-action-love: #f472b6; /* pink-400 */
+  --chat-action-love-hover: #ec4899; /* pink-500 */
+  --chat-action-cheer: #fb923c; /* orange-400 */
+  --chat-action-cheer-hover: #f97316; /* orange-500 */
+  --chat-action-giggle: #a855f7; /* purple-500 */
+  --chat-action-giggle-hover: #9333ea; /* purple-600 */
+
+  /* Cores do Input */
+  --input-bg: rgba(255, 255, 255, 0.6);
+  --input-border: rgba(251, 207, 232, 0.5);
+  --input-focus-border: rgba(244, 114, 182, 0.5);
+  --input-focus-ring: rgba(251, 146, 60, 0.3);
+  --input-text: #374151;
+  --input-placeholder-text: rgba(244, 114, 182, 0.7);
+  --input-icon: #f472b6; /* pink-400 */
+
+  /* Scrollbar */
+  --scrollbar-track-bg: #fdf2f8;
+  --scrollbar-thumb-bg: #a855f7;
+  --scrollbar-thumb-hover-bg: #9333ea;
+
+  /* PFP */
+  --pfp-border-start: #f472b6; /* pink-400 */
+  --pfp-border-middle: #a855f7; /* purple-400 */
+  --pfp-border-end: #3b82f6; /* blue-400 */
+  --pfp-bg-start: rgba(255, 255, 255, 0.8); /* white/80 */
+  --pfp-bg-end: rgba(253, 242, 248, 0.6); /* pink-50/60 */
+  --pfp-overlay-start: rgba(251, 207, 232, 0.2); /* pink-200/20 */
+  --pfp-overlay-middle: rgba(233, 213, 255, 0.2); /* purple-200/20 */
+  --pfp-overlay-end: rgba(219, 234, 254, 0.2); /* blue-200/20 */
+
+  --pfp-fallback-bg-start: #fbcfe8; /* pink-200 */
+  --pfp-fallback-bg-end: #e9d5ff; /* purple-200 */
+  --pfp-fallback-border: rgba(249, 168, 212, 0.5); /* pink-300/50 */
+  --pfp-fallback-icon: #f472b6; /* pink-400 */
+
+  /* Modal */
+  --modal-bg-start: #ffffff;
+  --modal-bg-middle: #faf5ff;
+  --modal-bg-end: #fdf2f8;
+  --modal-border: rgba(216, 180, 254, 0.5); /* purple-300/50 */
+  --modal-header-title-start: #a855f7;
+  --modal-header-title-middle: #ec4899;
+  --modal-header-title-end: #f97316;
+  --modal-header-subtitle: rgba(168, 85, 247, 0.8);
+  --modal-close-icon: #a855f7;
+  --modal-close-icon-hover: #d946ef;
+  --modal-filter-bg: rgba(233, 213, 255, 0.5);
+  --modal-filter-text: #7e22ce;
+  --modal-filter-hover-bg: rgba(216, 180, 254, 0.5);
+  --modal-filter-active-bg-start: #a855f7;
+  --modal-filter-active-bg-end: #f472b6;
+  --modal-filter-active-text: #ffffff;
+  --modal-item-bg-user-start: #eff6ff;
+  --modal-item-bg-user-end: #e0f2fe;
+  --modal-item-border-user: rgba(59, 130, 246, 0.5);
+  --modal-item-bg-assistant-start: #faf5ff;
+  --modal-item-bg-assistant-end: #fdf4ff;
+  --modal-item-border-assistant: rgba(216, 180, 254, 0.5);
+  --modal-footer-bg-start: rgba(250, 245, 255, 0.5);
+  --modal-footer-bg-end: rgba(253, 242, 248, 0.5);
+  --modal-footer-border: rgba(233, 213, 255, 0.3);
+  --modal-footer-text: rgba(168, 85, 247, 0.8);
+
+  /* Transaction Modal Specifics */
+  --transaction-summary-bg-start: rgba(251, 207, 232, 0.5); /* pink-200/50 */
+  --transaction-summary-bg-end: rgba(233, 213, 255, 0.5); /* purple-200/50 */
+  --transaction-summary-border: rgba(251, 207, 232, 0.3); /* pink-200/30 */
+  --transaction-summary-text: #ec4899; /* pink-500 */
+  --transaction-summary-total: #16a34a; /* green-600 */
+  --transaction-item-completed-bg-start: #dcfce7; /* green-100 */
+  --transaction-item-completed-bg-end: #e0f2fe; /* cyan-100 */
+  --transaction-item-completed-border: rgba(74, 222, 128, 0.5); /* green-300/50 */
+  --transaction-item-pending-bg-start: #fef9c3; /* yellow-100 */
+  --transaction-item-pending-bg-end: #ffedd5; /* orange-100 */
+  --transaction-item-pending-border: rgba(252, 211, 77, 0.5); /* yellow-300/50 */
+
+  /* Main Content Background */
+  --main-bg: #e9a7f1; /* Light theme has no main background, shows body gradient */
+}
+
+.dark {
+  /* Gradientes de Fundo */
+  --bg-gradient-start: #3730a3; /* indigo-800 */
+  --bg-gradient-middle: #1e40af; /* blue-800 */
+  --bg-gradient-end: #581c87; /* purple-900 */
+
+  /* Cores de Texto */
+  --text-primary: #f1f5f9; /* slate-100 */
+  --text-secondary: #94a3b8; /* slate-400 */
+  --text-accent: #ffffff; /* sky-400 */
+  --text-placeholder: #7dd3fc; /* sky-300 com 70% opacidade */
+  --text-kawaii: #5skyb2f4; /* sky-500 */
+
+  /* Cores de Navbar */
+  --navbar-bg-start: rgba(55, 48, 163, 0.7); /* indigo-800/70 */
+  --navbar-bg-middle: rgba(30, 64, 175, 0.7); /* blue-800/70 */
+  --navbar-bg-end: rgba(88, 28, 135, 0.7); /* purple-900/70 */
+  --navbar-border: rgba(129, 140, 248, 0.4); /* indigo-400/40 */
+  --navbar-text-gradient-start: #7dd3fc; /* sky-300 */
+  --navbar-text-gradient-middle: #818cf8; /* indigo-400 */
+  --navbar-text-gradient-end: #c084fc; /* purple-400 */
+
+  /* Cores de Botões */
+  --btn-primary-bg-start: #0ea5e9; /* sky-500 */
+  --btn-primary-bg-middle: #3b82f6; /* blue-500 */
+  --btn-primary-bg-end: #6366f1; /* indigo-500 */
+  --btn-primary-hover-bg-start: #0284c7; /* sky-600 */
+  --btn-primary-hover-bg-middle: #2563eb; /* blue-600 */
+  --btn-primary-hover-bg-end: #4f46e5; /* indigo-600 */
+  --btn-primary-ring: rgba(59, 130, 246, 0.5); /* blue-500/50 */
+
+  --btn-secondary-bg-start: #818cf8; /* indigo-400 */
+  --btn-secondary-bg-middle: #a78bfa; /* violet-400 */
+  --btn-secondary-bg-end: #c084fc; /* purple-400 */
+  --btn-secondary-hover-bg-start: #6366f1; /* indigo-500 */
+  --btn-secondary-hover-bg-middle: #8b5cf6; /* violet-500 */
+  --btn-secondary-hover-bg-end: #a855f7; /* purple-500 */
+  --btn-secondary-ring: rgba(129, 140, 248, 0.5); /* indigo-400/50 */
+
+  /* Cores de Painéis e Modais */
+  --panel-bg-start: rgba(11, 6, 170, 0.5); /* indigo-900/50 */
+  --panel-bg-middle: rgba(5, 55, 194, 0.5); /* blue-900/50 */
+  --panel-bg-end: rgba(47, 15, 143, 0.5); /* deep-purple/50 */
+  --panel-border: rgba(32, 80, 148, 0.3);
+  
+  --panel-header-bg-start: rgba(55, 48, 163, 0.5);
+  --panel-header-bg-end: rgba(88, 28, 135, 0.5);
+  --panel-header-border: rgba(129, 140, 248, 0.3);
+  --panel-header-text-start: #7dd3fc;
+  --panel-header-text-middle: #a78bfa;
+  --panel-header-text-end: #f472b6; /* A touch of pink */
+
+  /* Cores do Chat */
+  --chat-bubble-user-bg-border: #38bdf8; /* sky-400 */
+  --chat-bubble-user-bg-start: #0b2858; /* slate-800 */
+  --chat-bubble-user-bg-end: #581c87; /* blue-900 */
+  --chat-bubble-user-text: #e2e8f0;
+  --chat-bubble-user-border-start: #38bdf8;
+  --chat-bubble-user-border-middle: #60a5fa;
+  --chat-bubble-user-border-end: #818cf8;
+  --chat-bubble-user-avatar-start: #3b82f6; /* blue-500 */
+  --chat-bubble-user-avatar-end: #6366f1; /* indigo-500 */
+  --chat-bubble-user-accent: #7dd3fc; /* sky-300 */
+  --chat-bubble-user-accent-light: rgba(125, 211, 252, 0.7);
+  --chat-bubble-user-tail-start: #3b82f6;
+  --chat-bubble-user-tail-end: #6366f1;
+
+  --chat-bubble-assistant-bg-border: #a78bfa; /* violet-400 */
+  --chat-bubble-assistant-bg-start: #0b2858; /* slate-800 */
+  --chat-bubble-assistant-bg-end: #581c87; /* purple-900 */
+  --chat-bubble-assistant-text: #e2e8f0;
+  --chat-bubble-assistant-border-start: #818cf8;
+  --chat-bubble-assistant-border-middle: #a78bfa;
+  --chat-bubble-assistant-border-end: #c084fc;
+  --chat-bubble-assistant-avatar-start: #8b5cf6; /* violet-500 */
+  --chat-bubble-assistant-avatar-middle: #a855f7; /* purple-500 */
+  --chat-bubble-assistant-avatar-end: #d946ef; /* fuchsia-500 */
+  --chat-bubble-assistant-accent: #c4b5fd; /* violet-300 */
+  --chat-bubble-assistant-accent-light: rgba(196, 181, 253, 0.7);
+  --chat-bubble-assistant-tail-start: #8b5cf6;
+  --chat-bubble-assistant-tail-end: #a855f7;
+
+  /* Cores do Input */
+  --input-bg: rgba(30, 41, 59, 0.6);
+  --input-border: rgba(100, 116, 139, 0.5);
+  --input-focus-border: rgba(96, 165, 250, 0.5);
+  --input-focus-ring: rgba(12, 74, 150, 0.3);
+  --input-text: #e2e8f0;
+  --input-placeholder-text: #e2e8f0;
+  --input-icon: #38bdf8; /* sky-400 */
+
+  /* Scrollbar */
+  --scrollbar-track-bg: #1e293b;
+  --scrollbar-thumb-bg: #3b82f6; /* blue-500 */
+  --scrollbar-thumb-hover-bg: #2563eb; /* blue-600 */
+
+  /* PFP */
+  --pfp-border-start: #3b82f6;
+  --pfp-border-middle: #818cf8;
+  --pfp-border-end: #c084fc;
+  --pfp-bg-start: rgba(30, 41, 59, 0.8);
+  --pfp-bg-end: rgba(51, 65, 85, 0.6);
+  --pfp-overlay-start: rgba(96, 165, 250, 0.2);
+  --pfp-overlay-middle: rgba(129, 140, 248, 0.2);
+  --pfp-overlay-end: rgba(167, 139, 250, 0.2);
+  --pfp-fallback-bg-start: #3b82f6;
+  --pfp-fallback-bg-end: #6366f1;
+  --pfp-fallback-border: rgba(96, 165, 250, 0.5);
+  --pfp-fallback-icon: #bfdbfe; /* blue-200 */
+
+  /* Modal */
+  --modal-bg-start: #1e293b;
+  --modal-bg-middle: #111827;
+  --modal-bg-end: #0f172a;
+  --modal-border: rgba(100, 116, 139, 0.5);
+  --modal-header-title-start: #7dd3fc;
+  --modal-header-title-middle: #a78bfa;
+  --modal-header-title-end: #f472b6; /* A touch of pink */
+  --modal-header-subtitle: rgba(165, 180, 252, 0.8);
+  --modal-close-icon: #a78bfa;
+  --modal-close-icon-hover: #c4b5fd;
+  --modal-filter-bg: rgba(51, 65, 85, 0.5);
+  --modal-filter-text: #a78bfa;
+  --modal-filter-hover-bg: rgba(71, 85, 105, 0.5);
+  --modal-filter-active-bg-start: #3b82f6;
+  --modal-filter-active-bg-end: #818cf8;
+  --modal-filter-active-text: #ffffff;
+  --modal-item-bg-user-start: #1e293b;
+  --modal-item-bg-user-end: #1f2937;
+  --modal-item-border-user: rgba(96, 165, 250, 0.5);
+  --modal-item-bg-assistant-start: #1e293b;
+  --modal-item-bg-assistant-end: #28304f;
+  --modal-item-border-assistant: rgba(129, 140, 248, 0.5);
+  --modal-footer-bg-start: rgba(30, 41, 59, 0.5);
+  --modal-footer-bg-end: rgba(17, 24, 39, 0.5);
+  --modal-footer-border: rgba(51, 65, 85, 0.3);
+  --modal-footer-text: rgba(165, 180, 252, 0.8);
+
+  /* Transaction Modal Specifics */
+  --transaction-summary-bg-start: rgba(51, 65, 85, 0.5);
+  --transaction-summary-bg-end: rgba(71, 85, 105, 0.5);
+  --transaction-summary-border: rgba(100, 116, 139, 0.3);
+  --transaction-summary-text: #60a5fa; /* blue-400 */
+  --transaction-summary-total: #4ade80; /* green-400 */
+  --transaction-item-completed-bg-start: #1e3a8a; /* blue-900 */
+  --transaction-item-completed-bg-end: #1e40af; /* blue-800 */
+  --transaction-item-completed-border: rgba(96, 165, 250, 0.5); /* blue-400/50 */
+  --transaction-item-pending-bg-start: #422006; /* yellow-900 */
+  --transaction-item-pending-bg-end: #451a03; /* orange-900 */
+  --transaction-item-pending-border: rgba(202, 138, 4, 0.5); /* yellow-500/50 */
+
+  /* Main Content Background */
+  --main-bg: rgba(15, 23, 42, 0.6); /* slate-900/60 */
+}
+
+body {
+  background-image: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-middle), var(--bg-gradient-end));
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom kawaii animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes modal-slide-up {
+  0% { transform: translateY(100%) scale(0.9); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes modal-fade-in {
+  0% { opacity: 0; backdrop-filter: blur(0px); }
+  100% { opacity: 1; backdrop-filter: blur(8px); }
+}
+
+@keyframes kawaii-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.animate-gentle-bounce {
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+.modal-slide-up {
+  animation: modal-slide-up 0.3s ease-out;
+}
+
+.modal-fade-in {
+  animation: modal-fade-in 0.3s ease-out;
+}
+
+.kawaii-pulse {
+  animation: kawaii-pulse 2s ease-in-out infinite;
+}
+
+/* Enhanced modal backdrop blur */
+.modal-backdrop {
+  backdrop-filter: blur(12px);
+  background: radial-gradient(circle at center, rgba(255, 182, 193, 0.1) 0%, rgba(221, 160, 221, 0.1) 50%, rgba(173, 216, 230, 0.1) 100%);
+}
+
+/* Kawaii button hover effects */
+.kawaii-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.kawaii-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.kawaii-button:hover::before {
+  left: 100%;
+}
+
+/* Scrollbar kawaii styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-bg);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-bg);
+  border-radius: 10px;
+  border: 2px solid var(--scrollbar-track-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-bg);
+}
+
+@layer components {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-[var(--scrollbar-thumb-bg)] rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-[var(--scrollbar-thumb-hover-bg)];
+  }
+}
