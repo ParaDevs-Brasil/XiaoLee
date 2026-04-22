@@ -103,6 +103,21 @@ export default function Navbar() {
                   {pathname === '/campaigns' ? '🏠' : '🚀'}
                 </span>
               </Link>
+
+              <Link 
+                href={pathname === '/dashboard' ? '/' : '/dashboard'}
+                className="inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[80px] md:min-w-[140px] h-[40px] md:h-[52px]"
+              >
+                <span className="font-semibold hidden sm:inline">
+                  {pathname === '/dashboard' ? 'Go to Chat' : 'Dashboard'}
+                </span>
+                <span className="font-semibold sm:hidden">
+                  {pathname === '/dashboard' ? 'Chat' : 'Dash'}
+                </span>
+                <span className="text-sm md:text-lg">
+                  {pathname === '/dashboard' ? '🏠' : '📊'}
+                </span>
+              </Link>
               
               {/*
               <Link 

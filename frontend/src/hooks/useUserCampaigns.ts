@@ -32,7 +32,7 @@ export const useUserCampaigns = (): UseUserCampaignsReturn => {
 
       console.log('🔍 Buscando campanhas do usuário:', userInfo.twitter_user_id);
 
-      const response = await api.get<UserCampaignsResponse>('/campaigns/me', {
+      const response = await api.get<UserCampaignsResponse>('/campaigns/user', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionId}`

@@ -179,13 +179,18 @@ export default class UserData {
   
   static async fetchData(): Promise<boolean> {
     try {
+      // Guard: do not call API with an empty user ID
+      if (!this.twitter_user_id || this.twitter_user_id.trim() === "") {
+        console.log("⏭ fetchData skipped — no twitter_user_id set");
+        return false;
+      }
       const data = await useUser(this.twitter_user_id);
       console.log("📊 Data fetched successfully:", data);
       this.setUserData(data.dossier);
-      return true; // Return success status
+      return true;
     } catch (error) {
       console.error("❌ Error fetching data:", error);
-      return false; // Return failure status
+      return false;
     }
   }  
   
