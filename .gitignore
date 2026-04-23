@@ -35,3 +35,6 @@ htmlcov/
 target/
 test-ledger/
 .anchor/
+
+# Local database snapshots
+backend/xiao_lee.db

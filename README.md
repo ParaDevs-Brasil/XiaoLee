@@ -2,6 +2,14 @@
 
 Assistente de IA multi-plataforma para Solana com backend FastAPI, integrações Telegram/X, Gemini para orquestração de intenção e fluxo wallet-first no frontend para swap na Devnet.
 
+## Interface Atual
+
+| Chat | Dashboard | Campanhas |
+|---|---|---|
+| ![Tela do chat XiaoLee](XiaoleeChat.png) | ![Dashboard XiaoLee](Dashboard%20Xiaolee.png) | ![Tela de campanhas XiaoLee](Campaidns.png) |
+
+As imagens abaixo refletem o estado atual da interface principal, do dashboard e da área de campanhas.
+
 ## Progresso de Construção
 
 Status geral do projeto: **85% concluído**.
@@ -51,19 +59,21 @@ Resumo rapido de cobertura atual:
 ## Arquitetura Resumida
 
 ```mermaid
-graph TB
+graph LR
     subgraph "Clients"
         FE[Next.js Frontend]
         TG[Telegram]
         XX[X / Twitter]
     end
 
-    subgraph "Backend"
-        API[FastAPI :8000]
+    subgraph "Backend FastAPI"
+        API[server.app:app]
         ORCH[OrchestrationService]
         GEM[Gemini]
-        DB[(SQLAlchemy / SQLite)]
+        CAMP[Campaigns Router]
+        NOTIF[Notifications Router]
         HEL[Helius Webhook Handler]
+        DB[(SQLAlchemy / SQLite)]
     end
 
     subgraph "Solana"
@@ -76,11 +86,18 @@ graph TB
     XX --> API
 
     API --> ORCH
+    API --> CAMP
+    API --> NOTIF
+    API --> HEL
+
     ORCH --> GEM
     ORCH --> DB
-    API --> JUP
-    API --> RPC
+    CAMP --> DB
+    NOTIF --> DB
     HEL --> DB
+
+    API --> JUP
+    FE --> RPC
 ```
 
 ## Quickstart
