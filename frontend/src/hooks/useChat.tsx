@@ -19,7 +19,6 @@ export default async function sendChatMessage(
             return response.data;
         } else {
             // Se há dados de usuário, pegar o twitter_user_id e enviar
-            const userInfo = UserData.getUserInfo();
             console.log("🔍 Enviando como usuário autenticado:", UserData.getSessionId());
 
             const response = await api.post("/chat", {

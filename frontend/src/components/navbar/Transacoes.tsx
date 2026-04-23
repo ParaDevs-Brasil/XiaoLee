@@ -14,13 +14,15 @@ interface DisplayActivity {
   data: SwapHistoryItem | TransactionHistoryItem;
 }
 
-const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], balance = [], shouldOpen = false, onClose }) => {
-    const [activeTab, setActiveTab] = useState<'all' | 'swaps' | 'transactions'>('all');
+type ActivityTab = 'all' | 'swaps' | 'transactions';
+
+const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen = false, onClose }) => {
+    const [activeTab, setActiveTab] = useState<ActivityTab>('all');
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [, setRefreshTrigger] = useState(0);
     const { isOpen, animateIn, closeModal } = useModal(shouldOpen, onClose);
 
-    // Get data from UserData - this will update when refreshTrigger changes
+    // Get data from UserData; the setter below forces rerenders when data changes
     const history = UserData.getHistory();
     const swaps = history.swaps || [];
     const internalTransactions = history.transactions || [];
@@ -227,7 +229,7 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], balance = []
                   ].map((tab) => (
                     <button
                       key={tab.key}
-                      onClick={() => setActiveTab(tab.key as any)}
+                      onClick={() => setActiveTab(tab.key as ActivityTab)}
                       className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                         activeTab === tab.key
                           ? 'bg-white text-purple-600 shadow-sm'

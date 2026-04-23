@@ -115,6 +115,7 @@ soupsieve==2.7
 SQLAlchemy==2.0.41
 sse-starlette==2.4.1
 starlette==0.45.3
+solders==0.25.0
 toolz==1.0.0
 tqdm==4.67.1
 twikit==2.3.3

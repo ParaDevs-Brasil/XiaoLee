@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from 'react-toastify';
@@ -61,9 +61,10 @@ export default function Navbar() {
     // Verificar se estamos no lado do cliente
     if (typeof window === 'undefined') return;
     
-    const handleUserDataLoaded = (event: any) => {
-      console.log("🎉 UserData loaded event received!", event.detail);
-      setUserData(event.detail);
+    const handleUserDataLoaded = (event: Event) => {
+      const customEvent = event as CustomEvent<TypeUserData>;
+      console.log("🎉 UserData loaded event received!", customEvent.detail);
+      setUserData(customEvent.detail);
       setIsUserDataLoaded(true);
     };
 
@@ -172,7 +173,7 @@ export default function Navbar() {
                     {/* Menu Items */}
                     <div className="py-2 bg-gradient-to-b from-[var(--navbar-bg-middle)]/50 to-[var(--navbar-bg-end)]/50 backdrop-blur-sm">
                       <div
-                        onClick={(e) => {
+                        onClick={() => {
                           handleWalletClick();
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/20 hover:to-[var(--btn-primary-hover-bg-end)]/20 backdrop-blur-sm transition-all duration-200 transform hover:scale-[1.02] cursor-pointer"
@@ -187,7 +188,7 @@ export default function Navbar() {
                       </div>
 
                       <div
-                        onClick={(e) => {
+                        onClick={() => {
                           handleTransactionClick();
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/20 hover:to-[var(--btn-primary-hover-bg-end)]/20 backdrop-blur-sm transition-all duration-200 transform hover:scale-[1.02] cursor-pointer"
@@ -202,7 +203,7 @@ export default function Navbar() {
                       </div>
                       
                       <div
-                        onClick={(e) => {
+                        onClick={() => {
                           handleHistoryClick();
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/20 hover:to-[var(--btn-primary-hover-bg-end)]/20 backdrop-blur-sm transition-all duration-200 transform hover:scale-[1.02] cursor-pointer"

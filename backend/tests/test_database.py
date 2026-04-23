@@ -214,7 +214,7 @@ class TestSwapHistoryModel:
         await db_session.refresh(swap)
         
         assert swap.id is not None
-        assert swap.user_id == user.id
+        assert swap.user_id == str(user.id)
         assert swap.from_token == sample_swap_data["from_token"]
         assert swap.to_token == sample_swap_data["to_token"]
         assert float(swap.from_amount) == sample_swap_data["from_amount"]

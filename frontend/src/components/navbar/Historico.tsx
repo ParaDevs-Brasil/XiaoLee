@@ -8,10 +8,10 @@ import { getRoleColor, getRoleIcon, filterHistory, typeOptions } from "@/utils/h
 const Historico: React.FC<HistoricoProps> = ({ shouldOpen = false, onClose }) => {
     const [selectedFilter, setSelectedFilter] = useState<string>("all");
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [, setRefreshTrigger] = useState(0);
     const { isOpen, animateIn, closeModal } = useModal(shouldOpen, onClose);
     
-    // Get chat history from raw data - this will update when refreshTrigger changes
+    // Get chat history from raw data; the setter below forces rerenders when data changes
     const rawChatHistory = UserData.getChatHistory();
     
     // Convert to ChatMessage format

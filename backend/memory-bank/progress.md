@@ -1,50 +1,47 @@
-# Progress: Xiaolee
+# Progress: XiaoLee
 
-## 1. O Que Funciona / Concluído
+Atualizacao documental: **2026-04-23**.
 
-- **Data:** (Data da criação/última atualização significativa do projeto base)
-- Configuração inicial completa do projeto Next.js "Xiaolee":
-  - Next.js 15.3.3 com TypeScript.
-  - Tailwind CSS v4 configurado (incluindo `tailwind.config.ts`).
-  - ESLint configurado.
-  - App Router, diretório `src/`, alias de importação `@/*`.
-  - Gerenciador de pacotes: npm.
-  - Nome do projeto em `package.json` corrigido para `xiaolee`.
-- Criação inicial e recriação (quando necessário) dos arquivos do Memory Bank.
-- Implementação da estrutura inicial da UI da tela de chat:
-    - `Navbar.tsx` criado e funcional.
-    - `AnimePanel.tsx` criado, exibindo a imagem da personagem.
-        - O contêiner da imagem foi ajustado para um retângulo com cantos arredondados (`rounded-lg`) conforme feedback.
-    - `ChatPanel.tsx` criado com estrutura para mensagens e input.
-    - `src/app/page.tsx` montando os componentes no layout principal.
-    - Estilos globais em `globals.css` e `layout.tsx` configurados para o tema fofo.
+## Entregas Concluidas
 
-## 2. O Que Falta Construir / Próximas Etapas
+- Backend FastAPI com rotas core:
+    - `GET /health`, `GET /status`, `POST /chat`, `POST /v1/messages/inbound`.
+- Segurança de webhooks:
+    - Telegram secret token.
+    - X signature validation.
+    - Helius secret em `Authorization`.
+- Swap prepare no backend:
+    - `POST /v1/solana/swap/prepare` retorna quote e tx unsigned.
+- Frontend wallet flow:
+    - conexao Phantom,
+    - validacoes de input,
+    - simulacao pre-envio,
+    - confirmacao explicita,
+    - sign and send.
+- Cobertura de testes frontend:
+    - sucesso completo,
+    - erro de simulacao,
+    - erro HTTP no prepare,
+    - erro de assinatura,
+    - erro de envio,
+    - validacoes de token e valor.
+- Observabilidade HTTP adicionada com `/metrics` e métricas Prometheus simples.
+- CI fullstack consolidado com backend, frontend, lint, testes e build.
+- Documentacao central sincronizada (README, arquitetura, API e smart contract).
+- Documentacao principal e arquivos legados reindexados para apontar ao estado atual.
 
-- **Desenvolvimento da UI da Tela de Chat (Refinamentos e Interatividade):**
-    - Implementar a lógica de envio e exibição de mensagens no `ChatPanel`.
-    - Adicionar mais elementos visuais fofos ou animações, se desejado.
-- Teste da interface e ajustes finos.
-- (Futuro) Integração com IA.
-- (Futuro) Implementação da funcionalidade de "vincular vídeos".
-- (Futuro) Implementação da lógica para "Transactions" e "History".
+## Em Andamento
 
-## 3. Status Atual do Projeto
+- Planejamento da trilha de integracao Anchor no caminho critico.
+- Manter scripts legados de Twikit fora da coleta padrão do pytest.
 
-- **Fase:** Desenvolvimento da Interface do Usuário (Refinamento).
-- **Progresso:** Estrutura visual base da tela de chat implementada, com ajustes recentes no `AnimePanel` conforme feedback.
+## Proximas Fases
 
-## 4. Problemas Conhecidos / Bloqueios
+1. Definir readiness checklist para rollout mainnet.
+2. Expandir testes de integracao backend para casos cross-channel e on-chain.
+3. Revisar seguranca com foco em idempotencia e recuperacao de falhas.
 
-- Nenhum bloqueio técnico no momento.
-- Necessário confirmar a existência e o caminho exato da imagem `animeGirl.png`.
+## Status Atual
 
-## 5. Histórico de Decisões do Projeto (Evolução)
-
-- **Decisão (Setup):** Utilizar Next.js com TypeScript, Tailwind CSS, App Router, diretório `src/`, alias `@/*`.
-- **Decisão (Setup):** Adotar o "Cline's Memory Bank" para documentação.
-- **Decisão (Setup):** Resolver conflito de nome do projeto com `create-next-app` criando em subdiretório e movendo.
-- **Decisão (Setup):** Criar `tailwind.config.ts` manualmente.
-- **Decisão (UI):** Estruturar a tela de chat com `Navbar`, `AnimePanel`, e `ChatPanel`.
-- **Decisão (UI):** Foco em tema "extremamente fofo" e de anime usando Tailwind CSS.
-- **Decisão (UI - Ajuste):** Alterar o contêiner da imagem no `AnimePanel` de circular para retangular com cantos arredondados e dimensões ajustadas. 
+- Classificacao: **MVP funcional em Devnet, com hardening em curso**.
+- Sem bloqueio tecnico impeditivo no momento.

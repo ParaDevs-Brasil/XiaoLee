@@ -1,6 +1,8 @@
 # Como Contribuir para a XiaoLee
 
-Bem-vindo! Este documento e o Ponto de Partida Definitivo para configurar seu ambiente local e comecar a contribuir com o protocolo XiaoLee.
+Bem-vindo! Este documento descreve o fluxo atual para configurar o ambiente local e contribuir com o protocolo XiaoLee.
+
+Atualizacao documental: **2026-04-23**.
 
 ---
 
@@ -11,7 +13,7 @@ Para rodar todo o ecossistema (Backend, Frontend e Blockchain):
 | Ferramenta               | Versao Minima | Uso                                 |
 |--------------------------|---------------|-------------------------------------|
 | Docker & Docker Compose  | 24+           | Containers de servicos              |
-| Node.js & NPM            | 18+           | Frontend Next.js e testes Anchor    |
+| Node.js & NPM            | 18+           | Frontend Next.js e testes           |
 | Python                   | 3.12+         | Backend FastAPI                     |
 | Rust & Cargo             | 1.75+         | Compilacao de Smart Contracts       |
 | Solana CLI               | 1.18+         | Ferramentas de rede Solana          |
@@ -46,15 +48,17 @@ cd XiaoLee
 
 # Configurar variaveis de ambiente
 cp .env.example .env
-# Preencha obrigatoriamente: GEMINI_API_KEY, HELIUS_API_KEY
+# Preencha obrigatoriamente: GEMINI_API_KEY, TELEGRAM_WEBHOOK_SECRET, X_WEBHOOK_SECRET
 ```
 
 ### 2. Modo Desenvolvimento (Local Nativo)
 
-Roda o FastAPI com hot-reload e o Next.js em modo dev simultaneamente:
+Roda o FastAPI e o Next.js em modo dev simultaneamente:
 
 ```bash
-make dev
+cd backend && ../.venv/bin/uvicorn server.app:app --reload
+# em outro terminal
+cd frontend && npm run dev
 ```
 
 | Servico   | URL                          |
@@ -68,8 +72,7 @@ make dev
 Todos os servicos em containers isolados:
 
 ```bash
-make build-docker
-make run-docker
+docker compose up --build
 ```
 
 | Servico    | Porta | URL                       |
@@ -78,7 +81,7 @@ make run-docker
 | Backend    | 8000  | http://localhost:8000     |
 | Prometheus | 9090  | http://localhost:9090     |
 
-Para parar: `make stop-docker`
+Para parar: `docker compose down`
 
 ---
 
@@ -86,7 +89,6 @@ Para parar: `make stop-docker`
 
 ```
 main          # Branch de producao (protegida)
-develop       # Branch de integracao
 feat/*        # Novas funcionalidades
 fix/*         # Correcoes de bugs
 docs/*        # Atualizacoes de documentacao
@@ -116,6 +118,7 @@ test: adiciona cenario de hacker no anchor test suite
 2. Schemas devem usar **Pydantic v2** com tipos estritos.
 3. Nunca commitar `GEMINI_API_KEY` ou `HELIUS_API_KEY` no codigo.
 4. Novos endpoints devem ser documentados no `docs/API_REFERENCE.md`.
+5. A suíte principal deve passar com `../.venv/bin/pytest -q`; scripts legados com Twikit e integrações externas ficam skipados quando dependências opcionais não estão instaladas.
 
 ### Frontend (Next.js / TypeScript)
 
@@ -146,10 +149,10 @@ anchor test
 
 ### Testes E2E do Backend
 
-Simula payloads de webhook do Telegram e X, validando todos os endpoints:
+Valida o backend principal e os fluxos de webhook/campanhas/notificações:
 
 ```bash
-make e2e-tests
+cd backend && ../.venv/bin/pytest -q
 ```
 
 ### Teste de Stress (Locust)
@@ -180,6 +183,8 @@ make stress-test
 | `GEMINI_API_KEY`       | Chave da API Google Gemini                   | `AIzaSy...`              |
 | `HELIUS_API_KEY`       | Chave da API Helius (RPC Solana)             | `your_helius_key`        |
 | `HELIUS_WEBHOOK_SECRET`| Secret para validar webhooks Helius (HMAC)  | `random_secret_string`   |
+| `TELEGRAM_WEBHOOK_SECRET` | Secret para validar webhooks Telegram      | `random_secret_string`   |
+| `X_WEBHOOK_SECRET`     | Secret para validar webhooks X               | `random_secret_string`   |
 | `NEXT_PUBLIC_CORE_API_URL` | URL base da API para o frontend          | `http://localhost:8000`  |
 | `SOLANA_RPC_URL`       | URL do no RPC Solana                         | `https://devnet.helius-rpc.com/?api-key=...` |
 

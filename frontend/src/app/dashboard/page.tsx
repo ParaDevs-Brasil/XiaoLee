@@ -12,8 +12,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Listen for the custom event emitted by Navbar/User sync
-    const handleUserDataLoaded = (event: any) => {
-      setUserData(event.detail);
+    const handleUserDataLoaded = (event: Event) => {
+      const customEvent = event as CustomEvent<TypeUserData>;
+      setUserData(customEvent.detail);
     };
 
     window.addEventListener('userDataLoaded', handleUserDataLoaded);

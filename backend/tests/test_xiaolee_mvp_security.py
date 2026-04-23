@@ -1,9 +1,12 @@
 import hashlib
 import hmac
+import importlib
+from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
+from server.schemas import IntentResponse, OrchestrationResponse
 
-import server.app as app_module
+app_module = importlib.import_module("server.app")
 
 
 class StubOrchestrator:
@@ -31,6 +34,52 @@ def _set_webhook_secrets():
     object.__setattr__(app_module.settings, "x_webhook_secret", "x-secret")
     app_module.orchestrator = StubOrchestrator()
     app_module.request_hits.clear()
+
+
+def test_status_endpoint_returns_running():
+    response = client.get("/status")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "running"}
+
+
+def test_health_endpoint_returns_ok_with_mocked_rpc_health():
+    previous_get_health = app_module.solana_client.get_health
+    app_module.solana_client.get_health = AsyncMock(return_value={"jsonrpc": "2.0", "result": "ok", "id": 1})
+    try:
+        response = client.get("/health")
+    finally:
+        app_module.solana_client.get_health = previous_get_health
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["rpc_health"]["result"] == "ok"
+
+
+def test_chat_endpoint_returns_compat_shape():
+    original_process_inbound = app_module._process_inbound
+    app_module._process_inbound = AsyncMock(
+        return_value=OrchestrationResponse(
+            platform="web",
+            user_id="web-user",
+            intent=IntentResponse(action="help", confidence=1.0, entities={}),
+            reply_text="ok from chat",
+            execution={"status": "ok"},
+        )
+    )
+    app_module.request_hits.clear()
+    try:
+        response = client.post("/chat", json={"message": "oi", "platform": "web", "user_id": "web-user"})
+    finally:
+        app_module._process_inbound = original_process_inbound
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["response"][0]["type"] == "text"
+    assert payload["response"][0]["content"] == "ok from chat"
+    assert payload["intent"]["action"] == "help"
+    assert payload["execution"]["status"] == "ok"
 
 
 def test_telegram_webhook_rejects_missing_secret():
@@ -62,11 +111,24 @@ def test_x_webhook_accepts_valid_signature():
 
     body = b'{"dm":{"sender_id":"1","text":"oi"}}'
     signature = hmac.new(b"x-secret", body, hashlib.sha256).hexdigest()
-    response = client.post(
-        "/v1/integrations/x/webhook",
-        content=body,
-        headers={"Content-Type": "application/json", "x-xiaolee-signature": signature},
+    original_process_inbound = app_module._process_inbound
+    app_module._process_inbound = AsyncMock(
+        return_value={
+            "platform": "x",
+            "user_id": "1",
+            "intent": {"action": "help", "confidence": 1.0, "entities": {}},
+            "reply_text": "ok",
+            "execution": {"status": "ok"},
+        }
     )
+    try:
+        response = client.post(
+            "/v1/integrations/x/webhook",
+            content=body,
+            headers={"Content-Type": "application/json", "x-xiaolee-signature": signature},
+        )
+    finally:
+        app_module._process_inbound = original_process_inbound
 
     assert response.status_code == 200
     assert response.json()["platform"] == "x"

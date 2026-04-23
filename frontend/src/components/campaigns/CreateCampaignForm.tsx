@@ -39,7 +39,7 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
       if (onSuccess) {
         onSuccess();
       }
-    } catch (err) {
+    } catch {
       onError('Failed to create campaign, try another time');
     }
   };

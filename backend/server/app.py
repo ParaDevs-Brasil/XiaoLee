@@ -1,12 +1,16 @@
 from collections import defaultdict, deque
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
+from time import perf_counter
 from typing import Deque, Dict
 
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from database import init_db
+from database.database import create_tables
 from database.database import get_db_session
 from database.repository import DatabaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,18 +18,29 @@ from fastapi import Depends
 
 from server.integrations.gemini_client import GeminiClient
 from server.integrations.solana_client import SolanaClient
+from server.integrations.telegram_client import TelegramClient
 from server.integrations.telegram_adapter import TelegramAdapter
 from server.integrations.x_adapter import XAdapter
 from server.orchestration.service import OrchestrationService
+from server.metrics import record_http_request, render_prometheus_metrics
 from server.schemas import InboundMessage, OrchestrationResponse, SwapPrepareRequest, SwapPrepareResponse
 from server.settings import settings
 from server.webhooks.helius_routes import router as helius_router
 from server.campaigns_routes import router as campaigns_router
+from server.notifications_routes import router as notifications_router
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    await create_tables()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_allowed_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,8 +48,24 @@ app.add_middleware(
 
 app.include_router(helius_router)
 app.include_router(campaigns_router)
+app.include_router(notifications_router)
 
 request_hits: Dict[str, Deque[datetime]] = defaultdict(deque)
+
+
+@app.middleware("http")
+async def collect_metrics(request: Request, call_next):
+    started_at = perf_counter()
+    response = await call_next(request)
+    route_path = request.url.path
+    if route_path != "/metrics":
+        record_http_request(
+            method=request.method,
+            path=route_path,
+            status_code=response.status_code,
+            duration_seconds=perf_counter() - started_at,
+        )
+    return response
 
 
 def _enforce_rate_limit(key: str):
@@ -75,12 +106,6 @@ def _validate_telegram_secret(provided_secret: str | None):
     if not hmac.compare_digest(settings.telegram_webhook_secret, provided_secret):
         raise HTTPException(status_code=401, detail="Invalid Telegram webhook secret")
 
-
-@app.on_event("startup")
-async def startup():
-    init_db()
-
-
 gemini_client = GeminiClient(api_key=settings.gemini_api_key, model=settings.gemini_model)
 solana_client = SolanaClient(
     rpc_url=settings.solana_rpc_url,
@@ -90,6 +115,7 @@ solana_client = SolanaClient(
 orchestrator = OrchestrationService(gemini=gemini_client, solana=solana_client)
 telegram_adapter = TelegramAdapter()
 x_adapter = XAdapter()
+telegram_client = TelegramClient(bot_token=settings.telegram_bot_token)
 
 
 @app.get("/health")
@@ -115,27 +141,81 @@ async def status():
     return {"status": "running"}
 
 
-@app.post("/v1/messages/inbound", response_model=OrchestrationResponse)
-async def inbound_message(payload: InboundMessage, db: AsyncSession = Depends(get_db_session)):
-    _enforce_rate_limit(f"inbound:{payload.platform}:{payload.user_id}")
-    
+@app.get("/metrics")
+async def metrics():
+    return Response(render_prometheus_metrics(), media_type="text/plain; version=0.0.4; charset=utf-8")
+
+
+async def _process_inbound(
+    platform: str,
+    user_id: str,
+    text: str,
+    db: AsyncSession,
+    metadata: dict | None = None,
+) -> OrchestrationResponse:
     repo = DatabaseRepository(db)
-    user = await repo.get_or_create_user(payload.platform, payload.user_id)
+    user = await repo.get_or_create_user(platform, user_id)
+    if platform == "telegram" and metadata and metadata.get("chat_id"):
+        await repo.set_telegram_chat_id(user.id, metadata["chat_id"])
     history = await repo.get_user_history(user.id)
-    await repo.log_dm(user.id, payload.platform, payload.text, message_type="user")
-    
-    result = await orchestrator.execute(payload.text, payload.user_id, history=history)
-    
-    await repo.log_dm(user.id, payload.platform, result["reply_text"], message_type="bot")
+    await repo.log_dm(user.id, platform, text, message_type="user")
+
+    result = await orchestrator.execute(text, user_id, history=history)
+
+    await repo.log_dm(user.id, platform, result["reply_text"], message_type="bot")
     await db.commit()
-    
+
     return OrchestrationResponse(
-        platform=payload.platform,
-        user_id=payload.user_id,
+        platform=platform,
+        user_id=user_id,
         intent=result["intent"],
         reply_text=result["reply_text"],
         execution=result["execution"],
     )
+
+
+@app.post("/v1/messages/inbound", response_model=OrchestrationResponse)
+async def inbound_message(payload: InboundMessage, db: AsyncSession = Depends(get_db_session)):
+    _enforce_rate_limit(f"inbound:{payload.platform}:{payload.user_id}")
+
+    return await _process_inbound(
+        platform=payload.platform,
+        user_id=payload.user_id,
+        text=payload.text,
+        db=db,
+        metadata=payload.metadata,
+    )
+
+
+@app.post("/chat")
+async def chat_compat(
+    payload: dict,
+    authorization: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Compatibility endpoint used by the current frontend chat hook."""
+    text = str(payload.get("message", "")).strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="message is required")
+
+    session_token = ""
+    if authorization and authorization.startswith("Bearer "):
+        session_token = authorization.removeprefix("Bearer ").strip()
+
+    user_id = session_token or str(payload.get("user_id", "web_anonymous"))
+    platform = str(payload.get("platform", "web"))
+
+    _enforce_rate_limit(f"chat:{platform}:{user_id}")
+    result = await _process_inbound(platform=platform, user_id=user_id, text=text, db=db)
+
+    # Keep legacy response shape consumed by frontend ChatPanel.
+    return {
+        "response": [{"type": "text", "content": result.reply_text}],
+        "intent": result.intent.model_dump(),
+        "execution": result.execution,
+        "code": None,
+        "animations": None,
+    }
 
 
 @app.post("/v1/integrations/telegram/webhook", response_model=OrchestrationResponse)
@@ -151,22 +231,12 @@ async def telegram_webhook(
 
     _enforce_rate_limit(f"telegram:{normalized['user_id']}")
 
-    repo = DatabaseRepository(db)
-    user = await repo.get_or_create_user("telegram", normalized["user_id"])
-    history = await repo.get_user_history(user.id)
-    await repo.log_dm(user.id, "telegram", normalized["text"], message_type="user")
-
-    result = await orchestrator.execute(normalized["text"], normalized["user_id"], history=history)
-    
-    await repo.log_dm(user.id, "telegram", result["reply_text"], message_type="bot")
-    await db.commit()
-
-    return OrchestrationResponse(
+    return await _process_inbound(
         platform="telegram",
         user_id=normalized["user_id"],
-        intent=result["intent"],
-        reply_text=result["reply_text"],
-        execution=result["execution"],
+        text=normalized["text"],
+        db=db,
+        metadata=normalized.get("metadata", {}),
     )
 
 
@@ -190,22 +260,11 @@ async def x_webhook(
 
     _enforce_rate_limit(f"x:{normalized['user_id']}")
 
-    repo = DatabaseRepository(db)
-    user = await repo.get_or_create_user("x", normalized["user_id"])
-    history = await repo.get_user_history(user.id)
-    await repo.log_dm(user.id, "x", normalized["text"], message_type="user")
-
-    result = await orchestrator.execute(normalized["text"], normalized["user_id"], history=history)
-    
-    await repo.log_dm(user.id, "x", result["reply_text"], message_type="bot")
-    await db.commit()
-
-    return OrchestrationResponse(
+    return await _process_inbound(
         platform="x",
         user_id=normalized["user_id"],
-        intent=result["intent"],
-        reply_text=result["reply_text"],
-        execution=result["execution"],
+        text=normalized["text"],
+        db=db,
     )
 
 

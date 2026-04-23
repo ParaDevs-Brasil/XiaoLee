@@ -6,10 +6,10 @@ from server.orchestration.service import OrchestrationService
 
 
 class FakeGemini:
-    async def classify_intent(self, user_text: str):
+    async def classify_intent(self, user_text: str, history=None):
         return {"action": "fallback", "confidence": 0.0, "entities": {}}
 
-    async def generate_reply(self, instruction: str, user_text: str):
+    async def generate_reply(self, instruction: str, user_text: str, history=None):
         return "Resposta generica de ajuda"
 
 

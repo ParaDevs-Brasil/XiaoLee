@@ -3,12 +3,11 @@ import time
 from typing import Dict, Optional, Any, List
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from web3 import Web3
+from solders.keypair import Keypair
 
 from database.models import User, Wallet, TokenBalance
 from config import ENCRYPTION_KEY
 from .encryption_service import EncryptionService
-from blockchain.wallet_manager import WalletManager
 from swaps.balance_manager import BalanceManager
 from database.database import init_db
 
@@ -18,9 +17,16 @@ class WalletService:
     def __init__(self, db_session_factory: async_sessionmaker[AsyncSession]):
         self.db_session_factory = db_session_factory
         self.encryption_service = EncryptionService(ENCRYPTION_KEY)
-        self.wallet_manager = WalletManager()
         self.balance_manager = BalanceManager(self.db_session_factory)
-        self.web3 = Web3()
+
+    def _create_solana_keypair(self) -> Dict[str, str]:
+        """Create a Solana-compatible wallet using solders."""
+        keypair = Keypair()
+        secret_bytes = bytes(keypair)
+        return {
+            "address": str(keypair.pubkey()),
+            "private_key": secret_bytes.hex(),
+        }
     
     async def create_wallet_for_user(self, user_id: int) -> Dict[str, Any]:
         """Create and link a new wallet to user"""
@@ -39,14 +45,7 @@ class WalletService:
                         "new_wallet": False
                     }
                 
-                wallet_data = self.wallet_manager.create_wallet()
-                
-                if not wallet_data.get("success"):
-                    return {
-                        "success": False,
-                        "error": "Failed to create wallet"
-                    }
-                
+                wallet_data = self._create_solana_keypair()
                 encrypted_private_key = self.encryption_service.encrypt(wallet_data["private_key"])
                 
                 new_wallet = Wallet(
@@ -78,12 +77,12 @@ class WalletService:
                 
                 await self.initialize_user_balances(user_id)
                 
-                logger.info(f"Created wallet for user {user_id}: {wallet_data['address']}")
+                logger.info(f"Created Solana wallet for user {user_id}: {wallet_data['address']}")
                 
                 return {
                     "success": True,
                     "address": wallet_data["address"],
-                    "message": "Wallet created successfully",
+                    "message": "Solana wallet created successfully",
                     "new_wallet": True
                 }
                 

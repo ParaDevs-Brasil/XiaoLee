@@ -37,8 +37,12 @@ export function useXiaoLeeProgram(twitterId: string | null) {
       setLoading(true);
       try {
         const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
-        // Simple mock provider just for reading data
-        const provider = new anchor.AnchorProvider(connection, {} as any, { preflightCommitment: 'confirmed' });
+        const wallet = {
+          publicKey: PublicKey.default,
+          signTransaction: async <T>(transaction: T) => transaction,
+          signAllTransactions: async <T>(transactions: T[]) => transactions,
+        } as unknown as anchor.Wallet;
+        const provider = new anchor.AnchorProvider(connection, wallet, { preflightCommitment: 'confirmed' });
         const idlWithAddress = { ...IDL, address: PROGRAM_ID.toBase58() } as unknown as anchor.Idl;
         const program = new anchor.Program(idlWithAddress, provider);
 
@@ -48,12 +52,13 @@ export function useXiaoLeeProgram(twitterId: string | null) {
         );
 
         // Fetch account
-        const account = await (program.account as any).userState.fetch(pda);
+        const userStateAccount = program.account as { userState: { fetch: (address: PublicKey) => Promise<{ swapCount: anchor.BN; totalVolume: anchor.BN }> } };
+        const account = await userStateAccount.userState.fetch(pda);
         setUserState({
           swapCount: account.swapCount.toNumber(),
           totalVolume: account.totalVolume.toNumber(),
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.warn('Failed to fetch user PDA', err);
         setError('Nenhum dado on-chain encontrado para esta conta. Faça seu primeiro swap!');
         setUserState(null);

@@ -45,8 +45,9 @@ export default function useCreateCampaign(): UseCreateCampaignReturn {
       setSuccess(true);
       return response.data;
 
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Erro ao criar campanha';
+    } catch (err: unknown) {
+      const apiError = err as { response?: { data?: { message?: string } }; message?: string };
+      const errorMessage = apiError.response?.data?.message || apiError.message || 'Erro ao criar campanha';
       console.error('❌ Erro ao criar campanha:', errorMessage);
       setError(errorMessage);
       throw new Error(errorMessage);

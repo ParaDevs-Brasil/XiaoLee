@@ -1,40 +1,29 @@
-# System Patterns: Xiaolee
+# System Patterns: XiaoLee
 
-## 1. Arquitetura do Sistema (Visão Atual)
+## Arquitetura de Camadas
 
-- **Frontend:** Aplicação Next.js (React) com App Router.
-- **Estilização:** Tailwind CSS v4.
-- **Linguagem Principal:** TypeScript.
-- **Estrutura da UI Principal (Página de Chat):**
-    - `Navbar`: Barra de navegação superior.
-    - `AnimePanel`: Painel lateral esquerdo para visualização da personagem.
-    - `ChatPanel`: Painel central para interação de chat.
-- **Componentização:** A UI será construída com componentes React reutilizáveis localizados em `src/components/`.
+- Canais (Telegram/X/Frontend) entram no backend FastAPI.
+- Orquestrador centraliza intencao, resposta e chamadas de integracao.
+- Persistencia em SQLAlchemy para historico, transacoes e notificacoes.
+- Eventos on-chain entram por webhook Helius e viram atualizacao de estado.
 
-## 2. Decisões Técnicas Chave
+## Padroes de Implementacao
 
-- Utilização do App Router do Next.js para estrutura de rotas e layouts.
-- Utilização de TypeScript para tipagem estática.
-- Tailwind CSS para uma abordagem utility-first na estilização.
-- Alias de importação `@/*` para `src/`.
-- Imagens estáticas servidas a partir de `src/assets/`.
+- **Wallet-first nao custodial:** backend prepara, usuario assina no frontend.
+- **Webhook security-first:** validacao de segredo/assinatura antes de processar payload.
+- **Rate-limit in-memory:** protecao imediata para flood em canais.
+- **Fallback controlado:** degradacao funcional quando IA externa indisponivel.
+- **Idempotencia pragmatica:** atualizar registros existentes por `signature` quando evento se repete.
 
-## 3. Padrões de Design em Uso
+## Padroes de Frontend
 
-- **Component-Based Architecture:** Divisão da UI em componentes menores e gerenciáveis.
-- **Utility-First CSS:** Com Tailwind CSS.
-- **Single Page Application (SPA):** Com Next.js.
-- **Layout Responsivo (futuramente):** Embora o foco inicial seja desktop, o Tailwind facilita a responsividade.
+- Validacao de input antes de chamar `/swap/prepare`.
+- Simulacao da transacao antes de habilitar envio.
+- Confirmacao explicita por checkbox para reduzir envio acidental.
+- Mensagens de erro orientadas para recuperacao do usuario.
 
-## 4. Relacionamento entre Componentes (Página de Chat)
+## Padroes de Teste
 
-- `src/app/page.tsx` atuará como a página principal, orquestrando a `Navbar` e os painéis `AnimePanel` e `ChatPanel`.
-- A `Navbar` será um componente independente.
-- `AnimePanel` e `ChatPanel` serão componentes irmãos dispostos lado a lado abaixo da `Navbar`.
-
-## 5. Caminhos Críticos de Implementação
-
-- Layout correto dos três principais componentes da UI (Navbar, AnimePanel, ChatPanel).
-- Estilização coesa para alcançar o tema "extremamente fofo" e de anime.
-- Integração da imagem da personagem no `AnimePanel`.
-- Estrutura básica do `ChatPanel` (área de mensagens, campo de input). 
+- Cobertura de caminho feliz e falhas criticas no fluxo da wallet.
+- Mocks deterministas para provider Phantom, fetch e `@solana/web3.js`.
+- Testes utilitarios para conversao de montantes e resumo de quote.

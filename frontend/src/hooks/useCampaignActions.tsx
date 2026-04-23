@@ -29,11 +29,12 @@ export const useCampaignActions = () => {
       });
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error joining campaign:', error);
+      const apiError = error as { response?: { data?: { error?: string } } };
       return {
         success: false,
-        error: error.response?.data?.error || 'Erro ao participar da campanha'
+        error: apiError.response?.data?.error || 'Erro ao participar da campanha'
       };
     } finally {
       setJoinLoadingStates(prev => ({ ...prev, [campaignId]: false }));
@@ -57,11 +58,12 @@ export const useCampaignActions = () => {
       });
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error verifying tasks:', error);
+      const apiError = error as { response?: { data?: { error?: string } } };
       return {
         success: false,
-        message: error.response?.data?.error || 'Erro ao verificar tarefas'
+        message: apiError.response?.data?.error || 'Erro ao verificar tarefas'
       };
     } finally {
       setVerifyLoadingStates(prev => ({ ...prev, [campaignId]: false }));
@@ -85,11 +87,12 @@ export const useCampaignActions = () => {
       });
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error claiming reward:', error);
+      const apiError = error as { response?: { data?: { error?: string } } };
       return {
         success: false,
-        error: error.response?.data?.error || 'Erro ao coletar recompensa'
+        error: apiError.response?.data?.error || 'Erro ao coletar recompensa'
       };
     } finally {
       setClaimLoadingStates(prev => ({ ...prev, [campaignId]: false }));

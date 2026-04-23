@@ -114,7 +114,7 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
 
     const parsedAmount = Number(swapAmount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setFlowMessage("Informe um valor valido em USDC.");
+      setFlowMessage("Informe um valor valido para o token de entrada.");
       return;
     }
 

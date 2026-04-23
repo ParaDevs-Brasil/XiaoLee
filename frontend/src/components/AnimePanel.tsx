@@ -18,8 +18,6 @@ export default function AnimePanel() {
     
     // Initial check
     checkMobile();
-    console.log("draggable", isMobile);
-    
     // Listen for resize events
     window.addEventListener('resize', checkMobile);
     
@@ -35,7 +33,7 @@ export default function AnimePanel() {
       Video.stopIdleRotation();
       window.removeEventListener('resize', checkMobile);
     };
-  }, []);
+  }, [isMobile]); // Keep log and initialization aligned with the tracked mobile state
 
   // Initialize drag functionality separately
   useEffect(() => {

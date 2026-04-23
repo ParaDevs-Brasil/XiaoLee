@@ -20,6 +20,7 @@ class User(Base):
     
     twitter_handle: Mapped[str] = mapped_column(String(255), unique=True)
     twitter_user_id: Mapped[str] = mapped_column(unique=True)
+    telegram_chat_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True, unique=True)
 
 
 class Wallet(Base):
@@ -160,3 +161,30 @@ class ProcessedDM(Base):
     __tablename__ = 'processed_dms'
 
     twitter_message_id: Mapped[str] = mapped_column(String(255), unique=True) 
+
+
+class OnchainEvent(Base):
+    __tablename__ = 'onchain_events'
+
+    signature: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(50), index=True)
+    status: Mapped[str] = mapped_column(String(50), default='received')
+    source: Mapped[str] = mapped_column(String(50), default='helius')
+    raw_payload: Mapped[str] = mapped_column(Text)
+    tx_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
+class NotificationEvent(Base):
+    __tablename__ = 'notification_events'
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    channel: Mapped[str] = mapped_column(String(50), default='in_app')
+    title: Mapped[str] = mapped_column(String(255))
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(50), default='pending')
+    related_signature: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

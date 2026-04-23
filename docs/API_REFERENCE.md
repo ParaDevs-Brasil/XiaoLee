@@ -1,24 +1,19 @@
-# Referencia da API (FastAPI)
+# XiaoLee API Reference
 
-Este documento mapeia todas as rotas expostas pela camada Backend da XiaoLee.
+Base URL local: `http://localhost:8000`
 
-## Base URL
+Todas as respostas são JSON.
 
-| Ambiente   | URL                          |
-|------------|------------------------------|
-| Local      | `http://localhost:8000`      |
-| Docker     | `http://xiaolee-core:8000`   |
-| Docs       | `http://localhost:8000/docs` |
+Atualizacao documental: **2026-04-23**.
 
----
-
-## Saude e Status
+## 1. Status e Diagnóstico
 
 ### `GET /health`
 
-Verifica a conectividade com o banco de dados (SQLite) e com o RPC da Solana (Devnet).
+Health check básico.
 
-**Resposta (200 OK):**
+Resposta típica:
+
 ```json
 {
   "status": "ok",
@@ -27,283 +22,259 @@ Verifica a conectividade com o banco de dados (SQLite) e com o RPC da Solana (De
   "environment": "dev",
   "solana_cluster": "devnet",
   "rpc_health": { "jsonrpc": "2.0", "result": "ok", "id": 1 },
-  "gemini_enabled": false
+  "gemini_enabled": true
+}
+```
+
+Retorna `503` se o RPC da Solana não responder.
+
+Exemplo de resposta:
+
+```json
+{
+  "status": "ok"
 }
 ```
 
 ### `GET /status`
 
+Status resumido do backend e integrações.
+
+Resposta:
+
 ```json
 { "status": "running" }
 ```
 
----
+### `GET /metrics`
 
-## Usuarios
+Endpoint Prometheus text format com contadores e latência média por rota.
+
+Exemplo de resposta:
+
+```text
+# HELP xiaolee_http_requests_total Total de requests HTTP processadas.
+# TYPE xiaolee_http_requests_total counter
+xiaolee_http_requests_total{method="GET",path="/status",status="200"} 1
+
+# HELP xiaolee_http_request_duration_seconds_avg Tempo medio de resposta por rota.
+# TYPE xiaolee_http_request_duration_seconds_avg gauge
+xiaolee_http_request_duration_seconds_avg{method="GET",path="/status"} 0.001234
+```
+
+## 2. Chat e Orquestração
+
+### `POST /chat`
+
+Endpoint simplificado para interação textual.
+
+Request típico:
+
+```json
+{
+  "message": "swap 0.1 SOL para USDC",
+  "platform": "web",
+  "user_id": "web-user-123"
+}
+```
+
+Resposta típica:
+
+```json
+{
+  "response": [{ "type": "text", "content": "..." }],
+  "intent": { "action": "swap", "confidence": 0.98, "entities": {} },
+  "execution": {},
+  "code": null,
+  "animations": null
+}
+```
+
+### `POST /v1/messages/inbound`
+
+Entrada principal para mensagens normalizadas de canais.
+
+Schema principal: `platform`, `user_id`, `text` e `metadata` opcional.
+
+Exemplo de request:
+
+```json
+{
+  "platform": "telegram",
+  "user_id": "123456",
+  "text": "swap 0.1 SOL para USDC"
+}
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "platform": "telegram",
+  "user_id": "123456",
+  "intent": { "action": "swap", "confidence": 0.98, "entities": {} },
+  "reply_text": "Posso preparar a transacao para voce.",
+  "execution": {}
+}
+```
+
+## 3. Webhooks de Integração
+
+### `POST /v1/integrations/telegram/webhook`
+
+Webhook Telegram.
+
+Segurança:
+
+- Header `X-Telegram-Bot-Api-Secret-Token` deve corresponder ao valor configurado.
+
+### `POST /v1/integrations/x/webhook`
+
+Webhook X/Twitter.
+
+Segurança:
+
+- Assinatura HMAC validada no backend.
+
+### `POST /v1/solana/webhooks/helius`
+
+Recebe eventos on-chain de confirmação/falha.
+
+Segurança:
+
+- Header `Authorization` deve bater com `HELIUS_WEBHOOK_SECRET`.
+
+Resposta de sucesso:
+
+```json
+{ "status": "success", "processed_events": 1 }
+```
+
+## 4. Solana Swap
+
+### `POST /v1/solana/swap/prepare`
+
+Prepara a transação de swap sem assinatura (wallet-first).
+
+Request esperado:
+
+- `user_public_key`
+- `input_mint`
+- `output_mint`
+- `amount_raw`
+- `slippage_bps`
+
+Exemplo de request:
+
+```json
+{
+  "user_public_key": "9h...abc",
+  "input_mint": "So11111111111111111111111111111111111111112",
+  "output_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "amount_ui": 0.1,
+  "slippage_bps": 50
+}
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "cluster": "devnet",
+  "quote": {
+    "outAmount": "...",
+    "otherAmountThreshold": "..."
+  },
+  "swap_transaction_base64": "...",
+  "last_valid_block_height": 12345678,
+  "disclaimer": "Review simulation and confirm in wallet before sending."
+}
+```
+
+## 5. Campanhas e Usuários
+
+Observação: no estado atual, rotas de campanha não têm prefixo `/v1`.
+
+### `GET /auth/status/{token}`
+
+Valida token/sessão.
 
 ### `GET /user/{user_id}`
 
-Retorna dados de um usuario pelo ID (session token ou twitter_user_id).
-
-**Resposta (200 OK):**
-```json
-{
-  "id": "abc123",
-  "username": "user_abc123",
-  "platform": null,
-  "swap_count": 0,
-  "total_volume": 0.0,
-  "campaigns_joined": [1, 2],
-  "dossier": { "id": "abc123", "username": "user_abc123" }
-}
-```
-
----
-
-## Campanhas
+Consulta dados resumidos do usuário.
 
 ### `GET /campaigns`
 
-Lista todas as campanhas ativas.
+Lista campanhas disponíveis.
 
-**Resposta (200 OK):**
-```json
-{
-  "success": true,
-  "campaigns": [
-    {
-      "id": 1,
-      "name": "XiaoLee Genesis Campaign",
-      "description": "...",
-      "campaign_type": "social",
-      "completed_participants": 0,
-      "created_at": "2026-04-21T00:00:00Z",
-      "creator_twitter_user_id": "XiaoLeeProtocol",
-      "max_participants": 1000,
-      "profile_to_follow": "XiaoLeeProtocol",
-      "reward_per_participant": 50,
-      "reward_pool": 50000,
-      "reward_token": "$XLEE",
-      "status": "active",
-      "tweet_id_to_engage": null
-    }
-  ]
-}
-```
+Retorna campanhas ativas persistidas em SQLite, com seed inicial quando o banco está vazio.
 
 ### `GET /campaigns/user`
 
-Retorna as campanhas em que o usuario autenticado participa.
+Lista campanhas relacionadas ao usuário autenticado.
 
-**Header:** `Authorization: Bearer {session_id}`
+Header esperado:
 
-**Resposta (200 OK):**
-```json
-{
-  "success": true,
-  "campaigns": [
-    {
-      "id": 1,
-      "name": "XiaoLee Genesis Campaign",
-      "campaign_type": "social",
-      "reward_token": "$XLEE",
-      "reward_per_participant": 50,
-      "participation_status": "enrolled",
-      "status": "enrolled",
-      "tasks_verified_at": null,
-      "tasks_claimed": false
-    }
-  ]
-}
-```
+- `Authorization: Bearer <token>`
+
+### `POST /campaigns/create`
+
+Cria campanha.
+
+Payload principal: `title`, `description`, `campaign_type`, `reward_token`, `reward_per_participant`, `max_participants`, `profile_to_follow`, `tweet_id_to_engage`.
 
 ### `POST /campaigns/join`
 
-Registra a participacao do usuario em uma campanha.
+Entrada mínima:
 
-**Header:** `Authorization: Bearer {session_id}`
-
-**Payload:**
-```json
-{ "campaign_identifier": "1" }
-```
-
-**Resposta (200 OK):**
 ```json
 {
-  "success": true,
-  "message": "Successfully joined 'XiaoLee Genesis Campaign'! Complete the tasks to earn 50 $XLEE."
+  "campaign_identifier": "1"
 }
 ```
 
 ### `POST /campaigns/verify`
 
-Verifica as tarefas completadas pelo usuario.
-
-**Header:** `Authorization: Bearer {session_id}`
-
-**Payload:**
-```json
-{ "campaign_identifier": "1" }
-```
-
-**Resposta (200 OK):**
-```json
-{
-  "success": true,
-  "message": "All tasks verified successfully! You are eligible to claim your reward.",
-  "all_tasks_completed": true
-}
-```
+Verifica tarefas associadas à campanha.
 
 ### `POST /campaigns/claim`
 
-Reivindica a recompensa de uma campanha verificada.
+Solicita claim de recompensa.
 
-**Header:** `Authorization: Bearer {session_id}`
+## 6. Notificações
 
-**Payload:**
+### `GET /v1/notifications/{twitter_user_id}`
+
+Lista notificações de um usuário.
+
+Retorna `success` e `notifications` ordenadas da mais recente para a mais antiga.
+
+### `POST /v1/notifications/{notification_id}/ack`
+
+Marca notificação como entregue/reconhecida.
+
+Resposta:
+
 ```json
-{ "campaign_identifier": "1" }
+{ "success": true, "notification_id": 1, "status": "delivered" }
 ```
 
-**Resposta (200 OK):**
+## 7. Status Codes e Erros
+
+Formato de erro padrão FastAPI:
+
 ```json
 {
-  "success": true,
-  "message": "50 $XLEE claimed successfully!",
-  "transaction_id": "a1b2c3d4e5f6g7h8",
-  "reward_amount": 50,
-  "reward_token": "$XLEE"
+  "detail": "mensagem"
 }
 ```
 
-### `POST /campaigns/create`
+Códigos comuns:
 
-Cria uma nova campanha (requer autenticacao).
-
-**Header:** `Authorization: Bearer {session_id}`
-
-**Payload:**
-```json
-{
-  "title": "Nova Campanha",
-  "description": "Descricao da campanha",
-  "campaign_type": "social",
-  "profile_to_follow": "XiaoLeeProtocol",
-  "tweet_id_to_engage": null,
-  "reward_token": "$XLEE",
-  "reward_per_participant": 100,
-  "max_participants": 500
-}
-```
-
----
-
-## Bate-Papo & NLP (Gemini)
-
-### `POST /v1/messages/inbound`
-
-Rota principal de orquestracao. Envia uma mensagem e recebe a resposta do agente Gemini com memoria de contexto.
-
-**Payload:**
-```json
-{
-  "user_id": "twitter_12345",
-  "platform": "x",
-  "text": "Quero saber o preco do $XLEE"
-}
-```
-
-**Resposta (200 OK):**
-```json
-{
-  "platform": "x",
-  "user_id": "twitter_12345",
-  "intent": "INFO",
-  "reply_text": "O preco atual do $XLEE e...",
-  "execution": null
-}
-```
-
----
-
-## Webhooks de Redes Sociais
-
-### `POST /v1/integrations/telegram/webhook`
-
-Recebe o trafego oficial do Telegram Bot API.
-
-**Header:** `X-Telegram-Bot-Api-Secret-Token: {secret}`
-
-**Payload:** Padrao Telegram Update Object.
-
-### `POST /v1/integrations/x/webhook`
-
-Recebe o trafego oficial do X/Twitter Account Activity API.
-
-**Header:** `X-Xiaolee-Signature: {hmac_sha256}`
-
----
-
-## Solana & Helius
-
-### `POST /v1/solana/webhooks/helius`
-
-Webhook critico chamado pela Helius quando ocorre uma transacao on-chain relevante.
-
-**Seguranca:** Exige validacao HMAC via `HELIUS_WEBHOOK_SECRET` no `.env`.
-
-**Acao:** Processa o evento e aciona `record_swap(volume_usdc)` no contrato Anchor.
-
-### `POST /v1/solana/swap/prepare`
-
-Prepara uma transacao de swap via Jupiter sem executar.
-
-**Payload:**
-```json
-{
-  "input_mint": "So11111111111111111111111111111111111111112",
-  "output_mint": "848Nf9WswGodWrrw61dWMtuBaEcJWm9wsuBS3P5m78J4",
-  "amount_raw": 100000000,
-  "slippage_bps": 50,
-  "user_public_key": "..."
-}
-```
-
-**Resposta (200 OK):**
-```json
-{
-  "cluster": "devnet",
-  "quote": { ... },
-  "swap_transaction_base64": "...",
-  "last_valid_block_height": 12345678,
-  "disclaimer": "Transacao somente preparada. Assine na wallet e confirme antes do envio."
-}
-```
-
----
-
-## Autenticacao
-
-| Rota                           | Autenticacao                              |
-|-------------------------------|-------------------------------------------|
-| `GET /health`, `GET /status`  | Nenhuma                                   |
-| `GET /campaigns`              | Nenhuma                                   |
-| `GET /user/{id}`              | Nenhuma                                   |
-| `POST /campaigns/*`           | `Authorization: Bearer {session_id}`      |
-| `POST /v1/integrations/*`     | Header de segredo especifico da plataforma|
-| `POST /v1/solana/webhooks/*`  | HMAC Helius                               |
-
----
-
-## Codigos de Erro
-
-| Codigo | Significado                            |
-|--------|----------------------------------------|
-| 400    | Payload invalido ou parametros ausentes|
-| 401    | Token de autorizacao ausente ou invalido|
-| 404    | Recurso nao encontrado                 |
-| 422    | Erro de validacao do schema Pydantic   |
-| 429    | Rate limit excedido (1 req/min por user)|
-| 503    | Solana RPC indisponivel                |
+- `200` sucesso
+- `400` payload inválido
+- `401` não autorizado
+- `404` recurso não encontrado
+- `429` rate limit
+- `500` erro interno
+- `503` RPC da Solana indisponível

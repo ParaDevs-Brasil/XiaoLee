@@ -1,48 +1,31 @@
-# Project Brief: Xiaolee
+# Project Brief: XiaoLee
 
-## 1. Visão Geral do Projeto
+## Objetivo
 
-**Nome do Projeto:** Xiaolee
+Construir um assistente de IA multi-canal para Solana, com foco em:
 
-**Objetivo Principal:** Desenvolver uma aplicação web de chat com uma interface temática de anime, extremamente fofa, utilizando Next.js e Tailwind CSS. A interface incluirá uma seção para interações de chat com uma IA e uma seção visual para uma personagem de anime.
+- processamento de mensagens inbound,
+- orquestracao de intencoes com LLM,
+- fluxo de swap seguro e nao custodial,
+- persistencia de historico e notificacoes.
 
-## 2. Metas e Objetivos
+## Escopo Atual (MVP)
 
-- Configurar um ambiente de desenvolvimento Next.js funcional com Tailwind CSS (Concluído).
-- Desenvolver a interface do chat principal conforme o design e descrição fornecidos.
-- Integrar uma imagem de personagem de anime na interface.
-- Implementar uma barra de navegação com botões "Transactions" e "History".
-- Assegurar que a estilização siga um tema "extremamente fofo" e de anime.
+- Backend FastAPI para chat, webhooks, campanhas e notificacoes.
+- Integracao Gemini para classificacao de intencao e resposta.
+- Integracao Solana/Jupiter para preparo de swap unsigned.
+- Frontend Next.js com fluxo wallet-first: connect, simulate, confirm, sign/send.
+- Reconciliacao de eventos on-chain via webhook Helius.
 
-## 3. Escopo
+## Fora de Escopo (neste ciclo)
 
-**Entregas Principais:**
-- Projeto Next.js inicializado e configurado (Concluído).
-- Componentes da UI: Navbar, Painel da Anime, Painel do Chat.
-- Página principal com a estrutura de layout definida.
+- Mainnet com selo production-ready sem auditoria formal.
+- Custodia de chave privada do usuario no backend.
+- Operacao SRE completa com observabilidade avancada fullstack.
 
-**Fora do Escopo (Fase Atual):**
-- Integração real com a IA.
-- Funcionalidade de "vincular vídeos".
-- Lógica de backend para transações ou histórico.
+## Criterios de Sucesso
 
-## 4. Partes Interessadas (Stakeholders)
-
-- Usuário (Desenvolvedor)
-
-## 5. Linha do Tempo e Marcos (Estimativa Inicial)
-
-- **Marco 1:** Criação e configuração do projeto base (Concluído).
-- **Marco 2:** Desenvolvimento da interface de chat (Tarefa atual).
-
-## 6. Riscos e Desafios Potenciais
-
-- Traduzir o conceito de "extremamente fofo" em design visual de forma eficaz.
-- Garantir responsividade da interface.
-
-## 7. Critérios de Sucesso
-
-- A interface do chat é renderizada conforme o design e a descrição.
-- Os botões da Navbar estão presentes.
-- A imagem da personagem de anime é exibida corretamente.
-- O tema visual é coeso e alinhado com "fofo" e "anime". 
+- Endpoints MVP operando e documentados de forma consistente.
+- Fluxo de swap wallet-first funcionando em Devnet.
+- Cobertura de testes frontend para sucesso e falhas criticas.
+- Documentacao central e memory-bank sincronizados com o codigo.

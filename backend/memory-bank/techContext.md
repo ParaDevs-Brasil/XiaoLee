@@ -1,45 +1,49 @@
-# Tech Context: Xiaolee
+# Tech Context: XiaoLee
 
-## 1. Tecnologias Principais
+Atualizacao documental: **2026-04-23**.
 
-- **Framework Frontend:** Next.js 15.3.3
-- **Linguagem:** TypeScript
-- **Estilização:** Tailwind CSS v4
-- **Gerenciador de Pacotes:** npm
-- **Controle de Versão:** Git (inicializado pelo create-next-app)
-- **Servidor de Imagens:** Next.js Image Optimization (para `next/image`)
+## Stack Principal
 
-## 2. Configuração do Ambiente de Desenvolvimento
+- Backend: Python 3.12, FastAPI, SQLAlchemy, Pydantic.
+- IA: Gemini (com fallback heuristico quando aplicavel).
+- Blockchain: Solana Devnet, Jupiter APIs, Helius webhook.
+- Frontend: Next.js 15, React 19, TypeScript, Tailwind.
+- Testes frontend: Vitest + Testing Library + jsdom.
 
-- **Node.js:** Versão LTS recomendada ou mais recente.
-- **Editor de Código:** VS Code (recomendado, com extensões para TypeScript, ESLint, Prettier, Tailwind CSS IntelliSense).
-- **Comandos Comuns:**
-  - `npm run dev`: Iniciar servidor de desenvolvimento.
-  - `npm run build`: Gerar build de produção.
-  - `npm start`: Iniciar servidor de produção.
-  - `npm run lint`: Rodar ESLint.
+## Estado de QA
 
-## 3. Restrições Técnicas
+- Backend principal: `../.venv/bin/pytest -q` -> 34 passed, 8 skipped.
+- Frontend principal: `npm test` -> 13 passed.
+- CI fullstack: workflow dedicado com backend pytest, frontend lint, frontend tests e frontend build.
+- Skips são intencionais para scripts de integração Twikit e utilitários externos sem dependências instaladas.
 
-- (A serem identificadas, se houver).
+## Estrutura Relevante
 
-## 4. Dependências Chave (Principais)
+- `backend/server/app.py`: composicao principal de rotas.
+- `backend/server/campaigns_routes.py`: campanhas/usuario/auth status.
+- `backend/server/notifications_routes.py`: inbox e ack.
+- `backend/server/metrics.py`: contadores HTTP e renderização Prometheus.
+- `backend/server/webhooks/helius_routes.py`: eventos on-chain.
+- `frontend/src/components/navbar/Wallet.tsx`: fluxo wallet-first.
+- `frontend/src/utils/swap.ts`: conversoes e resumo de quote.
 
-- `next@15.3.3`
-- `react@^19.0.0`
-- `react-dom@^19.0.0`
-- `tailwindcss@^4` (configurado com `@tailwindcss/postcss` e `tailwind.config.ts`)
-- `typescript@^5`
-- `@types/react@^19`, `@types/node@^20`, `@types/react-dom@^19`
-- `eslint@^9`, `eslint-config-next@15.3.3`
+## Comandos Operacionais
 
-## 5. Padrões de Uso de Ferramentas
+Backend:
 
-- **ESLint:** Para linting de código TypeScript/JavaScript.
-- **Tailwind CSS IntelliSense (Extensão VS Code):** Para autocompletar classes do Tailwind.
-- **`next/image`:** Para otimização de imagens (ex: `animeGirl.png`).
-- **Estrutura de Pastas:**
-    - `src/app/`: Para rotas e layouts (App Router).
-    - `src/components/`: Para componentes reutilizáveis da UI.
-    - `src/assets/`: Para imagens estáticas e outros assets.
-    - `memory-bank/`: Para documentação do projeto. 
+- `cd backend && uvicorn server.app:app --reload`
+- `cd backend && pytest -q`
+- `cd backend && ../.venv/bin/pytest -q`
+
+Frontend:
+
+- `cd frontend && npm run dev`
+- `cd frontend && npm test`
+- `cd frontend && npm run lint`
+
+## Restricoes Tecnicas Atuais
+
+- Pipeline CI fullstack consolidado para backend e frontend.
+- Observabilidade HTTP básica com `/metrics` já exposta.
+- Escopo de producao mainnet depende de hardening e auditoria.
+- Fluxo critico e wallet-first; backend nao deve custodiar chave de usuario.

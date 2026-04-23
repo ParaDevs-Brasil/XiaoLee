@@ -2,13 +2,6 @@ import { useState, useEffect } from 'react';
 import api from "../api/api"
 import { Campaign, CampaignsResponse, CampaignError } from "../interfaces";
 
-interface UseCampaignsState {
-  campaigns: Campaign[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
 export interface UseCampaignsReturn {
   campaigns: Campaign[];
   loading: boolean;
@@ -38,14 +31,15 @@ export const useCampaigns = (): UseCampaignsReturn => {
         const errorResponse = response.data as CampaignError;
         setError(errorResponse.message || "Erro ao buscar campanhas");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("❌ Erro ao buscar campanhas:", err);
       
       // Verificar se é um erro de resposta da API
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else if (err.message) {
-        setError(err.message);
+      const apiError = err as { response?: { data?: { message?: string } }; message?: string };
+      if (apiError.response?.data?.message) {
+        setError(apiError.response.data.message);
+      } else if (apiError.message) {
+        setError(apiError.message);
       } else {
         setError("Erro desconhecido ao buscar campanhas");
       }

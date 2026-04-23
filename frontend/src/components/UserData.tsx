@@ -1,4 +1,4 @@
-import useUser from "@/hooks/useUser";
+import fetchUserData from "@/hooks/useUser";
 import { 
   TypeUserData, 
   UserInfo, 
@@ -12,6 +12,8 @@ import {
   UserCampaignParticipation
 } from "@/interfaces";
 
+type UserDataPayload = TypeUserData | DetailedDossier;
+
 
 export default class UserData {
   private static user_info: UserInfo;
@@ -24,6 +26,9 @@ export default class UserData {
   };
   private static twitter_user_id: string = "";
   private static session_id: string = "";
+  private static rawSwapData: SwapHistoryItem[] = [];
+  private static rawChatHistory: ChatHistoryItem[] = [];
+  private static rawTransactionData: TransactionHistoryItem[] = [];
 
   static getUserData(): TypeUserData {
     return {
@@ -108,7 +113,7 @@ export default class UserData {
     console.log("🔐 Session ID set:", session_id);
   }
   
-  static setUserData(data: TypeUserData | DetailedDossier | any): void {    
+  static setUserData(data: UserDataPayload): void {    
     console.log("📊 Setting user data:", data);
     
     // Handle the actual backend response format (based on your JSON)
@@ -125,9 +130,9 @@ export default class UserData {
       };
       
       // Store raw data for components that need it
-      (this as any)._rawSwapData = data.history.swaps || [];
-      (this as any)._rawChatHistory = data.history.chat_history || [];
-      (this as any)._rawTransactionData = data.history.transactions || [];
+      this.rawSwapData = data.history.swaps || [];
+      this.rawChatHistory = data.history.chat_history || [];
+      this.rawTransactionData = data.history.transactions || [];
       
     } else if ('balances' in data && Array.isArray(data.balances)) {
       // Backend DetailedDossier format (legacy)
@@ -136,9 +141,9 @@ export default class UserData {
       this.campaigns = data.campaigns || [];
       
       // Store raw data for components that need it
-      (this as any)._rawSwapData = (data as DetailedDossier).history.swaps || [];
-      (this as any)._rawChatHistory = (data as DetailedDossier).history.chat_history || [];
-      (this as any)._rawTransactionData = (data as DetailedDossier).history.transactions || [];
+      this.rawSwapData = (data as DetailedDossier).history.swaps || [];
+      this.rawChatHistory = (data as DetailedDossier).history.chat_history || [];
+      this.rawTransactionData = (data as DetailedDossier).history.transactions || [];
       
       // Store the backend history structure directly
       this.history = { 
@@ -184,7 +189,7 @@ export default class UserData {
         console.log("⏭ fetchData skipped — no twitter_user_id set");
         return false;
       }
-      const data = await useUser(this.twitter_user_id);
+      const data = await fetchUserData(this.twitter_user_id);
       console.log("📊 Data fetched successfully:", data);
       this.setUserData(data.dossier);
       return true;
@@ -238,9 +243,9 @@ export default class UserData {
     this.session_id = "";
     
     // Clear raw data
-    (this as any)._rawSwapData = [];
-    (this as any)._rawChatHistory = [];
-    (this as any)._rawTransactionData = [];
+    this.rawSwapData = [];
+    this.rawChatHistory = [];
+    this.rawTransactionData = [];
     
     console.log("🧹 User data cleared");
   }

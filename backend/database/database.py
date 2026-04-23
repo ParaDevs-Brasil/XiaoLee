@@ -5,6 +5,7 @@ from .base import Base
 from pathlib import Path
 from sqlalchemy.orm import sessionmaker
 from typing import Tuple
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,22 @@ async def create_tables():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await _apply_sqlite_migrations(conn)
+
+
+async def _apply_sqlite_migrations(conn):
+    """Apply small SQLite schema migrations for already-created databases."""
+    if not str(conn.engine.url).startswith("sqlite"):
+        return
+
+    # Users table: add Telegram chat destination if it does not exist yet.
+    result = await conn.execute(text("PRAGMA table_info(users)"))
+    columns = {row[1] for row in result.fetchall()}
+    if "telegram_chat_id" not in columns:
+        await conn.execute(text("ALTER TABLE users ADD COLUMN telegram_chat_id TEXT"))
+
+    # Notification/event tables are created via metadata.create_all, but older
+    # SQLite files may have stale partial state; create_all above handles them.
 
 
 async def drop_tables():

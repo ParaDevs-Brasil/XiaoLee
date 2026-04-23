@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export const useModal = (shouldOpen: boolean = false, onClose?: () => void) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,13 +12,13 @@ export const useModal = (shouldOpen: boolean = false, onClose?: () => void) => {
     }
   }, [shouldOpen, isOpen]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setAnimateIn(false);
     setTimeout(() => {
       setIsOpen(false);
       if (onClose) onClose();
     }, 300);
-  };
+  }, [onClose]);
 
   // Handle ESC key to close modal
   useEffect(() => {

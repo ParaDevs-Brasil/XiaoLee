@@ -10,6 +10,14 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+try:
+    import pytest
+except Exception:
+    pytest = None
+
+if pytest is not None and __name__ != "__main__":
+    pytest.skip("legacy integration script; run directly instead of via pytest", allow_module_level=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

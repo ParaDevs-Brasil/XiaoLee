@@ -46,17 +46,18 @@ export default function useVerifyTasks(): UseVerifyTasksReturn {
         message: response.data.message
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Erro ao verificar tarefas:', error);
       
       let errorMessage = 'Erro ao verificar tarefas';
       
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
+      const apiError = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      if (apiError.response?.data?.error) {
+        errorMessage = apiError.response.data.error;
+      } else if (apiError.response?.data?.message) {
+        errorMessage = apiError.response.data.message;
+      } else if (apiError.message) {
+        errorMessage = apiError.message;
       }
       
       setError(errorMessage);

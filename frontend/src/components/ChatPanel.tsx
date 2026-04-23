@@ -30,7 +30,6 @@ export default function ChatPanel() {
   const [loading, setLoading] = useState(false);
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
   const [authLoading, setAuthLoading] = useState<{[key: number]: boolean}>({});
-  const [token, setToken] = useState<string>("");
 
   // Check initial authentication status and load existing chat history
   useEffect(() => {
@@ -127,7 +126,6 @@ export default function ChatPanel() {
       if (response.code !== null && response.code !== undefined) {
         messageCode = response.code;
         messageHasCode = true;
-        setToken(response.code);
         console.log("🔍 Code found:", response.code);
       }
 
@@ -261,7 +259,6 @@ export default function ChatPanel() {
                             <button
                               onClick={() => {
                                 if (msg.code) {
-                                  setToken(msg.code);
                                   handleVerifyAuth(index, msg.code);
                                 }
                               }}

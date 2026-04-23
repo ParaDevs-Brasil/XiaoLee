@@ -1,15 +1,21 @@
 import api from "@/api/api";
 import UserData from "@/components/UserData";
-import { TypeUserData, DetailedDossier } from "@/interfaces";
+import { DetailedDossier } from "@/interfaces";
 
 export interface AuthStatus {
     status: "active" | "expired" | "pending";
     session_id?: string;
 }
 
+interface AuthContextLike {
+    setUserData: (data: DetailedDossier | null) => void;
+    setAuthenticated: (authenticated: boolean) => void;
+    setLoading: (loading: boolean) => void;
+}
+
 export default async function handleAuth(
     token: string,
-    authContext?: any
+    authContext?: AuthContextLike
 ): Promise<AuthStatus> {
     try {        
         console.log("🔐 Checking auth status with token:", token);

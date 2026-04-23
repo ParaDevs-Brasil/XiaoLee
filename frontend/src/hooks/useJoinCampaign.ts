@@ -67,15 +67,16 @@ export default function useJoinCampaign(): UseJoinCampaignReturn {
         throw new Error(response.data.error || 'Erro desconhecido ao participar da campanha');
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Erro ao participar da campanha:', error);
       
       let errorMessage = 'Erro ao participar da campanha';
       
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      if (apiError.response?.data?.error) {
+        errorMessage = apiError.response.data.error;
+      } else if (apiError.message) {
+        errorMessage = apiError.message;
       }
       
       setError(errorMessage);
@@ -127,15 +128,16 @@ export default function useJoinCampaign(): UseJoinCampaignReturn {
         throw new Error(response.data.error || 'Erro desconhecido ao coletar recompensa');
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Erro ao coletar recompensa:', error);
       
       let errorMessage = 'Erro ao coletar recompensa';
       
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      if (apiError.response?.data?.error) {
+        errorMessage = apiError.response.data.error;
+      } else if (apiError.message) {
+        errorMessage = apiError.message;
       }
       
       setClaimError(errorMessage);

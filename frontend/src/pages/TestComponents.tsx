@@ -12,10 +12,8 @@ import UserData from '@/components/UserData';
 import { 
   TokenBalance, 
   TransactionHistoryItem, 
-  SwapHistoryItem, 
   Campaign, 
   UserCampaignParticipation,
-  ChatHistoryItem 
 } from '@/interfaces';
 
 // Mock data
@@ -277,27 +275,6 @@ const mockTransactions: TransactionHistoryItem[] = [
   }
 ];
 
-const mockSwaps: SwapHistoryItem[] = [
-  {
-    amount: 2500,
-    status: "completed",
-    timestamp: "2025-01-18T12:00:00Z",
-    to_address: null,
-    token: "USDC",
-    transaction_type: "swap",
-    type: "transaction"
-  },
-  {
-    amount: 1000,
-    status: "pending",
-    timestamp: "2025-01-18T14:30:00Z",
-    to_address: "0x742d35Cc6635C0532925a3b8D598544c93Eb04f4",
-    token: "ETH",
-    transaction_type: "exchange",
-    type: "transaction"
-  }
-];
-
 const mockCampaigns: Campaign[] = [
   {
     id: 1,
@@ -366,29 +343,6 @@ const mockUserCampaigns: UserCampaignParticipation[] = [
     participation_status: 'paid',
     tasks_verified_at: '2025-01-17T09:15:00Z',
     tasks_claimed: true
-  }
-];
-
-const mockChatHistory: ChatHistoryItem[] = [
-  {
-    user_message: {
-      content: 'Hello Xiaolee! How are you today?',
-      timestamp: '2025-01-20T09:00:00Z'
-    },
-    assistant_response: {
-      content: 'Hello! I\'m doing great, thank you for asking! How can I help you today? 💕',
-      timestamp: '2025-01-20T09:00:05Z'
-    }
-  },
-  {
-    user_message: {
-      content: 'Can you help me with my token balance?',
-      timestamp: '2025-01-20T09:01:00Z'
-    },
-    assistant_response: {
-      content: 'Of course! I can help you check your token balances and transaction history. What would you like to know? ✨',
-      timestamp: '2025-01-20T09:01:03Z'
-    }
   }
 ];
 

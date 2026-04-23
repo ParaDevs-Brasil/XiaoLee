@@ -12,12 +12,11 @@ import { UserCampaignsList } from '@/components/campaigns/UserCampaignsList';
 
 export default function Campaigns() {
   const { campaigns, loading, error, refetch } = useCampaigns();
-  const { campaigns: userCampaigns, loading: userCampaignsLoading, refetch: refetchUserCampaigns } = useUserCampaigns();
+  const { campaigns: userCampaigns, refetch: refetchUserCampaigns } = useUserCampaigns();
   const { joinCampaign, verifyTasks, claimReward, isJoinLoading, isVerifyLoading, isClaimLoading } = useCampaignActions();
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(UserData.hasData());
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [userData, setUserData] = useState(UserData.getUserData());
 
   // Sync userCampaigns with UserData when userCampaigns change
   useEffect(() => {
@@ -32,7 +31,6 @@ export default function Campaigns() {
       const hasData = UserData.hasData();
       setIsUserAuthenticated(hasData);
       if (hasData) {
-        setUserData(UserData.getUserData());
         // Refetch user campaigns when authenticated
         refetchUserCampaigns();
       }
@@ -42,7 +40,6 @@ export default function Campaigns() {
     
     // Listen for user data loaded event
     const handleUserDataLoaded = () => {
-      setUserData(UserData.getUserData());
       setIsUserAuthenticated(true);
       // Refetch user campaigns when user data is loaded
       refetchUserCampaigns();
@@ -65,7 +62,6 @@ export default function Campaigns() {
         await refetchUserCampaigns();
         // Refetch user data (balances, transactions, etc.)
         await UserData.fetchData();
-        setUserData(UserData.getUserData());
       }
     } finally {
       setRefreshing(false);
@@ -86,7 +82,6 @@ export default function Campaigns() {
       await refetchUserCampaigns(); // Refresh user campaigns
       // Refetch user data after joining (in case it affects user state)
       await UserData.fetchData();
-      setUserData(UserData.getUserData());
     } else {
       toast.error(`❌ ${result.error}`);
     }
@@ -106,7 +101,6 @@ export default function Campaigns() {
       await refetchUserCampaigns();
       // Refetch user data after verifying tasks
       await UserData.fetchData();
-      setUserData(UserData.getUserData());
     } else {
       toast.warning(`⚠️ ${result.message}`);
     }
@@ -128,7 +122,6 @@ export default function Campaigns() {
       await refetchUserCampaigns();
       // Refetch user data (balances, transactions, etc.) after claiming reward
       await UserData.fetchData();
-      setUserData(UserData.getUserData());
     } else {
       toast.error(`❌ ${result.error}`);
     }
@@ -139,9 +132,7 @@ export default function Campaigns() {
     toast.success('✅ Campaign created successfully!');
     handleRefresh(); // Update campaign lists after creating campaign
     // Refetch user data after creating campaign (in case it affects balances)
-    UserData.fetchData().then(() => {
-      setUserData(UserData.getUserData());
-    });
+    UserData.fetchData();
   };
 
   if (loading) {

@@ -26,6 +26,16 @@ class DatabaseRepository:
             
         return user
 
+    async def set_telegram_chat_id(self, user_id: int, chat_id: str | int) -> None:
+        stmt = select(User).where(User.id == user_id)
+        result = await self.session.execute(stmt)
+        user = result.scalars().first()
+        if not user:
+            return
+
+        user.telegram_chat_id = str(chat_id)
+        await self.session.flush()
+
     async def log_dm(self, user_id: int, platform: str, content: str, message_type: str = "user", error_message: str = None):
         """Log a direct message or response."""
         dm_log = DMLog(
