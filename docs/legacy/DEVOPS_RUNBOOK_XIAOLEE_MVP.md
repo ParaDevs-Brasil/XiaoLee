@@ -1,4 +1,8 @@
-Documento legado. O runbook atual e os comandos oficiais estão em:
+Documento legado (historico, nao oficial).
+
+Atualizacao documental: **2026-04-24**.
+
+O runbook atual e os comandos oficiais estao em:
 
 - [README.md](../../README.md)
 - [CONTRIBUTING.md](../../CONTRIBUTING.md)

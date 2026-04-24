@@ -78,7 +78,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="bg-gradient-to-r from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-b-2 border-[var(--navbar-border)] shadow-xl p-3 md:p-4 sticky top-0 z-20 relative overflow-visible">
+      <nav className="bg-gradient-to-r from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-b-2 border-[var(--navbar-border)] shadow-xl p-3 md:p-4 sticky top-0 z-20 overflow-visible">
         <div className="container mx-auto flex justify-between items-center relative z-[10000]">
           <div className="flex items-center space-x-3">
             <div className="text-lg md:text-2xl font-bold bg-gradient-to-r from-[var(--navbar-text-gradient-start)] via-[var(--navbar-text-gradient-middle)] to-[var(--navbar-text-gradient-end)] bg-clip-text text-transparent">
@@ -102,6 +102,21 @@ export default function Navbar() {
                 </span>
                 <span className="text-sm md:text-lg">
                   {pathname === '/campaigns' ? '🏠' : '🚀'}
+                </span>
+              </Link>
+
+              <Link 
+                href={pathname === '/notifications' ? '/' : '/notifications'}
+                className="inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[80px] md:min-w-[140px] h-[40px] md:h-[52px]"
+              >
+                <span className="font-semibold hidden sm:inline">
+                  {pathname === '/notifications' ? 'Go to Chat' : 'Notifications'}
+                </span>
+                <span className="font-semibold sm:hidden">
+                  {pathname === '/notifications' ? 'Chat' : 'Alerts'}
+                </span>
+                <span className="text-sm md:text-lg">
+                  {pathname === '/notifications' ? '🏠' : '🔔'}
                 </span>
               </Link>
 

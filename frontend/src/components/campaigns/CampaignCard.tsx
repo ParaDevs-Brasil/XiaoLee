@@ -12,17 +12,17 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
   isVerifying,
   isClaiming
 }) => {
-  const isUserAuthenticated = UserData.hasData();
+  const hasCampaignIdentity = UserData.hasCampaignIdentity();
   
   // Get user's participation status for this campaign from UserData
   // Note: UserData now gets updated by the useUserCampaigns hook
-  const userCampaignParticipation = isUserAuthenticated 
+  const userCampaignParticipation = hasCampaignIdentity
     ? UserData.getUserCampaigns().find(uc => uc.id === campaign.id)
     : null;
   
-  const isEnrolled = userCampaignParticipation?.status === 'enrolled';
-  const isTasksVerified = userCampaignParticipation?.status === 'tasks_verified';
-  const isPaid = userCampaignParticipation?.status === 'paid';
+  const isEnrolled = userCampaignParticipation?.participation_status === 'enrolled';
+  const isTasksVerified = userCampaignParticipation?.participation_status === 'tasks_verified';
+  const isPaid = userCampaignParticipation?.participation_status === 'paid';
   const isTasksClaimed = userCampaignParticipation?.tasks_claimed === true;
   return (
     <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:scale-105">
@@ -41,15 +41,15 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
       
       <p className="text-gray-600 mb-4 line-clamp-3">{campaign.description}</p>
       
-      {/* Campaign Stats */}
+      {/* Campaign Stats + Progress Bar */}
       <div className="bg-gray-50 p-3 rounded-lg mb-4">
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-2 gap-3 text-sm mb-3">
           <div className="space-y-1">
             <p className="text-gray-500">
               Max: <span className="text-gray-700 font-semibold">{campaign.max_participants}</span>
             </p>
             <p className="text-gray-500">
-              Completed: <span className="text-gray-700 font-semibold">{campaign.completed_participants || 0}</span>
+              Joined: <span className="text-gray-700 font-semibold">{campaign.completed_participants || 0}</span>
             </p>
           </div>
           <div>
@@ -59,7 +59,37 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Barra de progresso */}
+        {(() => {
+          const pct = campaign.max_participants > 0
+            ? Math.min(100, Math.round((campaign.completed_participants / campaign.max_participants) * 100))
+            : 0;
+          const barColor =
+            pct >= 90 ? "from-red-400 to-rose-500" :
+            pct >= 60 ? "from-yellow-400 to-orange-400" :
+            "from-green-400 to-emerald-500";
+          const spotsLeft = campaign.max_participants - (campaign.completed_participants || 0);
+          return (
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-gray-500 font-medium">Vagas preenchidas</span>
+                <span className="text-xs font-bold text-gray-700">{pct}%</span>
+              </div>
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full bg-gradient-to-r ${barColor} rounded-full transition-all duration-700 ease-out`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1 text-right">
+                {spotsLeft > 0 ? `${spotsLeft} vagas restantes` : "🔴 Campanha cheia"}
+              </p>
+            </div>
+          );
+        })()}
       </div>
+
       
       <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-4 rounded-xl border border-pink-200 mb-4">
         <div className="flex items-center justify-between">
@@ -82,29 +112,29 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
             <span className="text-sm font-medium">📋 Tasks required:</span>
             <div className="text-xs mt-1 space-y-1 break-all flex flex-col flex-wrap">
               {campaign.profile_to_follow && (
-                <div>• Follow:  <a className='underline' target='_blank' href={`www.x.com/${campaign.profile_to_follow}`}>{campaign.profile_to_follow}</a></div>
+                <div>• Follow:  <a className='underline' target='_blank' rel='noreferrer' href={`https://x.com/${campaign.profile_to_follow.replace(/^@/, "")}`}>{campaign.profile_to_follow}</a></div>
               )}
               {campaign.tweet_id_to_engage && (
-                <div className='break-all break-words flex flex-wrap'>• Engage with tweet:  <a className='underline' target='_blank' href={`${campaign.tweet_id_to_engage}`}>{campaign.tweet_id_to_engage}</a></div>
+                <div className='break-all break-words flex flex-wrap'>• Engage with tweet:  <a className='underline' target='_blank' rel='noreferrer' href={`${campaign.tweet_id_to_engage}`}>{campaign.tweet_id_to_engage}</a></div>
               )}
             </div>
           </div>
         </div>
       )}
       
-      {/* Warning for non-logged users */}
-      {!isUserAuthenticated && (
+      {/* Warning for missing Devnet identity */}
+      {!hasCampaignIdentity && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
           <div className="flex items-center space-x-2 text-yellow-700">
-            <span className="text-sm">🔒</span>
-            <span className="text-xs font-medium">Login to interact</span>
+            <span className="text-sm">⚠️</span>
+            <span className="text-xs font-medium">Devnet session not initialized</span>
           </div>
         </div>
       )}
       
       <div className="space-y-2">
         {/* Join Button */}
-        {UserData.hasData() && UserData.verifyCampaignParticipation(campaign.id) ? (
+        {hasCampaignIdentity && UserData.verifyCampaignParticipation(campaign.id) ? (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
             <div className="flex items-center space-x-2 text-blue-700">
               <span className="text-sm">✅</span>
@@ -122,9 +152,9 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
             loading={isJoining(campaign.id)}
             loadingText="Joining..."
             variant="primary"
-            isLocked={!isUserAuthenticated}
+            isLocked={!hasCampaignIdentity}
           >
-            {!isUserAuthenticated ? "" : "Join 🚀"}
+            {!hasCampaignIdentity ? "Waiting Devnet Session" : "Join 🚀"}
           </ActionButton>
         )}
         
@@ -135,9 +165,9 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
           loading={isVerifying(campaign.id)}
           loadingText="Verifying..."
           variant="secondary"
-          isLocked={!isUserAuthenticated}
+          isLocked={!hasCampaignIdentity}
         >
-          {!isUserAuthenticated ? "" : 
+          {!hasCampaignIdentity ? "Waiting Devnet Session" : 
            isTasksVerified || isPaid ? "Tasks Verified ✓" :
            !isEnrolled ? " Join First" :
            "Verify Tasks 🔍"}
@@ -150,9 +180,9 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
           loading={isClaiming(campaign.id)}
           loadingText="Claiming..."
           variant="success"
-          isLocked={!isUserAuthenticated}
+          isLocked={!hasCampaignIdentity}
         >
-          {!isUserAuthenticated ? "" :
+          {!hasCampaignIdentity ? "Waiting Devnet Session" :
            isPaid || isTasksClaimed ? "Reward Claimed 💎" :
            !isTasksVerified ? "Verify Tasks First" :
            "Claim Reward 💎"}

@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import useCampaigns from '@/hooks/useCampaigns';
 import { useCampaignActions } from '@/hooks/useCampaignActions';
 import useUserCampaigns from '@/hooks/useUserCampaigns';
+import useNotifications from '@/hooks/useNotifications';
 
 import UserData from '@/components/UserData';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
@@ -13,8 +14,10 @@ import { UserCampaignsList } from '@/components/campaigns/UserCampaignsList';
 export default function Campaigns() {
   const { campaigns, loading, error, refetch } = useCampaigns();
   const { campaigns: userCampaigns, refetch: refetchUserCampaigns } = useUserCampaigns();
+  const { notifications, loading: notificationsLoading, error: notificationsError, refetch: refetchNotifications, ackNotification, isAckLoading } = useNotifications();
   const { joinCampaign, verifyTasks, claimReward, isJoinLoading, isVerifyLoading, isClaimLoading } = useCampaignActions();
-  const [isUserAuthenticated, setIsUserAuthenticated] = useState(UserData.hasData());
+  const [isCampaignReady, setIsCampaignReady] = useState(UserData.hasCampaignIdentity());
+  const [walletAddress, setWalletAddress] = useState<string>("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -26,29 +29,59 @@ export default function Campaigns() {
   }, [userCampaigns]);
 
   useEffect(() => {
-    // Check periodically if user has logged in (reduced frequency)
-    const checkAuth = () => {
-      const hasData = UserData.hasData();
-      setIsUserAuthenticated(hasData);
-      if (hasData) {
-        // Refetch user campaigns when authenticated
-        refetchUserCampaigns();
-      }
-    };
+    const sessionId = UserData.getOrCreateDevnetSession();
+    setIsCampaignReady(!!sessionId);
 
-    const interval = setInterval(checkAuth, 3000); // Reduced from 1000ms to 3000ms
-    
-    // Listen for user data loaded event
+    const maybeWallet = (
+      window as Window & { solana?: { publicKey?: { toString: () => string } } }
+    ).solana?.publicKey?.toString();
+    if (maybeWallet) {
+      setWalletAddress(maybeWallet);
+      UserData.setDevnetWalletSession(maybeWallet);
+    }
+
+    refetchUserCampaigns();
+  }, [refetchUserCampaigns]);
+
+  const handleConnectDevnetWallet = async () => {
+    const provider = (
+      window as Window & {
+        solana?: {
+          isPhantom?: boolean;
+          publicKey?: { toString: () => string };
+          connect?: () => Promise<{ publicKey: { toString: () => string } }>;
+        };
+      }
+    ).solana;
+
+    if (!provider || !provider.isPhantom || !provider.connect) {
+      toast.info('🦊 Phantom não detectada. Continuando com sessão Devnet local.');
+      const fallback = UserData.getOrCreateDevnetSession();
+      setIsCampaignReady(!!fallback);
+      return;
+    }
+
+    try {
+      const resp = await provider.connect();
+      const pubkey = resp.publicKey.toString();
+      UserData.setDevnetWalletSession(pubkey);
+      setWalletAddress(pubkey);
+      setIsCampaignReady(true);
+      await refetchUserCampaigns();
+      toast.success('✅ Wallet Devnet conectada para campanhas.');
+    } catch {
+      toast.error('❌ Não foi possível conectar a wallet Devnet.');
+    }
+  };
+
+  useEffect(() => {
     const handleUserDataLoaded = () => {
-      setIsUserAuthenticated(true);
-      // Refetch user campaigns when user data is loaded
+      setIsCampaignReady(UserData.hasCampaignIdentity());
       refetchUserCampaigns();
     };
 
     window.addEventListener('userDataLoaded', handleUserDataLoaded);
-    
     return () => {
-      clearInterval(interval);
       window.removeEventListener('userDataLoaded', handleUserDataLoaded);
     };
   }, [refetchUserCampaigns]);
@@ -57,20 +90,17 @@ export default function Campaigns() {
     setRefreshing(true);
     try {
       await refetch();
-      // Refresh user campaigns if authenticated
-      if (isUserAuthenticated) {
-        await refetchUserCampaigns();
-        // Refetch user data (balances, transactions, etc.)
-        await UserData.fetchData();
-      }
+      await refetchUserCampaigns();
+      await refetchNotifications();
+      await UserData.fetchData();
     } finally {
       setRefreshing(false);
     }
   };
 
   const handleJoinCampaign = async (campaignId: number) => {
-    if (!isUserAuthenticated) {
-      toast.error('🔒 You need to be logged in to join campaigns!');
+    if (!isCampaignReady) {
+      toast.error('⚠️ Unable to initialize Devnet session. Refresh and try again.');
       return;
     }
 
@@ -88,8 +118,8 @@ export default function Campaigns() {
   };
 
   const handleVerifyTasks = async (campaignId: number) => {
-    if (!isUserAuthenticated) {
-      toast.error('🔒 You need to be logged in to verify tasks!');
+    if (!isCampaignReady) {
+      toast.error('⚠️ Unable to initialize Devnet session. Refresh and try again.');
       return;
     }
 
@@ -107,19 +137,21 @@ export default function Campaigns() {
   };
 
   const handleClaimReward = async (campaignId: number) => {
-    if (!isUserAuthenticated) {
-      toast.error('🔒 You need to be logged in to collect rewards!');
+    if (!isCampaignReady) {
+      toast.error('⚠️ Unable to initialize Devnet session. Refresh and try again.');
       return;
     }
 
     const result = await claimReward(campaignId);
     
     if (result.success) {
-      toast.success(`🎉 ${result.message}`, {
+      const receiptSuffix = result.claim_receipt_id ? ` Receipt: ${result.claim_receipt_id}` : '';
+      toast.success(`🎉 ${result.message}${receiptSuffix}`, {
         autoClose: 5000, // Show success message longer for rewards
       });
       // Refresh user campaigns after claiming
       await refetchUserCampaigns();
+      await refetchNotifications();
       // Refetch user data (balances, transactions, etc.) after claiming reward
       await UserData.fetchData();
     } else {
@@ -170,62 +202,116 @@ export default function Campaigns() {
             🚀 Campaigns 
           </h1>
           <p className="text-gray-600 text-lg mb-6">
-            {isUserAuthenticated 
-              ? "Join campaigns and earn incredible rewards!" 
-              : "Explore available campaigns. Login through chat to participate!"
-            }
+            Join campaigns and earn incredible rewards on Solana Devnet.
           </p>
-          
-          {/* Aviso para usuários não logados */}
-          {!isUserAuthenticated && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6 max-w-2xl mx-auto">
-              <div className="flex items-center space-x-3 text-blue-700">
-                <span className="text-3xl">🔒</span>
-                <div className="text-left">
-                  <p className="font-bold text-lg">Demo Mode</p>
-                  <p className="text-blue-600">
-                    You are viewing campaigns as a visitor. 
-                    To participate, verify tasks and collect rewards, 
-                    please login through the main chat.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Status and Create Button */}
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <div className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${
-              isUserAuthenticated 
+              isCampaignReady 
                 ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-600'
+                : 'bg-yellow-100 text-yellow-700'
             }`}>
-              {isUserAuthenticated 
-                ? '✅ Authenticated' 
-                : '👤 Demo Mode'
+              {isCampaignReady 
+                ? '✅ Devnet Session Active' 
+                : '⏳ Initializing Devnet Session'
               }
             </div>
             
-            {/* Botão para criar campanha - apenas para usuários logados */}
-            {isUserAuthenticated && (
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-200 transform hover:scale-105"
-              >
-                ✨ Create Campaign
-              </button>
+            <button
+              onClick={handleConnectDevnetWallet}
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full font-medium hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 transform hover:scale-105"
+            >
+              🔌 Connect Phantom (Devnet)
+            </button>
+
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-200 transform hover:scale-105"
+            >
+              ✨ Create Campaign
+            </button>
+
+            {walletAddress && (
+              <div className="inline-block px-3 py-2 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Wallet: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </div>
             )}
           </div>
         </div>
 
         {/* User campaigns section - show when authenticated */}
-        {isUserAuthenticated && userCampaigns && userCampaigns.length > 0 && (
+        {userCampaigns && userCampaigns.length > 0 && (
           <div className="mb-8">
             <UserCampaignsList 
               campaigns={userCampaigns} 
               title="🎯 My Campaigns"
               className="mb-8"
             />
+          </div>
+        )}
+
+        {(notifications.length > 0 || notificationsLoading || notificationsError) && (
+          <div className="mb-8 bg-white rounded-3xl border border-gray-200 shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <span>🔔</span>
+                Recent Rewards
+              </h2>
+              <button
+                onClick={refetchNotifications}
+                className="text-sm font-medium text-blue-600 hover:text-blue-800"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {notificationsError && (
+              <p className="text-sm text-red-600 mb-3">{notificationsError}</p>
+            )}
+
+            {notificationsLoading ? (
+              <p className="text-sm text-gray-500">Loading notifications...</p>
+            ) : (
+              <div className="space-y-3">
+                {notifications.slice(0, 3).map((notification) => (
+                  <div key={notification.id} className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-gray-800">{notification.title}</p>
+                        <p className="text-sm text-gray-600 mt-1">{notification.body}</p>
+                        {notification.related_signature && (
+                          <p className="text-xs text-blue-700 mt-2 break-all">
+                            Receipt: {notification.related_signature}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-xs font-semibold uppercase text-blue-700 bg-white px-2 py-1 rounded-full border border-blue-200">
+                          {notification.status}
+                        </span>
+                        {notification.status !== 'delivered' && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await ackNotification(notification.id);
+                                toast.success('✅ Notification acknowledged.');
+                              } catch {
+                                toast.error('❌ Failed to acknowledge notification.');
+                              }
+                            }}
+                            disabled={isAckLoading(notification.id)}
+                            className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed px-3 py-1 rounded-full"
+                          >
+                            {isAckLoading(notification.id) ? 'Acking...' : 'Mark delivered'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
         
@@ -300,13 +386,13 @@ export default function Campaigns() {
         <div className="mt-12 text-center">
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-2xl border border-purple-200">
             <h3 className="text-lg font-bold text-purple-800 mb-2">
-              💡 How to participate in campaigns?
+              💡 Campaigns running on Devnet
             </h3>
             <div className="text-sm text-purple-700 space-y-1">
-              <p>1. 🏠 Go back to the main chat</p>
-              <p>2. 🔑 Login through Twitter authentication</p>
-              <p>3. 🚀 Return here to participate in campaigns</p>
-              <p>4. 💰 Complete tasks and collect your rewards!</p>
+              <p>1. 🚀 Join a campaign and complete required steps</p>
+              <p>2. ✅ Verify tasks to unlock reward claim</p>
+              <p>3. 💰 Claim reward using your Devnet session identity</p>
+              <p>4. 🔄 Refresh to sync your latest campaign status</p>
             </div>
           </div>
         </div>

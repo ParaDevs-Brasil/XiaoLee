@@ -1,6 +1,6 @@
 # QA Plan XiaoLee MVP
 
-Atualizacao documental: **2026-04-23**.
+Atualizacao documental: **2026-04-24**.
 
 ## Escopo validado
 
@@ -34,6 +34,10 @@ Atualizacao documental: **2026-04-23**.
   - cria notificacao de entrega em X quando configurado
 - backend/tests/test_notifications_routes.py
   - ack atualiza status para delivered e marca delivered_at
+- backend/tests/test_campaign_claim_proof.py
+  - valida assinatura Ed25519 do claim
+  - persiste claim_receipt_id no participante
+  - cria notificacao in-app vinculada ao receipt
 - backend/tests/test_metrics.py
   - expõe métricas HTTP em formato Prometheus
 
@@ -46,6 +50,8 @@ Atualizacao documental: **2026-04-23**.
   - frontend build
 
 ## Execucao mais recente
+
+Observacao: os resultados abaixo representam o snapshot operacional mais recente reportado para o MVP em Devnet.
 
 - Backend principal: `../.venv/bin/pytest -q`
 - Resultado: **34 passed, 8 skipped**
@@ -63,8 +69,9 @@ Atualizacao documental: **2026-04-23**.
 | `POST /v1/integrations/x/webhook` | `backend/tests/test_xiaolee_mvp_security.py` | Coberto |
 | `POST /v1/solana/swap/prepare` | `backend/tests/test_xiaolee_mvp_security.py`, `frontend/src/components/navbar/Wallet.test.tsx` | Coberto |
 | `POST /v1/solana/webhooks/helius` | `backend/tests/test_helius_webhook.py` | Coberto |
-| `GET /v1/notifications/{twitter_user_id}` | `backend/tests/test_notifications_routes.py` | Coberto |
+| `GET /v1/notifications/me` | `backend/tests/test_notifications_routes.py` | Coberto |
 | `POST /v1/notifications/{notification_id}/ack` | `backend/tests/test_notifications_routes.py` | Coberto |
+| `POST /campaigns/claim` | `backend/tests/test_campaign_claim_proof.py` | Coberto |
 | `GET /health` | `backend/tests/test_xiaolee_mvp_security.py` | Coberto |
 | `GET /status` | `backend/tests/test_xiaolee_mvp_security.py` | Coberto |
 | `POST /chat` | `backend/tests/test_xiaolee_mvp_security.py` | Coberto |

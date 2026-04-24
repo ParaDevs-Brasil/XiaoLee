@@ -1,6 +1,6 @@
 # Tech Context: XiaoLee
 
-Atualizacao documental: **2026-04-23**.
+Atualizacao documental: **2026-04-24**.
 
 ## Stack Principal
 
@@ -43,7 +43,9 @@ Frontend:
 
 ## Restricoes Tecnicas Atuais
 
+- Baseline de maturidade atual: **80%** (faixa **76% a 84%**) para o MVP em Devnet.
 - Pipeline CI fullstack consolidado para backend e frontend.
 - Observabilidade HTTP básica com `/metrics` já exposta.
 - Escopo de producao mainnet depende de hardening e auditoria.
+- Fluxo de campanhas em Devnet inclui claim com proof assinado, receipt persistido e notificação in-app.
 - Fluxo critico e wallet-first; backend nao deve custodiar chave de usuario.

@@ -7,18 +7,25 @@ Campaign definida em frontend/src/interfaces/campaign.ts.
 
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from solders.pubkey import Pubkey
 
 from database.database import get_db_session
-from database.models import AuthToken, Campaign as CampaignModel, CampaignParticipant, User, WebSession
+from database.models import AuthToken, Campaign as CampaignModel, CampaignParticipant, NotificationEvent, User, WebSession
 from fastapi import Depends
+from server.metrics import record_campaign_event
 
 router = APIRouter(tags=["campaigns"])
 
@@ -110,6 +117,7 @@ class UserCampaignParticipation(BaseModel):
     participation_status: str
     tasks_verified_at: Optional[str] = None
     tasks_claimed: bool = False
+    claim_receipt_id: Optional[str] = None
     status: Optional[str] = None
 
 
@@ -130,6 +138,10 @@ class UserResponse(BaseModel):
 
 class CampaignActionRequest(BaseModel):
     campaign_identifier: str
+    wallet_public_key: Optional[str] = None
+    wallet_signature: Optional[str] = None
+    proof_message: Optional[str] = None
+    proof_encoding: Optional[str] = None
 
 
 class CreateCampaignRequest(BaseModel):
@@ -185,6 +197,36 @@ def _participant_status(participant: CampaignParticipant) -> str:
     if participant.status == "tasks_verified":
         return "tasks_verified"
     return "enrolled"
+
+
+def _verify_claim_proof(payload: CampaignActionRequest, campaign_id: int, session_token: str) -> None:
+    public_key = (payload.wallet_public_key or "").strip()
+    signature = (payload.wallet_signature or "").strip()
+    message = (payload.proof_message or "").strip()
+    proof_encoding = (payload.proof_encoding or "").strip().lower()
+
+    if not public_key or not signature or not message:
+        raise HTTPException(status_code=400, detail="Wallet signature proof is required to claim campaign rewards")
+
+    expected_prefix = f"XiaoLee Devnet claim|campaign:{campaign_id}|session:{session_token}|wallet:{public_key}"
+    if not message.startswith(expected_prefix):
+        raise HTTPException(status_code=400, detail="Claim proof does not match the current campaign session")
+
+    if proof_encoding not in {"base64", "none"}:
+        raise HTTPException(status_code=400, detail="Unsupported claim proof encoding")
+
+    try:
+        wallet_pubkey = Pubkey.from_string(public_key)
+        public_key_bytes = bytes(wallet_pubkey)
+        signature_bytes = base64.b64decode(signature)
+        message_bytes = message.encode("utf-8")
+    except (ValueError, binascii.Error) as exc:
+        raise HTTPException(status_code=400, detail="Invalid claim proof payload") from exc
+
+    try:
+        Ed25519PublicKey.from_public_bytes(public_key_bytes).verify(signature_bytes, message_bytes)
+    except InvalidSignature as exc:
+        raise HTTPException(status_code=400, detail="Invalid wallet signature for this claim") from exc
 
 
 async def _resolve_user(db: AsyncSession, authorization: Optional[str]) -> User:
@@ -392,12 +434,7 @@ async def list_campaigns(db: AsyncSession = Depends(get_db_session)):
     )
 
 
-@router.get("/campaigns/user", response_model=UserCampaignsResponse)
-async def get_user_campaigns(
-    db: AsyncSession = Depends(get_db_session),
-    authorization: Optional[str] = Header(default=None),
-):
-    """Retorna as campanhas em que o usuario participa."""
+async def _list_user_campaigns(db: AsyncSession, authorization: Optional[str]) -> UserCampaignsResponse:
     await _seed_default_campaigns(db)
 
     try:
@@ -432,9 +469,28 @@ async def get_user_campaigns(
                 status=participation_status,
                 tasks_verified_at=verified_at.isoformat() if verified_at else None,
                 tasks_claimed=participant.status == "paid",
+                claim_receipt_id=participant.claim_receipt_id,
             )
         )
     return UserCampaignsResponse(success=True, campaigns=result)
+
+
+@router.get("/campaigns/me", response_model=UserCampaignsResponse)
+async def get_current_user_campaigns(
+    db: AsyncSession = Depends(get_db_session),
+    authorization: Optional[str] = Header(default=None),
+):
+    """Retorna as campanhas em que o usuario atual participa."""
+    return await _list_user_campaigns(db, authorization)
+
+
+@router.get("/campaigns/user", response_model=UserCampaignsResponse)
+async def get_user_campaigns(
+    db: AsyncSession = Depends(get_db_session),
+    authorization: Optional[str] = Header(default=None),
+):
+    """Compatibilidade legada para retornar as campanhas do usuario."""
+    return await _list_user_campaigns(db, authorization)
 
 
 @router.post("/campaigns/create")
@@ -484,12 +540,18 @@ async def join_campaign(
     existing_res = await db.execute(existing_stmt)
     existing = existing_res.scalars().first()
     if existing:
-        return {"success": False, "error": "You have already joined this campaign"}
+        # 409 Conflict é a resposta semanticamente correta para recursos já existentes.
+        record_campaign_event("join_duplicate")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You have already joined this campaign",
+        )
 
     participant_count_stmt = select(func.count()).select_from(CampaignParticipant).where(CampaignParticipant.campaign_id == campaign_id)
     participant_count_res = await db.execute(participant_count_stmt)
     participant_count = participant_count_res.scalar() or 0
     if participant_count >= campaign.max_participants:
+        record_campaign_event("join_full")
         return {"success": False, "error": "This campaign is full"}
 
     db.add(
@@ -500,7 +562,7 @@ async def join_campaign(
         )
     )
     await db.commit()
-
+    record_campaign_event("join")
     return {
         "success": True,
         "message": f"Successfully joined '{campaign.name}'! Complete the tasks to earn {float(campaign.reward_per_participant)} {campaign.reward_token}.",
@@ -533,6 +595,7 @@ async def verify_tasks(
     participant.status = "tasks_verified"
     participant.tasks_verified_at = datetime.now(timezone.utc)
     await db.commit()
+    record_campaign_event("verify")
     return {
         "success": True,
         "message": "All tasks verified successfully! You are eligible to claim your reward.",
@@ -563,13 +626,40 @@ async def claim_reward(
     if participant.status == "paid":
         return {"success": False, "error": "Reward already claimed for this campaign"}
 
+    _verify_claim_proof(payload, campaign_id, _get_user_id_from_token(authorization))
+
+    receipt_id = str(uuid.uuid4())[:16]
     participant.status = "paid"
+    participant.claim_receipt_id = receipt_id
+    db.add(
+        NotificationEvent(
+            user_id=user.id,
+            channel="in_app",
+            title=f"Campaign reward claimed: {campaign.name}",
+            body=f"You claimed {float(campaign.reward_per_participant)} {campaign.reward_token} and received receipt {receipt_id}.",
+            status="pending",
+            related_signature=receipt_id,
+            metadata_json=json.dumps(
+                {
+                    "campaign_id": campaign_id,
+                    "reward_amount": float(campaign.reward_per_participant),
+                    "reward_token": campaign.reward_token,
+                    "wallet_public_key": payload.wallet_public_key or "",
+                    "claim_receipt_id": receipt_id,
+                }
+            ),
+        )
+    )
     await db.commit()
     tx_id = str(uuid.uuid4())[:16]
+    record_campaign_event("claim")
     return {
         "success": True,
         "message": f"{float(campaign.reward_per_participant)} {campaign.reward_token} claimed successfully!",
         "transaction_id": tx_id,
+        "claim_receipt_id": receipt_id,
         "reward_amount": float(campaign.reward_per_participant),
         "reward_token": campaign.reward_token,
+        "wallet_public_key": payload.wallet_public_key,
+        "proof_submitted": bool(payload.wallet_signature or payload.proof_message),
     }

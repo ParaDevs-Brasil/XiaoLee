@@ -1,61 +1,232 @@
-# XiaoLee Smart Contract e Integracao On-chain
+# XiaoLee Smart Contract — Documentação On-chain
 
-Atualizacao documental: **2026-04-23**.
+> Atualizado em: **2026-04-24** | Sprint 7 concluída.
+> Program ID: `Fmmpn79Tij8fzYHg31ekZz4MmK9ArGzN59VogfcwhXiM`
+> Cluster atual: **Devnet**
 
-## 1. Estado Atual
+---
 
-O projeto possui base para smart contract em `solana-program/`, porem o fluxo principal do MVP em uso hoje e:
+## 1. Visão Geral do Programa
 
-1. Backend prepara transacao de swap unsigned.
-2. Frontend simula e exige confirmacao explicita.
-3. Wallet do usuario assina e envia para Solana.
-4. Helius envia webhook de resultado para o backend.
-5. Backend atualiza historico e notificacoes.
+O programa `xiaolee_core` é um smart contract Anchor (Rust/Solana) responsável por:
 
-Isso entrega UX de swap funcional em Devnet sem custodia de chave privada no backend.
+- **Registrar swaps on-chain** de forma auditável (`record_swap`).
+- **Gerenciar estado global do protocolo** (`GlobalConfig` PDA).
+- **Manter estado por usuário** (`UserState` PDA por `twitter_id`).
+- **Controle de emergência** — pausar/retomar todas as operações (`pause_protocol` / `unpause_protocol`).
+- **Transferência de autoridade** para multisig Gnosis Safe (`transfer_admin`).
 
-## 2. Integracoes Solana ja ativas
+---
 
-- Solana Devnet para execucao de transacoes.
-- Jupiter para quote e montagem da transacao de swap.
-- Helius webhook para reconciliacao de status.
+## 2. Instruções do Programa
 
-## 3. Programa proprio (Anchor)
+### `initialize_global`
+> **Chamada:** Uma vez pelo admin no deploy. Inicializa o `GlobalConfig`.
 
-Objetivo arquitetural do modulo on-chain proprio:
+| Campo | Tipo | Descrição |
+|---|---|---|
+| — | — | Sem parâmetros |
 
-- Registrar eventos/metricas relevantes de forma auditavel.
-- Garantir politicas de autorizacao para escrita de estado.
-- Apoiar mecanicas de campanha e recompensa com rastreabilidade.
+**Contas:**
+- `global_config` (PDA, init) — `seeds = [b"global_config"]`
+- `admin` (Signer, mut)
+- `system_program`
 
-Status atual: **parcial**. A trilha principal de entrega ainda e wallet-first com reconciliacao off-chain.
+**Eventos emitidos:** `GlobalInitialized { admin, version }`
 
-## 4. Token e Enderecos
+---
 
-Existem referencias de token e program id em documentacao historica, mas a operacao atual deve ser tratada como ambiente de desenvolvimento/Devnet ate validacao final de release.
+### `initialize_user`
+> **Chamada:** Pelo próprio usuário ao entrar no protocolo. Cria a `UserState` PDA.
 
-## 5. Progresso de Construcao (On-chain)
+| Parâmetro | Tipo | Validação |
+|---|---|---|
+| `twitter_id` | `String` | len ≤ 50 chars |
+
+**Contas:**
+- `global_config` (PDA, read) — verifica se protocolo não está pausado
+- `user_state` (PDA, init) — `seeds = [b"user", twitter_id.as_bytes()]`
+- `user` (Signer, mut)
+- `system_program`
+
+**Rejeita se:** `global_config.paused == true` → `ErrorCode::ProtocolPaused`
+
+---
+
+### `record_swap`
+> **Chamada:** Exclusivamente pelo admin (backend via `AnchorClient`). Registra volume de swap.
+
+| Parâmetro | Tipo | Descrição |
+|---|---|---|
+| `volume` | `u64` | Volume do swap em lamports |
+
+**Contas:**
+- `global_config` (PDA, mut) — `has_one = admin` (garante autoria do admin)
+- `user_state` (PDA, mut)
+- `admin` (Signer, mut)
+
+**Rejeita se:** `global_config.paused == true` → `ErrorCode::ProtocolPaused`
+**Rejeita se:** signer ≠ `global_config.admin` → `ErrorCode::Unauthorized`
+**Aritmética segura:** `checked_add` em `swap_count` e `total_volume`.
+
+**Eventos emitidos:** `SwapRecorded { twitter_id, swap_count, volume, total_volume }`
+
+---
+
+### `pause_protocol` [ATENCAO] Emergency Control
+> **Chamada:** Pelo admin em situação de emergência.
+
+Quando pausado:
+- `record_swap` → `ErrorCode::ProtocolPaused`
+- `initialize_user` → `ErrorCode::ProtocolPaused`
+
+**Contas:**
+- `global_config` (PDA, mut) — `has_one = admin`
+- `admin` (Signer)
+
+**Eventos emitidos:** `ProtocolPaused { admin, timestamp }`
+
+---
+
+### `unpause_protocol`
+> **Chamada:** Pelo admin para retomar operações após resolução da emergência.
+
+**Eventos emitidos:** `ProtocolUnpaused { admin, timestamp }`
+
+---
+
+### `transfer_admin`
+> **Chamada:** Para migrar autoridade para multisig Gnosis Safe antes do mainnet.
+
+| Parâmetro | Tipo | Validação |
+|---|---|---|
+| `new_admin` | `Pubkey` | ≠ `Pubkey::default()` |
+
+**Eventos emitidos:** `AdminTransferred { old_admin, new_admin, timestamp }`
+
+---
+
+## 3. Contas (PDAs)
+
+### `GlobalConfig`
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `admin` | `Pubkey` | Admin atual (deve ser multisig em mainnet) |
+| `bump` | `u8` | Bump seed |
+| `paused` | `bool` | Estado de pausa emergencial |
+| `version` | `u8` | Versão do protocolo (atual: 1) |
+| `total_swaps_recorded` | `u64` | Total de swaps gravados |
+
+**Derivação:** `Pubkey::find_program_address([b"global_config"], program_id)`
+
+### `UserState`
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `twitter_id` | `String` (max 50) | Identificador único do usuário |
+| `swap_count` | `u64` | Número de swaps registrados |
+| `total_volume` | `u64` | Volume total em lamports |
+| `bump` | `u8` | Bump seed |
+
+**Derivação:** `Pubkey::find_program_address([b"user", twitter_id.as_bytes()], program_id)`
+
+---
+
+## 4. Eventos On-chain (Indexação)
+
+| Evento | Campos | Quando |
+|---|---|---|
+| `GlobalInitialized` | `admin`, `version` | Deploy inicial |
+| `SwapRecorded` | `twitter_id`, `swap_count`, `volume`, `total_volume` | Cada swap confirmado |
+| `ProtocolPaused` | `admin`, `timestamp` | Pausa de emergência |
+| `ProtocolUnpaused` | `admin`, `timestamp` | Retomada |
+| `AdminTransferred` | `old_admin`, `new_admin`, `timestamp` | Mudança de admin |
+
+> Todos os eventos são indexáveis via The Graph ou Helius Webhook para dashboards off-chain.
+
+---
+
+## 5. Códigos de Erro
+
+| Código | Mensagem | Causa |
+|---|---|---|
+| `MathOverflow` | Math operation overflow | `swap_count` ou `total_volume` atingiu u64::MAX |
+| `StringTooLong` | String length exceeds 50 | `twitter_id` > 50 caracteres |
+| `Unauthorized` | Not the protocol admin | Signer não é `global_config.admin` |
+| `ProtocolPaused` | Protocol is paused | Operação rejeitada durante pausa |
+| `AlreadyPaused` | Protocol is already paused | Tentativa de pausar protocolo já pausado |
+| `NotPaused` | Protocol is not paused | Tentativa de retomar protocolo ativo |
+| `InvalidAdminAddress` | Invalid admin address | `new_admin == Pubkey::default()` |
+
+---
+
+## 6. Integração Backend (AnchorClient)
+
+O backend Python utiliza `solders` para interagir com o programa:
+
+```python
+from server.integrations.anchor_client import AnchorClient
+
+client = AnchorClient(
+rpc_url="https://api.devnet.solana.com",
+admin_keypair_b58=os.getenv("SOLANA_ADMIN_KEYPAIR_B58"),
+)
+
+# Deriva PDA do usuário
+user_pda = client.derive_user_state_pda("@usuario_twitter")
+
+# Registra swap (dry_run=True se keypair não configurada)
+result = await client.record_swap(
+twitter_id="@usuario_twitter",
+volume_lamports=1_000_000_000,
+signature="helius_tx_sig",
+)
+```
+
+**Discriminador `record_swap`:** `[164, 158, 148, 54, 167, 137, 171, 59]`
+**Serialização:** `discriminator (8 bytes) + volume (u64 little-endian, 8 bytes)`
+
+---
+
+## 7. Segurança e Pré-requisitos de Mainnet
 
 | Item | Status |
 |---|---|
-| Fluxo swap wallet-first em Devnet | Concluido |
-| Webhook Helius para status | Concluido |
-| Programa Anchor no caminho critico | Parcial |
-| Hardening de producao mainnet | Pendente |
-| Auditoria externa | Pendente |
+| `has_one = admin` constraint (anti-unauthorized) | Concluido |
+| `checked_add` (anti-overflow) | Concluido |
+| `len() <= 50` em `twitter_id` (anti-DoS) | Concluido |
+| Emergency pause on-chain | Concluido |
+| Transfer admin para multisig | Concluido |
+| Eventos on-chain para auditoria | Concluido |
+| Auditoria externa independente | Pendente Pendente |
+| Admin substituído por multisig Gnosis Safe | Pendente Pendente |
+| Deploy em mainnet-beta | Pendente Pendente |
 
-## 6. Requisitos antes de Mainnet
+---
 
-1. Revisar constraints e authorities do programa Anchor.
-2. Garantir idempotencia no processamento de eventos on-chain.
-3. Cobrir cenarios de replay e falhas de reconciliacao.
-4. Executar auditoria de seguranca independente.
-5. Definir plano de rollout e rollback.
+## 8. Comandos de Desenvolvimento
 
-Classificacao correta no momento: **MVP/Devnet em evolucao**.
+```bash
+# Compilar o programa
+make anchor-build
 
-## 7. Testes e Status Operacional
+# Executar testes Anchor
+make anchor-test
 
-- O fluxo principal validado hoje é wallet-first no frontend.
-- O backend já reconcilia eventos de swap via webhook Helius e persiste notificações.
-- A trilha de Anchor permanece como evolução planejada, não como caminho crítico do MVP.
+# Deploy em devnet
+make anchor-deploy-devnet
+
+# Sincronizar IDL com frontend após rebuild
+make anchor-idl-sync
+```
+
+---
+
+## 9. Histórico de Versões
+
+| Versão | Data | Mudanças |
+|---|---|---|
+| v0.1 | 2026-04-22 | Estrutura inicial: initialize_global, initialize_user, record_swap |
+| v0.2 | 2026-04-23 | Fixes de segurança: has_one, checked_add, input sanitization |
+| v1.0 | 2026-04-24 | Emergency pause, transfer_admin, eventos on-chain, GlobalConfig expandido |

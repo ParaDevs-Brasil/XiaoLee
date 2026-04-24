@@ -35,11 +35,19 @@ export interface UserCampaignParticipation {
   reward_token: string;
   reward_per_participant: number;
   campaign_type: string;
-  participation_status: 'enrolled' | 'tasks_verified' | 'reward_claimed' | 'paid';
+  /**
+   * Estados de participação — alinhados com o backend:
+   *   'enrolled'       — participante inscrito, tarefas pendentes
+   *   'tasks_verified' — tarefas verificadas pelo backend, aguardando claim
+   *   'paid'           — recompensa claimed e paga (estado final)
+   *
+   * Nota: o estado 'reward_claimed' foi removido — era legado apenas no frontend.
+   * O equivalente canônico no backend e no banco de dados é 'paid'.
+   */
+  participation_status: 'enrolled' | 'tasks_verified' | 'paid';
   tasks_verified_at: string | null;
   tasks_claimed: boolean;
-  // Legacy support - map participation_status to status
-  status?: 'enrolled' | 'tasks_verified' | 'reward_claimed' | 'paid';
+  claim_receipt_id?: string | null;
 }
 
 export interface CampaignsResponse {
@@ -87,6 +95,12 @@ export interface ClaimRewardResponse {
   success: boolean;
   message?: string;
   error?: string;
+  transaction_id?: string;
+  claim_receipt_id?: string;
+  reward_amount?: number;
+  reward_token?: string;
+  wallet_public_key?: string;
+  proof_submitted?: boolean;
 }
 
 // Response interfaces

@@ -39,11 +39,30 @@ class Settings:
     helius_api_key: str = os.getenv("HELIUS_API_KEY", "")
     helius_webhook_secret: str = os.getenv("HELIUS_WEBHOOK_SECRET", "")
 
+    # Chave privada do admin do protocolo (base58) para assinar transacoes Anchor.
+    solana_admin_keypair_b58: str = os.getenv("SOLANA_ADMIN_KEYPAIR_B58", "")
+
+    # Redis para rate limiting persistente.
+    # Se nao definida, o rate limiter usa in-memory (nao persiste entre restarts).
+    # Producao: redis://user:pass@host:6379/0  ou  rediss:// para TLS
+    redis_url: str = os.getenv("REDIS_URL", "")
+
+    # Headers CORS permitidos.
+    cors_allowed_headers: list[str] = None
+
     def __post_init__(self):
         object.__setattr__(
             self,
             "cors_allowed_origins",
             _parse_csv_env("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
+        )
+        # Headers CORS: em producao, restringir a lista minima necessaria.
+        # Por padrao aceita os headers padrao REST + Authorization.
+        cors_headers_default = "Content-Type,Authorization,Accept,X-Requested-With"
+        object.__setattr__(
+            self,
+            "cors_allowed_headers",
+            _parse_csv_env("CORS_ALLOWED_HEADERS", cors_headers_default),
         )
 
 

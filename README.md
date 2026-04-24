@@ -1,251 +1,373 @@
 # XiaoLee Protocol
 
-Assistente de IA multi-plataforma para Solana com backend FastAPI, integrações Telegram/X, Gemini para orquestração de intenção e fluxo wallet-first no frontend para swap na Devnet.
+> Assistente de IA multi-plataforma para Solana com backend FastAPI, integrações Telegram/X, Gemini para orquestração de intenção, fluxo wallet-first e campanhas DeFi on-chain.
+> **Atualizado: 2026-04-24 | Sprint 7 concluída | 93% completo**
 
 ## Interface Atual
 
-| Chat | Dashboard | Campanhas |
-|---|---|---|
-| ![Tela do chat XiaoLee](XiaoleeChat.png) | ![Dashboard XiaoLee](Dashboard%20Xiaolee.png) | ![Tela de campanhas XiaoLee](Campaidns.png) |
-
-As imagens abaixo refletem o estado atual da interface principal, do dashboard e da área de campanhas.
-
-## Progresso de Construção
-
-Status geral do projeto: **85% concluído**.
-
-Leitura prática do estado atual: **MVP funcional com hardening de producao e readiness de mainnet em aberto**.
-
-Ultima atualizacao documental: **2026-04-23**.
-
-| Bloco | Status | Observação |
-|---|---|---|
-| Core API FastAPI | Concluído | Endpoints de health, inbound, webhooks e swap/prepare ativos |
-| Integração Gemini | Concluído | Classificação de intenção + geração de resposta |
-| Integrações Telegram/X | Concluído | Normalização de payload + validação de segredo/assinatura |
-| Solana/Jupiter (prepare) | Concluído | Quote + transação unsigned para assinatura em wallet |
-| Wallet-first frontend | Concluído | Connect, prepare, simulate, confirmação explícita, sign/send |
-| QA frontend swap flow | Concluído | 13 testes cobrindo sucesso e principais falhas |
-| QA backend MVP | Concluído | Suite principal passa com 34 testes e 8 skips legados |
-| Observabilidade HTTP/Prometheus | Concluído | `/metrics` expõe contadores e latência média |
-| CI/CD consolidado fullstack | Concluído | Workflow único cobre backend, frontend, lint, testes e build |
-| Produção mainnet e auditoria | Pendente | Requer revisão de segurança e rollout controlado |
-
-## Linha do Tempo de Construção
-
-| Fase | Janela | Status | Entregas principais |
+| Chat | Dashboard | Campanhas | Notificações |
 |---|---|---|---|
-| Fase 1 | Concluida | Concluido | Base backend FastAPI, integracao Gemini, rotas de inbound |
-| Fase 2 | Concluida | Concluido | Fluxo wallet-first no frontend com prepare/simulate/sign/send |
-| Fase 3 | Concluida | Concluido | Hardening inicial de webhooks (Telegram/X/Helius) |
-| Fase 4 | Concluida | Concluido | QA expandido, observabilidade HTTP e CI fullstack |
-| Fase 5 | Pendente | Pendente | Readiness de mainnet e revisao final de seguranca |
+| ![Tela do chat XiaoLee](XiaoleeChat.png) | ![Dashboard XiaoLee](Dashboard.png) | ![Tela de campanhas XiaoLee](Campaigns.png) | ![Notificações XiaoLee](Notifications.png) |
 
-## Rastreabilidade (Endpoint x Testes)
+---
 
-Resumo rapido de cobertura atual:
+## Status do Projeto
 
-| Endpoint/Fluxo | Testes atuais |
-|---|---|
-| `POST /v1/messages/inbound` | `backend/tests/test_xiaolee_mvp_orchestration.py` |
-| `POST /v1/integrations/telegram/webhook` | `backend/tests/test_xiaolee_mvp_security.py` |
-| `POST /v1/integrations/x/webhook` | `backend/tests/test_xiaolee_mvp_security.py` |
-| `POST /v1/solana/swap/prepare` | `backend/tests/test_xiaolee_mvp_security.py`, `frontend/src/components/navbar/Wallet.test.tsx` |
-| `POST /v1/solana/webhooks/helius` | `backend/tests/test_helius_webhook.py` |
-| `POST /v1/notifications/{notification_id}/ack` | `backend/tests/test_notifications_routes.py` |
-| Fluxo de validacao/simulacao/envio na wallet | `frontend/src/components/navbar/Wallet.test.tsx` |
-| Utilitarios de quote e amount conversion | `frontend/src/utils/swap.test.ts` |
+Progresso: [#########.] 93% — Código completo. O que falta é exclusivamente **infraestrutura de produção e auditoria externa**.
 
-## Arquitetura Resumida
+| Bloco | Status | Detalhe |
+|---|---|---|
+| Core API FastAPI | [##########] 100% | `/health`, `/health/detailed`, `/status`, `/metrics`, `/chat`, `/v1/messages/inbound` |
+| Integração Gemini | [##########] 100% | Intent detection + resposta contextual |
+| Webhooks Telegram/X | [##########] 100% | HMAC + secret token validados |
+| Solana/Jupiter (prepare) | [##########] 100% | Quote + tx unsigned para wallet assinar |
+| Wallet-first frontend | [##########] 100% | Connect, prepare, simulate, sign/send |
+| Campanhas Devnet | [##########] 100% | Join (409 idempotente), verify, claim com proof assinado |
+| Redis Rate Limiting | [##########] 100% | Sliding window + fallback in-memory automático |
+| PostgreSQL + Alembic | [########..] 80% | Migração gerada; provisionar DB em produção |
+| Docker Compose completo | [##########] 100% | PostgreSQL + Redis + Grafana + migrate one-shot |
+| Grafana Dashboard | [##########] 100% | 8 painéis, provisionamento automático |
+| Anchor on-chain | [######....] 60% | PDA real (solders), record_swap (dry_run até keypair em produção) |
+| Emergency Pause | [##########] 100% | `pause_protocol` / `unpause_protocol` no contrato Rust |
+| QA backend | [##########] 100% | **65 testes passando**, 6 skips legados |
+| Auditoria externa | [..........] 0% -- BLOQUEADOR | Não iniciada — P0 para mainnet |
+
+---
+
+## Arquitetura do Sistema
+
+### Visao Geral dos Componentes
 
 ```mermaid
-graph LR
-    subgraph "Clients"
-        FE[Next.js Frontend]
-        TG[Telegram]
-        XX[X / Twitter]
+graph TB
+    subgraph CANAIS["Canais de Entrada"]
+        FE["Next.js Frontend\n(Phantom Wallet)"]
+        TG["Telegram Bot"]
+        XX["X / Twitter DM"]
     end
 
-    subgraph "Backend FastAPI"
-        API[server.app:app]
-        ORCH[OrchestrationService]
-        GEM[Gemini]
-        CAMP[Campaigns Router]
-        NOTIF[Notifications Router]
-        HEL[Helius Webhook Handler]
-        DB[(SQLAlchemy / SQLite)]
+    subgraph INFRA_ENTRADA["Camada de Entrada"]
+        RL["Rate Limiter\n(Redis Sliding Window)\n+ fallback in-memory"]
+        CORS["CORS Guard\n(headers restritos por env)"]
     end
 
-    subgraph "Solana"
-        JUP[Jupiter APIs]
-        RPC[Solana RPC Devnet]
+    subgraph BACKEND["Backend FastAPI"]
+        APP["app.py\n(lifespan + middleware)"]
+        ORCH["OrchestrationService\n(intent + resposta)"]
+        GEM["GeminiClient\n(intent detection)"]
+        SOL["SolanaClient\n(Jupiter swap prepare)"]
+        CAMP["Campaigns Router\n(join / verify / claim)"]
+        NOTIF["Notifications Router\n(in-app inbox)"]
+        HEL["Helius Webhook\n(confirma swap on-chain)"]
+        ANCHOR["AnchorClient\n(solders: PDA + Borsh + sign)"]
+        MET["Metrics\n(/metrics Prometheus)"]
+        HLT["Health\n(/health/detailed)"]
     end
 
-    FE --> API
-    TG --> API
-    XX --> API
+    subgraph BANCO["Persistencia"]
+        DB[("PostgreSQL 16\n(asyncpg + Alembic)")]
+        SQLITE[("SQLite\n(desenvolvimento local)")]
+        REDIS[("Redis 7\n(rate limiting)")]
+    end
 
-    API --> ORCH
-    API --> CAMP
-    API --> NOTIF
-    API --> HEL
+    subgraph OBS["Observabilidade"]
+        PROM["Prometheus\n:9090"]
+        GRAF["Grafana\n:3001\n(8 paineis)"]
+    end
+
+    subgraph SOLANA["Solana / On-chain"]
+        JUP["Jupiter v6\n(quote + swap tx)"]
+        RPC["Solana RPC\n(Helius)"]
+        PROG["XiaoLee Core Program\n(Anchor / Rust)\nPDA: global_config + user_state\nEmergency pause on-chain"]
+    end
+
+    TG -->|HMAC secret| APP
+    XX -->|HMAC SHA-256| APP
+    FE -->|REST JSON| APP
+
+    APP --> RL
+    APP --> CORS
+    APP --> ORCH
+    APP --> CAMP
+    APP --> NOTIF
+    APP --> HEL
+    APP --> MET
+    APP --> HLT
+
+    RL <--> REDIS
 
     ORCH --> GEM
+    ORCH --> SOL
     ORCH --> DB
+
     CAMP --> DB
     NOTIF --> DB
     HEL --> DB
+    HEL --> ANCHOR
 
-    API --> JUP
-    FE --> RPC
+    SOL --> JUP
+    FE -->|sign + send| RPC
+    ANCHOR -->|record_swap\n(admin keypair)| PROG
+    RPC -->|webhook evento| HEL
+
+    DB -.->|prod| DB
+    DB -.->|dev| SQLITE
+
+    MET --> PROM
+    PROM --> GRAF
 ```
+
+### Fluxo de Swap Wallet-first
+
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant FE as Frontend Next.js
+    participant API as Backend FastAPI
+    participant JUP as Jupiter v6
+    participant RPC as Solana RPC
+    participant HEL as Helius Webhook
+    participant ANCH as AnchorClient
+    participant PROG as XiaoLee Program
+
+    U->>FE: 1. Conecta carteira Phantom
+    U->>FE: 2. Informa token + valor
+
+    FE->>API: POST /v1/solana/swap/prepare
+    API->>JUP: GET /quote (token_in, token_out, amount)
+    JUP-->>API: Quote + route
+    API->>JUP: POST /swap (unsigned tx)
+    JUP-->>API: Transacao serializada (unsigned)
+    API-->>FE: { quote, tx_unsigned, simulation_result }
+
+    FE->>RPC: simulateTransaction()
+    RPC-->>FE: Resultado da simulacao
+
+    FE->>U: Exibe quote + taxa de gas
+    U->>FE: 3. Confirma explicitamente
+
+    FE->>RPC: sendTransaction() com assinatura Phantom
+    RPC-->>FE: { signature }
+    FE->>U: Swap confirmado
+
+    Note over RPC,HEL: Helius monitora a transacao on-chain
+    RPC-->>HEL: Evento de confirmacao (webhook)
+    HEL->>API: POST /v1/solana/webhooks/helius
+    API->>ANCH: record_swap(twitter_id, volume)
+    ANCH->>PROG: Instrucao Anchor (PDA + Borsh + admin sign)
+    PROG-->>ANCH: Swap gravado on-chain
+    API->>API: Persiste notificacao in-app
+```
+
+### Fluxo de Campanha
+
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant FE as Frontend
+    participant API as Backend
+    participant DB as PostgreSQL
+    participant W as Phantom Wallet
+    participant PROG as XiaoLee Program
+
+    U->>FE: Visualiza campanha ativa
+    FE->>API: POST /campaigns/join
+    API->>DB: INSERT participant (UniqueConstraint)
+    alt ja inscrito
+        DB-->>API: Constraint violation
+        API-->>FE: 409 Conflict { already_joined: true }
+    else nova inscricao
+        DB-->>API: OK
+        API-->>FE: 201 Created
+    end
+
+    U->>FE: Realiza tarefas (swap, follow, retweet)
+    FE->>API: POST /campaigns/verify
+    API->>DB: UPDATE status = tasks_verified
+    API-->>FE: { status: "tasks_verified" }
+
+    U->>W: Assina proof da campanha
+    W-->>FE: { proof_signature }
+    FE->>API: POST /campaigns/claim { proof_signature }
+    API->>API: Valida assinatura ED25519
+    API->>DB: INSERT claim_receipt
+    API->>PROG: (futuro) distribuicao de recompensa
+    API-->>FE: 200 OK { receipt_id, status: "paid" }
+    FE->>U: Notificacao in-app: recompensa recebida
+```
+
+---
 
 ## Quickstart
 
-### Inicialização rápida
-
 ```bash
+# 1. Setup completo (venv + npm + .env)
 make init
-```
 
-Esse comando cria `.env` a partir de `.env.example` quando ele ainda não existir.
-Tambem instala as dependencias do backend e do frontend automaticamente.
-No backend, o bootstrap usa por padrao `backend/requirements.docker.txt` (mais estavel para setup local).
-Se precisar instalar o conjunto completo legado, use:
+# 2. Subir em modo dev
+make dev
 
-```bash
-make init-backend BACKEND_REQUIREMENTS=backend/requirements.txt
-```
-
-Para validar pré-requisitos locais manualmente:
-
-```bash
-make init-check
-```
-
-Para validar o ambiente após a inicialização com smoke tests rápidos:
-
-```bash
+# 3. Verificar ambiente
 make smoke
 ```
 
-O smoke atual cobre um teste focal do backend (`tests/test_metrics.py`) e um teste utilitário do frontend (`src/utils/swap.test.ts`).
-
-Para validar API real por HTTP (subindo backend temporariamente):
+**OU com Docker (stack completa):**
 
 ```bash
-make smoke-api
+cp .env.example .env # preencha as variáveis
+make run-docker
 ```
 
-Para rodar um preflight completo (toolchain + smoke + API smoke + lint rápido):
+| Serviço | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend | http://localhost:8000 |
+| Docs Swagger | http://localhost:8000/docs |
+| Grafana | http://localhost:3001 |
+| Prometheus | http://localhost:9090 |
 
-```bash
-make preflight
-```
+---
 
-Para espelhar localmente o workflow de CI fullstack (backend + frontend):
-
-```bash
-make ci-local
-```
-
-### Pré-requisitos
-
-- Python 3.12+
-- Node.js 18+
-- Docker + Docker Compose
-
-### Variáveis de ambiente
+## Variáveis de Ambiente
 
 ```bash
 cp .env.example .env
 ```
 
-Preencha no mínimo:
+Obrigatórias para rodar localmente:
 
-- `GEMINI_API_KEY` (recomendado para classificação real)
-- `TELEGRAM_WEBHOOK_SECRET`
-- `X_WEBHOOK_SECRET`
-- `HELIUS_WEBHOOK_SECRET`
-- `X_BEARER_TOKEN` e `X_DM_API_BASE_URL` se quiser envio de DM via X
-- `CORS_ALLOWED_ORIGINS` se o frontend não estiver em `http://localhost:3000`
+| Variável | Descrição |
+|---|---|
+| `GEMINI_API_KEY` | Chave Google Gemini (classifica intenção) |
+| `TELEGRAM_WEBHOOK_SECRET` | Secret para webhook Telegram |
+| `X_WEBHOOK_SECRET` | HMAC para webhook X/Twitter |
+| `HELIUS_WEBHOOK_SECRET` | HMAC para webhook Helius |
 
-### Rodar local (sem Docker)
+Opcionais (habilitam funcionalidades adicionais):
 
-Backend:
+| Variável | Descrição |
+|---|---|
+| `DATABASE_URL` | PostgreSQL em produção (vazio = SQLite) |
+| `REDIS_URL` | Redis para rate limiting (vazio = in-memory) |
+| `SOLANA_ADMIN_KEYPAIR_B58` | Admin keypair para `record_swap` on-chain (vazio = dry_run) |
 
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn server.app:app --host 0.0.0.0 --port 8000
-```
+---
 
-Frontend:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Rodar com Docker Compose
+## Testes
 
 ```bash
-docker compose up --build
+# Suite backend completa (65 testes)
+make test-backend
+
+# Build frontend limpo
+cd frontend && npm run build
+
+# Testes de carga (20 users, 2 min)
+make load-test-smoke
+
+# Checklist de mainnet
+make audit-checklist
 ```
 
-Serviços:
+---
 
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000`
-- Docs OpenAPI: `http://localhost:8000/docs`
-- Prometheus: `http://localhost:9090`
+## Banco de Dados
+
+```bash
+# Aplicar migrações (SQLite local ou PostgreSQL via DATABASE_URL)
+make db-migrate
+
+# Status das migrações
+make db-status
+
+# Nova migração após alterar models.py
+make db-new-migration MSG="descricao"
+```
+
+---
+
+## Smart Contract
+
+| Item | Valor |
+|---|---|
+| Program ID | `Fmmpn79Tij8fzYHg31ekZz4MmK9ArGzN59VogfcwhXiM` |
+| Cluster | Devnet |
+| Instruções | `initialize_global`, `initialize_user`, `record_swap`, `pause_protocol`, `unpause_protocol`, `transfer_admin` |
+
+```bash
+# Compilar
+make anchor-build
+
+# Deploy devnet
+make anchor-deploy-devnet
+
+# Sincronizar IDL com frontend
+make anchor-idl-sync
+```
+
+---
 
 ## Endpoints Principais
 
-- `GET /health`
-- `GET /status`
-- `POST /chat`
-- `POST /v1/messages/inbound`
-- `POST /v1/integrations/telegram/webhook`
-- `POST /v1/integrations/x/webhook`
-- `POST /v1/solana/swap/prepare`
-- `POST /v1/solana/webhooks/helius`
-- `GET /campaigns`
-- `POST /campaigns/join`
-- `GET /v1/notifications/{twitter_user_id}`
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `GET` | `/health` | Health check básico |
+| `GET` | `/health/detailed` | Health com latência por dependência |
+| `GET` | `/status` | Status resumido |
+| `GET` | `/metrics` | Métricas Prometheus |
+| `POST` | `/chat` | Chat com agente XiaoLee |
+| `POST` | `/v1/messages/inbound` | Mensagem inbound (rate limited) |
+| `POST` | `/v1/integrations/telegram/webhook` | Webhook Telegram |
+| `POST` | `/v1/integrations/x/webhook` | Webhook X/Twitter (HMAC) |
+| `POST` | `/v1/solana/swap/prepare` | Prepara swap (quote + tx unsigned) |
+| `POST` | `/v1/solana/webhooks/helius` | Webhook Helius (confirma swap) |
+| `GET` | `/campaigns` | Lista campanhas |
+| `POST` | `/campaigns/join` | Entra em campanha (409 se já inscrito) |
+| `POST` | `/campaigns/verify` | Verifica tarefas |
+| `POST` | `/campaigns/claim` | Claim com proof assinado |
+| `GET` | `/v1/notifications/me` | Notificações in-app |
 
-## Qualidade e Testes
+> Documentação completa: [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)
 
-Frontend:
+---
 
-```bash
-cd frontend
-npm test
-npm run lint -- --file src/components/navbar/Wallet.tsx
-```
+## Segurança Implementada
 
-Backend:
+- HMAC SHA-256 para webhooks X e Helius
+- Secret token para webhook Telegram
+- Rate limiting Redis (sliding window) com fallback in-memory
+- CORS headers restritos via `CORS_ALLOWED_HEADERS` env
+- Fluxo não-custodial (chave do usuário nunca toca o backend)
+- 409 Conflict idempotente (UniqueConstraint no banco)
+- Emergency pause on-chain (`pause_protocol`)
+- Container não-root no Dockerfile
+- Suporte a secrets via vault (produção)
 
-```bash
-cd backend
-../.venv/bin/pytest -q
-```
+---
 
-Observação: os scripts legados de Twikit e integrações externas ficam marcados como skip na coleta do pytest. Eles continuam disponíveis como scripts manuais quando as dependências opcionais estiverem instaladas.
+## Linha do Tempo
 
-## Segurança Implementada no MVP
+| Fase | Status | Entregas |
+|---|---|---|
+| Fase 1 | CONCLUIDA | FastAPI, Gemini, inbound |
+| Fase 2 | CONCLUIDA | Wallet-first (prepare/simulate/sign/send) |
+| Fase 3 | CONCLUIDA | Webhooks hardening (Telegram/X/Helius) |
+| Fase 4 | CONCLUIDA | QA, observabilidade, CI fullstack |
+| Fase 5 | CONCLUIDA | Idempotência, Anchor client, CORS, 65 testes |
+| Fase 6 | CONCLUIDA | PostgreSQL, Redis, solders, Locust |
+| Fase 7 | CONCLUIDA | Docker completo, Grafana, Emergency pause |
+| Fase 8 | PLANEJADA | Infra produção, auditoria, HTTPS, Multisig, Mainnet |
 
-- Validação de assinatura HMAC para webhook X.
-- Validação de secret token para webhook Telegram.
-- Rate limiting in-memory por plataforma/usuário.
-- Fluxo wallet-first (sem custódia de chave privada no backend).
-- Simulação antes do envio + confirmação manual explícita no frontend.
+---
 
 ## Documentação
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): arquitetura atual e progresso por camada.
-- [docs/API_REFERENCE.md](docs/API_REFERENCE.md): rotas, autenticação e payloads.
-- [docs/SMART_CONTRACT.md](docs/SMART_CONTRACT.md): estado atual de integração on-chain.
-- [docs/qa/QA_PLAN_XIAOLEE_MVP.md](docs/qa/QA_PLAN_XIAOLEE_MVP.md): cobertura de QA executada.
-- [backend/memory-bank/progress.md](backend/memory-bank/progress.md): trilha de construção e próximos passos.
+| Arquivo | Conteúdo |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Arquitetura completa, diagramas, fluxos |
+| [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) | Rotas, payloads, códigos de erro |
+| [`docs/SMART_CONTRACT.md`](docs/SMART_CONTRACT.md) | Instruções on-chain, PDAs, eventos |
+| [`docs/MAINNET_READINESS.md`](docs/MAINNET_READINESS.md) | 6 gates + checklist para mainnet |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, padrões, como contribuir |
+| [`load_tests/README.md`](load_tests/README.md) | Instruções de teste de carga (Locust) |
+| [`backend/memory-bank/progress.md`](backend/memory-bank/progress.md) | Trilha de construção detalhada |

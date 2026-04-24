@@ -5,10 +5,10 @@ Modern models using Mapped[] and mapped_column() syntax with proper relationship
 All models inherit from Base which provides id, created_at, updated_at automatically.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import String, ForeignKey, Numeric, Text, Boolean, DateTime, func
+from sqlalchemy import String, ForeignKey, Numeric, Text, Boolean, DateTime, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.orm import DeclarativeBase
 
@@ -137,16 +137,23 @@ class Campaign(Base):
 
 class CampaignParticipant(Base):
     __tablename__ = 'campaign_participants'
+    # Garante que um usuário não pode participar da mesma campanha duas vezes.
+    __table_args__ = (UniqueConstraint('campaign_id', 'user_id', name='uq_participant_campaign_user'),)
 
-    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaigns.id"))
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaigns.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     status: Mapped[str] = mapped_column(Text, default='enrolled') # enrolled, tasks_verified, paid
-    joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Usa timezone-aware para compatibilidade com Python 3.12+ e SQLAlchemy 2.0
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
     has_followed: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
     has_replied: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
     has_retweeted: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
     has_quoted: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
-    tasks_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    tasks_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    claim_receipt_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
 class WebSession(Base):

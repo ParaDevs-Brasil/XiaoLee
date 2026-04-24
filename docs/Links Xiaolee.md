@@ -1,4 +1,8 @@
-Documento de apoio legada. O estado atual do projeto está consolidado em:
+Documento de apoio legado (historico, nao oficial).
+
+Atualizacao documental: **2026-04-24**.
+
+O estado atual do projeto esta consolidado em:
 
 - [README.md](../README.md)
 - [docs/ARCHITECTURE.md](ARCHITECTURE.md)

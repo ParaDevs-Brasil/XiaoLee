@@ -10,38 +10,26 @@ export const UserCampaignCard: React.FC<UserCampaignCardProps> = ({
   campaign, 
   className = '' 
 }) => {
-  const getStatusColor = (status: 'enrolled' | 'tasks_verified' | 'reward_claimed' | 'paid') => {
+  const getStatusColor = (status: 'enrolled' | 'tasks_verified' | 'paid') => {
     switch (status) {
-      case 'enrolled':
-        return 'bg-blue-100 text-blue-800';
-      case 'tasks_verified':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'reward_claimed':
-        return 'bg-green-100 text-green-800';
-      case 'paid':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'enrolled':       return 'bg-blue-100 text-blue-800';
+      case 'tasks_verified': return 'bg-yellow-100 text-yellow-800';
+      case 'paid':           return 'bg-green-100 text-green-800';
+      default:               return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getStatusText = (status: 'enrolled' | 'tasks_verified' | 'reward_claimed' | 'paid') => {
+  const getStatusText = (status: 'enrolled' | 'tasks_verified' | 'paid') => {
     switch (status) {
-      case 'enrolled':
-        return '📝 Enrolled';
-      case 'tasks_verified':
-        return '✅ Tasks Verified';
-      case 'reward_claimed':
-        return '🎁 Reward Claimed';
-      case 'paid':
-        return '💰 Paid';
-      default:
-        return status;
+      case 'enrolled':       return '📝 Enrolled';
+      case 'tasks_verified': return '✅ Tasks Verified';
+      case 'paid':           return '💎 Reward Claimed';
+      default:               return status;
     }
   };
 
   // Use participation_status if available, fallback to status for backward compatibility
-  const currentStatus = campaign.participation_status || campaign.status;
+  const currentStatus = campaign.participation_status;
 
   return (
     <div className={`bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow ${className}`}>

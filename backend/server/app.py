@@ -1,6 +1,7 @@
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+import asyncio
 import hashlib
 import hmac
 from time import perf_counter
@@ -25,6 +26,7 @@ from server.orchestration.service import OrchestrationService
 from server.metrics import record_http_request, render_prometheus_metrics
 from server.schemas import InboundMessage, OrchestrationResponse, SwapPrepareRequest, SwapPrepareResponse
 from server.settings import settings
+from server.rate_limiter import get_rate_limiter, reset_rate_limiter
 from server.webhooks.helius_routes import router as helius_router
 from server.campaigns_routes import router as campaigns_router
 from server.notifications_routes import router as notifications_router
@@ -34,7 +36,11 @@ from server.notifications_routes import router as notifications_router
 async def lifespan(app: FastAPI):
     init_db()
     await create_tables()
+    # Inicializa rate limiter (Redis se disponivel, in-memory caso contrario)
+    await get_rate_limiter(redis_url=settings.redis_url or None)
     yield
+    # Cleanup: fecha conexoes do rate limiter
+    reset_rate_limiter()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -42,8 +48,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allowed_origins,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    # Headers restritos: configurados via CORS_ALLOWED_HEADERS (env).
+    # Padrao: Content-Type, Authorization, Accept, X-Requested-With.
+    # '*' apenas em dev local, nunca em producao.
+    allow_headers=settings.cors_allowed_headers,
 )
 
 app.include_router(helius_router)
@@ -69,17 +78,26 @@ async def collect_metrics(request: Request, call_next):
 
 
 def _enforce_rate_limit(key: str):
+    """
+    Rate limit sincrono (legado) — usa in-memory para compatibilidade.
+    Rotas novas devem usar `await _enforce_rate_limit_async(key)` diretamente.
+    """
+    # Usa in-memory diretamente para evitar problemas com event loop
+    # O limiter Redis eh inicializado no lifespan e usado pelas rotas async
     now = datetime.now(timezone.utc)
     window_start = now - timedelta(minutes=1)
     q = request_hits[key]
-
     while q and q[0] < window_start:
         q.popleft()
-
     if len(q) >= settings.inbound_rate_limit_per_minute:
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
-
     q.append(now)
+
+
+async def _enforce_rate_limit_async(key: str) -> None:
+    """Rate limit assíncrono — usa Redis (com fallback in-memory)."""
+    limiter = await get_rate_limiter()
+    await limiter.check(key=key, limit=settings.inbound_rate_limit_per_minute)
 
 
 def _validate_x_signature(raw_body: bytes, provided_signature: str | None):
@@ -133,6 +151,74 @@ async def health():
         "solana_cluster": settings.solana_cluster,
         "rpc_health": rpc_health,
         "gemini_enabled": gemini_client.enabled,
+    }
+
+
+@app.get("/health/detailed")
+async def health_detailed(db: AsyncSession = Depends(get_db_session)):
+    """Health check granular com status de cada dependência e latência medida."""
+    results: dict = {}
+
+    # 1. Database
+    try:
+        from sqlalchemy import text as _text
+        t0 = perf_counter()
+        await db.execute(_text("SELECT 1"))
+        db_latency = perf_counter() - t0
+        results["database"] = {"status": "ok", "latency_ms": round(db_latency * 1000, 2)}
+    except Exception as exc:
+        results["database"] = {"status": "error", "detail": str(exc)}
+
+    # 2. Solana RPC
+    try:
+        t0 = perf_counter()
+        rpc_health = await asyncio.wait_for(solana_client.get_health(), timeout=5.0)
+        results["solana_rpc"] = {
+            "status": "ok",
+            "latency_ms": round((perf_counter() - t0) * 1000, 2),
+            "cluster": settings.solana_cluster,
+            "rpc_response": rpc_health,
+        }
+    except asyncio.TimeoutError:
+        results["solana_rpc"] = {"status": "timeout", "detail": "RPC did not respond within 5s"}
+    except Exception as exc:
+        results["solana_rpc"] = {"status": "error", "detail": str(exc)}
+
+    # 3. Gemini
+    results["gemini"] = {
+        "status": "enabled" if gemini_client.enabled else "disabled",
+        "model": settings.gemini_model,
+    }
+
+    # 4. Jupiter API (quote endpoint reachable)
+    try:
+        t0 = perf_counter()
+        # Verifica apenas conectividade com um quote minimo
+        test_quote = await asyncio.wait_for(
+            solana_client.get_swap_quote(
+                input_mint="4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+                output_mint="So11111111111111111111111111111111111111112",
+                amount_raw=1_000_000,
+            ),
+            timeout=5.0,
+        )
+        results["jupiter"] = {
+            "status": "ok",
+            "latency_ms": round((perf_counter() - t0) * 1000, 2),
+            "out_amount_raw": test_quote.get("outAmount"),
+        }
+    except asyncio.TimeoutError:
+        results["jupiter"] = {"status": "timeout", "detail": "Jupiter did not respond within 5s"}
+    except Exception as exc:
+        results["jupiter"] = {"status": "error", "detail": str(exc)}
+
+    overall = "ok" if all(v.get("status") in {"ok", "enabled", "disabled"} for v in results.values()) else "degraded"
+    return {
+        "status": overall,
+        "service": settings.app_name,
+        "version": settings.app_version,
+        "environment": settings.environment,
+        "dependencies": results,
     }
 
 

@@ -38,3 +38,8 @@ test-ledger/
 
 # Local database snapshots
 backend/xiao_lee.db
+
+# Ignored by user request
+MODO ARQUITETO  RULES.md
+Links Xiaolee.md
+Arquitetura Completa do Projeto XiaoLee.md

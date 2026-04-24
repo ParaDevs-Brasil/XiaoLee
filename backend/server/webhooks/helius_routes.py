@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import json
+import logging
 
 from fastapi import APIRouter, Depends, Header, Request, HTTPException
 from sqlalchemy import select
@@ -10,7 +11,10 @@ from database.models import DMLog, NotificationEvent, OnchainEvent, TransactionH
 from ..integrations.telegram_client import TelegramClient
 from ..integrations.x_client import XClient
 from ..integrations.helius_client import HeliusClient
+from ..integrations.anchor_client import AnchorClient
 from ..settings import settings
+
+LOG = logging.getLogger(__name__)
 
 router = APIRouter()
 helius_client = HeliusClient(
@@ -22,6 +26,8 @@ x_client = XClient(
     bearer_token=settings.x_bearer_token,
     api_base_url=settings.x_dm_api_base_url,
 )
+anchor_client = AnchorClient(rpc_url=settings.solana_rpc_url)
+
 
 @router.post("/v1/solana/webhooks/helius")
 async def helius_webhook(
@@ -95,6 +101,30 @@ async def helius_webhook(
                         if transaction.status == "completed"
                         else f"Seu swap on-chain falhou. Signature: {signature}."
                     )
+
+                    # ── record_swap on-chain (best-effort) ────────────────────
+                    # Chamado apenas quando o swap é confirmado com sucesso.
+                    # Best-effort: falhas não propagam erro para o Helius.
+                    # Volume em lamports derivado do from_amount (proxy: 1 SOL = 1e9 lamports).
+                    if transaction.status == "completed" and user.twitter_user_id:
+                        try:
+                            raw_amount = event.get("amount", 0) or 0
+                            volume_lamports = int(float(raw_amount) * 1_000_000_000) if raw_amount else 0
+                            anchor_result = await anchor_client.record_swap(
+                                twitter_id=user.twitter_user_id,
+                                volume_lamports=volume_lamports,
+                                signature=signature,
+                            )
+                            LOG.info(
+                                "[Helius] record_swap result | user=%s | result=%s",
+                                user.twitter_user_id, anchor_result.get("status")
+                            )
+                        except Exception as anchor_exc:
+                            # Não propaga: o webhook Helius deve sempre retornar 200
+                            LOG.warning(
+                                "[Helius] record_swap best-effort falhou | user=%s | error=%s",
+                                user.twitter_user_id, anchor_exc
+                            )
 
                     db.add(
                         DMLog(

@@ -2,16 +2,25 @@ import { useState } from 'react';
 import api from '@/api/api';
 import UserData from '@/components/UserData';
 
+// ─── Tipos alinhados com o backend ─────────────────────────────────────────────
+
 interface JoinCampaignResponse {
   success: boolean;
   message?: string;
+  /** Presente em erros de negócio (success=false) */
   error?: string;
+  /** true quando o usuário já estava inscrito (HTTP 409 Conflict) */
+  alreadyJoined?: boolean;
 }
 
 interface ClaimRewardResponse {
   success: boolean;
   message?: string;
   error?: string;
+  transaction_id?: string;
+  claim_receipt_id?: string;
+  reward_amount?: number;
+  reward_token?: string;
 }
 
 interface UseJoinCampaignReturn {
@@ -23,6 +32,29 @@ interface UseJoinCampaignReturn {
   claimError: string | null;
 }
 
+// ─── Helper: extrai mensagem de erro da resposta Axios/FastAPI ─────────────────
+
+type AxiosLikeError = {
+  response?: {
+    status?: number;
+    data?: { detail?: string; error?: string; message?: string };
+  };
+  message?: string;
+};
+
+function extractErrorMessage(error: unknown, fallback: string): string {
+  const e = error as AxiosLikeError;
+  // FastAPI HTTPException retorna { detail: "..." }
+  if (e?.response?.data?.detail) return e.response.data.detail;
+  // Outros erros retornam { error: "..." } ou { message: "..." }
+  if (e?.response?.data?.error) return e.response.data.error;
+  if (e?.response?.data?.message) return e.response.data.message;
+  if (e instanceof Error && e.message) return e.message;
+  return fallback;
+}
+
+// ─── Hook ──────────────────────────────────────────────────────────────────────
+
 export default function useJoinCampaign(): UseJoinCampaignReturn {
   const [loading, setLoading] = useState(false);
   const [claimLoading, setClaimLoading] = useState(false);
@@ -32,9 +64,8 @@ export default function useJoinCampaign(): UseJoinCampaignReturn {
   const joinCampaign = async (campaignId: number): Promise<JoinCampaignResponse> => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      // Verificar se o usuário está autenticado
       if (!UserData.hasData()) {
         throw new Error('Você precisa estar autenticado para participar de campanhas');
       }
@@ -46,45 +77,50 @@ export default function useJoinCampaign(): UseJoinCampaignReturn {
 
       console.log(`🚀 Tentando participar da campanha ${campaignId}...`);
 
-      const response = await api.post(`/campaigns/join`, {
-        campaign_identifier: campaignId.toString()
-      }, {
-        headers: {
-          'Authorization': `Bearer ${sessionId}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await api.post(
+        `/campaigns/join`,
+        { campaign_identifier: campaignId.toString() },
+        { headers: { Authorization: `Bearer ${sessionId}` } }
+      );
 
       console.log('✅ Resposta do servidor:', response.data);
 
-      if (response.data.success) {
-        console.log(`🎉 Sucesso: ${response.data.message}`);
-        return {
-          success: true,
-          message: response.data.message
-        };
-      } else {
-        throw new Error(response.data.error || 'Erro desconhecido ao participar da campanha');
+      return {
+        success: true,
+        message: response.data.message,
+      };
+
+    } catch (err: unknown) {
+      const e = err as AxiosLikeError;
+      const httpStatus = e?.response?.status;
+
+      // 409 Conflict — usuário já está inscrito nesta campanha
+      if (httpStatus === 409) {
+        const msg = extractErrorMessage(err, 'Você já está inscrito nesta campanha.');
+        console.info(`ℹ️ Join duplicado detectado (409): ${msg}`);
+        setError(msg);
+        return { success: false, error: msg, alreadyJoined: true };
       }
 
-    } catch (error: unknown) {
-      console.error('❌ Erro ao participar da campanha:', error);
-      
-      let errorMessage = 'Erro ao participar da campanha';
-      
-      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
-      if (apiError.response?.data?.error) {
-        errorMessage = apiError.response.data.error;
-      } else if (apiError.message) {
-        errorMessage = apiError.message;
+      // 404 — campanha não encontrada
+      if (httpStatus === 404) {
+        const msg = 'Campanha não encontrada. Ela pode ter sido encerrada.';
+        setError(msg);
+        return { success: false, error: msg };
       }
-      
+
+      // 403 — campanha cheia ou usuário não elegível
+      if (httpStatus === 403) {
+        const msg = extractErrorMessage(err, 'Você não é elegível para esta campanha.');
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
+      const errorMessage = extractErrorMessage(err, 'Erro ao participar da campanha');
+      console.error('❌ Erro ao participar da campanha:', err);
       setError(errorMessage);
-      
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return { success: false, error: errorMessage };
+
     } finally {
       setLoading(false);
     }
@@ -93,9 +129,8 @@ export default function useJoinCampaign(): UseJoinCampaignReturn {
   const claimReward = async (campaignId: number): Promise<ClaimRewardResponse> => {
     setClaimLoading(true);
     setClaimError(null);
-    
+
     try {
-      // Verificar se o usuário está autenticado
       if (!UserData.hasData()) {
         throw new Error('Você precisa estar autenticado para coletar recompensas');
       }
@@ -105,47 +140,40 @@ export default function useJoinCampaign(): UseJoinCampaignReturn {
         throw new Error('Sessão não encontrada. Faça login novamente.');
       }
 
+      // Wallet público necessário para prova de claim
+      const walletPublicKey = UserData.getDevnetWalletPublicKey?.();
+
       console.log(`🎁 Tentando coletar recompensa da campanha ${campaignId}...`);
 
-      const response = await api.post(`/campaigns/claim`, {
-        campaign_identifier: campaignId.toString()
-      }, {
-        headers: {
-          'Authorization': `Bearer ${sessionId}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await api.post(
+        `/campaigns/claim`,
+        {
+          campaign_identifier: campaignId.toString(),
+          ...(walletPublicKey && { wallet_public_key: walletPublicKey }),
+        },
+        { headers: { Authorization: `Bearer ${sessionId}` } }
+      );
 
       console.log('✅ Resposta do servidor:', response.data);
 
       if (response.data.success) {
-        console.log(`🎉 Sucesso: ${response.data.message}`);
         return {
           success: true,
-          message: response.data.message
+          message: response.data.message,
+          transaction_id: response.data.transaction_id,
+          claim_receipt_id: response.data.claim_receipt_id,
+          reward_amount: response.data.reward_amount,
+          reward_token: response.data.reward_token,
         };
-      } else {
-        throw new Error(response.data.error || 'Erro desconhecido ao coletar recompensa');
       }
 
-    } catch (error: unknown) {
-      console.error('❌ Erro ao coletar recompensa:', error);
-      
-      let errorMessage = 'Erro ao coletar recompensa';
-      
-      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
-      if (apiError.response?.data?.error) {
-        errorMessage = apiError.response.data.error;
-      } else if (apiError.message) {
-        errorMessage = apiError.message;
-      }
-      
+      throw new Error(response.data.error || 'Erro desconhecido ao coletar recompensa');
+
+    } catch (err: unknown) {
+      const errorMessage = extractErrorMessage(err, 'Erro ao coletar recompensa');
+      console.error('❌ Erro ao coletar recompensa:', err);
       setClaimError(errorMessage);
-      
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return { success: false, error: errorMessage };
     } finally {
       setClaimLoading(false);
     }
@@ -157,6 +185,6 @@ export default function useJoinCampaign(): UseJoinCampaignReturn {
     loading,
     claimLoading,
     error,
-    claimError
+    claimError,
   };
 }

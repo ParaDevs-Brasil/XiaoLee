@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/api/api';
 import UserData from '@/components/UserData';
 import { UserCampaignsResponse, UserCampaignParticipation } from '@/interfaces';
@@ -15,24 +15,19 @@ export const useUserCampaigns = (): UseUserCampaignsReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUserCampaigns = async () => {
+  const fetchUserCampaigns = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Verificar se há dados de usuário
-      if (!UserData.hasData()) {
-        setError('Usuário não autenticado');
-        setCampaigns([]);
-        return;
+      const sessionId = UserData.getOrCreateDevnetSession();
+      if (!sessionId) {
+        throw new Error('Nao foi possivel iniciar sessao Devnet');
       }
 
-      const userInfo = UserData.getUserInfo();
-      const sessionId = UserData.getSessionId();
+      console.log('🔍 Buscando campanhas do usuário (Devnet session):', sessionId);
 
-      console.log('🔍 Buscando campanhas do usuário:', userInfo.twitter_user_id);
-
-      const response = await api.get<UserCampaignsResponse>('/campaigns/user', {
+      const response = await api.get<UserCampaignsResponse>('/campaigns/me', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionId}`
@@ -54,11 +49,11 @@ export const useUserCampaigns = (): UseUserCampaignsReturn => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUserCampaigns();
-  }, []);
+  }, [fetchUserCampaigns]);
 
   return {
     campaigns,

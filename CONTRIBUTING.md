@@ -1,23 +1,21 @@
 # Como Contribuir para a XiaoLee
 
-Bem-vindo! Este documento descreve o fluxo atual para configurar o ambiente local e contribuir com o protocolo XiaoLee.
+> Atualizado em: **2026-04-24** | Sprint 7 concluída.
 
-Atualizacao documental: **2026-04-23**.
+Bem-vindo! Este documento descreve o fluxo completo para configurar o ambiente local e contribuir com o protocolo XiaoLee.
 
 ---
 
-## Pre-requisitos do Sistema
+## Pré-requisitos do Sistema
 
-Para rodar todo o ecossistema (Backend, Frontend e Blockchain):
-
-| Ferramenta               | Versao Minima | Uso                                 |
-|--------------------------|---------------|-------------------------------------|
-| Docker & Docker Compose  | 24+           | Containers de servicos              |
-| Node.js & NPM            | 18+           | Frontend Next.js e testes           |
-| Python                   | 3.12+         | Backend FastAPI                     |
-| Rust & Cargo             | 1.75+         | Compilacao de Smart Contracts       |
-| Solana CLI               | 1.18+         | Ferramentas de rede Solana          |
-| Anchor CLI               | 0.30+         | Framework de Smart Contracts        |
+| Ferramenta | Versão Mínima | Uso |
+|---|---|---|
+| Docker & Docker Compose | 24+ | Stack de produção (PostgreSQL, Redis, Grafana) |
+| Node.js & NPM | 18+ | Frontend Next.js e testes |
+| Python | 3.12+ | Backend FastAPI |
+| Rust & Cargo | 1.75+ | Opcional: compilação de Smart Contracts |
+| Solana CLI | 1.18+ | Opcional: ferramentas de rede Solana |
+| Anchor CLI | 0.30+ | Opcional: desenvolvimento on-chain |
 
 ### Instalando Rust e Solana CLI
 
@@ -32,80 +30,173 @@ export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 
 # Instalar Anchor via AVM
 cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-avm install 0.30.0
-avm use 0.30.0
+avm install 0.30.0 && avm use 0.30.0
 ```
 
 ---
 
-## Onboarding Rapido
-
-### 1. Clonar e Configurar
+## Onboarding Rápido (3 minutos)
 
 ```bash
-git clone https://github.com/ParaDevs-Brasil/XiaoLee.git
-cd XiaoLee
+# 1. Setup completo (venv + npm + .env)
+make init
 
-# Configurar variaveis de ambiente
+# 2. Verificar ambiente
+make preflight
+
+# 3. Subir dev local (backend + frontend)
+make dev
+```
+
+**Serviços disponíveis após `make dev`:**
+
+| Serviço | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| Swagger UI | http://localhost:8000/docs |
+| Prometheus | http://localhost:8000/metrics |
+
+---
+
+## Modo Docker (Stack Completa)
+
+Sobe PostgreSQL, Redis, backend, frontend, Prometheus e Grafana:
+
+```bash
+# Criar .env a partir do template
 cp .env.example .env
-# Preencha obrigatoriamente: GEMINI_API_KEY, TELEGRAM_WEBHOOK_SECRET, X_WEBHOOK_SECRET
+# Preencha as variáveis obrigatórias
+
+# Subir stack completa (inclui migração automática)
+make run-docker
 ```
 
-### 2. Modo Desenvolvimento (Local Nativo)
-
-Roda o FastAPI e o Next.js em modo dev simultaneamente:
+| Serviço | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend | http://localhost:8000 |
+| Grafana | http://localhost:3001 |
+| Prometheus | http://localhost:9090 |
 
 ```bash
-cd backend && ../.venv/bin/uvicorn server.app:app --reload
-# em outro terminal
-cd frontend && npm run dev
+# Parar stack
+make stop-docker
+
+# Parar e remover volumes (limpar dados)
+make stop-docker-clean
 ```
 
-| Servico   | URL                          |
-|-----------|------------------------------|
-| Frontend  | http://localhost:3000        |
-| Backend   | http://localhost:8000        |
-| API Docs  | http://localhost:8000/docs   |
+---
 
-### 3. Modo Producao (Docker)
+## Variáveis de Ambiente Obrigatórias
 
-Todos os servicos em containers isolados:
+| Variável | Descrição | Exemplo |
+|---|---|---|
+| `GEMINI_API_KEY` | Chave da API Google Gemini | `AIzaSy...` |
+| `HELIUS_API_KEY` | Chave da API Helius (RPC Solana) | `your_helius_key` |
+| `HELIUS_WEBHOOK_SECRET` | HMAC para validar webhooks Helius | `random_32_chars` |
+| `TELEGRAM_WEBHOOK_SECRET` | Secret para webhooks Telegram | `random_32_chars` |
+| `X_WEBHOOK_SECRET` | HMAC para webhooks X/Twitter | `random_32_chars` |
+| `NEXT_PUBLIC_CORE_API_URL` | URL base da API para o frontend | `http://localhost:8000` |
+| `SOLANA_RPC_URL` | URL do nó RPC Solana | `https://api.devnet.solana.com` |
+
+**Opcionais (habilitam funcionalidades adicionais):**
+
+| Variável | Descrição |
+|---|---|
+| `DATABASE_URL` | PostgreSQL em produção (deixar vazio = SQLite local) |
+| `REDIS_URL` | Redis para rate limiting (deixar vazio = in-memory) |
+| `SOLANA_ADMIN_KEYPAIR_B58` | Keypair admin para `record_swap` on-chain (deixar vazio = dry_run) |
+
+> Veja `.env.example` para o template completo com todas as variáveis.
+
+---
+
+## Banco de Dados
+
+O banco usa **SQLite por padrão** (desenvolvimento) e **PostgreSQL em produção** (via `DATABASE_URL`).
 
 ```bash
-docker compose up --build
+# Aplicar migrações (local com SQLite ou produção com PostgreSQL)
+make db-migrate
+
+# Ver status das migrações
+make db-status
+
+# Criar nova migração após alterar models.py
+make db-new-migration MSG="adiciona campo novo"
+
+# Reverter última migração
+make db-rollback
 ```
 
-| Servico    | Porta | URL                       |
-|------------|-------|---------------------------|
-| Frontend   | 3000  | http://localhost:3000     |
-| Backend    | 8000  | http://localhost:8000     |
-| Prometheus | 9090  | http://localhost:9090     |
+---
 
-Para parar: `docker compose down`
+## Rodando os Testes
+
+### Suite Backend (pytest)
+
+```bash
+# Suite completa (65 testes)
+make test-backend
+
+# Smoke rápido (apenas métricas)
+make smoke-backend
+```
+
+### Testes Frontend
+
+```bash
+make smoke-frontend
+# ou
+cd frontend && npm test
+```
+
+### Testes do Smart Contract (Anchor)
+
+```bash
+make anchor-test
+# ou
+cd solana-program/xiaolee_core && anchor test
+```
+
+### Testes de Carga (Locust)
+
+```bash
+# Smoke local (20 users, 2 min)
+make load-test-smoke
+
+# UI interativa em http://localhost:8089
+make load-test-ui
+
+# Staging (requer HOST)
+make load-test-staging HOST=https://api-staging.xiaolee.io
+```
 
 ---
 
 ## Estrutura de Branches
 
 ```
-main          # Branch de producao (protegida)
-feat/*        # Novas funcionalidades
-fix/*         # Correcoes de bugs
-docs/*        # Atualizacoes de documentacao
-chore/*       # Manutencao (deps, config)
+main → Branch de produção (protegida, requer PR)
+feat/* → Novas funcionalidades
+fix/* → Correções de bugs
+docs/* → Atualizações de documentação
+chore/* → Manutenção (deps, config, infra)
 ```
 
 ---
 
-## Padroes de Commit (Conventional Commits)
+## Padrões de Commit (Conventional Commits)
 
 ```
 feat: adiciona endpoint POST /campaigns/create
 fix: corrige overflow no contrato anchor record_swap
-docs: atualiza referencia da API com campanhas
-chore: remove pywin32 do requirements.docker.txt
-refactor: extrai campaigns_routes para arquivo separado
-test: adiciona cenario de hacker no anchor test suite
+docs: atualiza ARCHITECTURE.md com Sprint 7
+chore: atualiza requirements.txt com solders 0.26.0
+refactor: extrai rate_limiter para arquivo separado
+test: adiciona cenário de PDA derivation no anchor_client
 ```
 
 ---
@@ -114,78 +205,53 @@ test: adiciona cenario de hacker no anchor test suite
 
 ### Backend (Python / FastAPI)
 
-1. Novas rotas devem ser criadas em arquivos de router separados (`*_routes.py`).
-2. Schemas devem usar **Pydantic v2** com tipos estritos.
-3. Nunca commitar `GEMINI_API_KEY` ou `HELIUS_API_KEY` no codigo.
-4. Novos endpoints devem ser documentados no `docs/API_REFERENCE.md`.
-5. A suíte principal deve passar com `../.venv/bin/pytest -q`; scripts legados com Twikit e integrações externas ficam skipados quando dependências opcionais não estão instaladas.
+1. Novas rotas: arquivos de router separados (`*_routes.py`).
+2. Schemas: Pydantic v2 com tipos estritos.
+3. **Nunca commite** `GEMINI_API_KEY`, `SOLANA_ADMIN_KEYPAIR_B58` ou qualquer secret.
+4. Novos endpoints: documentar em `docs/API_REFERENCE.md`.
+5. Suite deve passar com `make test-backend` (65+ testes).
+6. Rate limiting async: use `await _enforce_rate_limit_async(key)` em rotas novas.
+7. Banco: use `asyncpg` via `DATABASE_URL` em produção; `aiosqlite` em dev.
 
 ### Frontend (Next.js / TypeScript)
 
-1. Interfaces TypeScript devem ser definidas em `src/interfaces/` e espelhar exatamente o schema da API.
-2. Chamadas de API centralizar via `src/api/api.tsx` (instancia Axios com baseURL configuravel).
-3. Antes de fazer fetch com um ID de usuario, **sempre validar** que o ID nao esta vazio (veja `UserData.fetchData()`).
-4. Novos hooks em `src/hooks/` devem ter tratamento de erro e loading state.
+1. Interfaces TypeScript em `src/interfaces/` — espelhar exatamente o schema da API.
+2. Chamadas de API centralizadas via `src/api/api.tsx`.
+3. **Sempre validar** ID do usuário não-vazio antes de fetch (veja `UserData.fetchData()`).
+4. Novos hooks em `src/hooks/` com tratamento de erro, loading state e tipagem.
+5. Status de campanha: usar enum canônico `enrolled | tasks_verified | paid`.
+6. Tratar `HTTP 409 Conflict` em joins duplicados (flag `alreadyJoined`).
 
 ### Smart Contracts (Rust / Anchor)
 
-1. Nunca use `.unwrap()` em aritmetica. Sempre retorne custom errors (`ErrorCode::MathOverflow`).
-2. Novas instrucoes devem ter verificacoes estritas de controle de acesso (`has_one = admin`).
-3. Teste todos os vetores de ataque conhecidos (contas nao-autorizadas, overflows).
-4. Documente a nova instrucao no `docs/SMART_CONTRACT.md`.
-
----
-
-## Rodando os Testes
-
-### Testes do Smart Contract (Anchor)
-
-```bash
-make test-anchor
-# ou equivalente:
-cd solana-program/xiaolee_core
-anchor test
-```
-
-### Testes E2E do Backend
-
-Valida o backend principal e os fluxos de webhook/campanhas/notificações:
-
-```bash
-cd backend && ../.venv/bin/pytest -q
-```
-
-### Teste de Stress (Locust)
-
-Para validar performance sob carga:
-
-```bash
-make stress-test
-```
+1. **Nunca use `.unwrap()`** em aritmética — sempre `checked_add` / `ok_or(ErrorCode::...)`.
+2. Novas instruções: verificação estrita de `has_one = admin`.
+3. Operações de estado: seguir padrão **CEI** (Checks → Effects → Interactions).
+4. Emitir eventos para todas as mudanças de estado importantes.
+5. Testar vetores de ataque: contas não-autorizadas, overflows, replay.
+6. Documentar nova instrução em `docs/SMART_CONTRACT.md`.
+7. Após rebuild: sincronizar IDL com `make anchor-idl-sync`.
 
 ---
 
 ## Abrindo um Pull Request
 
-1. Fork o repositorio e crie uma branch a partir de `develop`.
-2. Implemente sua mudanca seguindo os padroes acima.
-3. Rode todos os testes relevantes localmente.
-4. Atualize a documentacao impactada.
-5. Abra o PR com descricao clara do que foi feito e por que.
-6. Aguarde revisao de pelo menos 1 maintainer.
+1. Fork e crie branch a partir de `main` (`feat/minha-feature`).
+2. Implemente seguindo os padrões acima.
+3. Rode `make preflight` — deve passar completamente.
+4. Rode `make test-backend` — todos os testes devem passar.
+5. Atualize documentação impactada.
+6. Abra o PR com descrição clara do que foi feito e por que.
+7. Aguarde revisão de pelo menos 1 maintainer.
 
 ---
 
-## Variaveis de Ambiente Obrigatorias
+## Checklist de Mainnet
 
-| Variavel               | Descricao                                    | Exemplo                  |
-|------------------------|----------------------------------------------|--------------------------|
-| `GEMINI_API_KEY`       | Chave da API Google Gemini                   | `AIzaSy...`              |
-| `HELIUS_API_KEY`       | Chave da API Helius (RPC Solana)             | `your_helius_key`        |
-| `HELIUS_WEBHOOK_SECRET`| Secret para validar webhooks Helius (HMAC)  | `random_secret_string`   |
-| `TELEGRAM_WEBHOOK_SECRET` | Secret para validar webhooks Telegram      | `random_secret_string`   |
-| `X_WEBHOOK_SECRET`     | Secret para validar webhooks X               | `random_secret_string`   |
-| `NEXT_PUBLIC_CORE_API_URL` | URL base da API para o frontend          | `http://localhost:8000`  |
-| `SOLANA_RPC_URL`       | URL do no RPC Solana                         | `https://devnet.helius-rpc.com/?api-key=...` |
+Antes de aprovar qualquer PR que impacte produção:
 
-Veja o arquivo `.env.example` na raiz do projeto para o template completo.
+```bash
+make audit-checklist
+```
+
+Consulte `docs/MAINNET_READINESS.md` para o checklist completo com 6 gates de aprovação.

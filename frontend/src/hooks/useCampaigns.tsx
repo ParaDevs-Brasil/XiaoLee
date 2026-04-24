@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from "../api/api"
 import { Campaign, CampaignsResponse, CampaignError } from "../interfaces";
 
@@ -14,7 +14,7 @@ export const useCampaigns = (): UseCampaignsReturn => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCampaigns = async (): Promise<void> => {
+  const fetchCampaigns = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -48,15 +48,15 @@ export const useCampaigns = (): UseCampaignsReturn => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const refetch = async (): Promise<void> => {
+  const refetch = useCallback(async (): Promise<void> => {
     await fetchCampaigns();
-  };
+  }, [fetchCampaigns]);
 
   useEffect(() => {
     fetchCampaigns();
-  }, []);
+  }, [fetchCampaigns]);
 
   return {
     campaigns,

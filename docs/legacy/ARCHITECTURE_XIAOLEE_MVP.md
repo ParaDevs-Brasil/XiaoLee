@@ -1,4 +1,8 @@
-Documento legado. O estado atual e consolidado está em:
+Documento legado (historico, nao oficial).
+
+Atualizacao documental: **2026-04-24**.
+
+O estado atual e consolidado esta em:
 
 - [README.md](../../README.md)
 - [docs/ARCHITECTURE.md](../ARCHITECTURE.md)

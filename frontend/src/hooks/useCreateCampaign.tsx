@@ -22,19 +22,14 @@ export default function useCreateCampaign(): UseCreateCampaignReturn {
     setSuccess(false);
     
     try {
-      // Verificar se há dados de usuário e session_id
-      if (!UserData.hasData()) {
-        throw new Error('Usuário não autenticado. Faça login para criar uma campanha.');
-      }
-
-      const sessionId = UserData.getSessionId();
+      const sessionId = UserData.getOrCreateDevnetSession();
       if (!sessionId) {
-        throw new Error('Sessão expirada. Faça login novamente.');
+        throw new Error('Nao foi possivel iniciar sessao Devnet para criar campanha.');
       }
 
       console.log('🚀 Criando campanha:', campaignData);
 
-      const response = await api.post('/campaigns', campaignData, {
+      const response = await api.post('/campaigns/create', campaignData, {
         headers: {
           'Authorization': `Bearer ${sessionId}`,
           'Content-Type': 'application/json'

@@ -12,12 +12,20 @@ export const useCampaignActions = () => {
   const [verifyLoadingStates, setVerifyLoadingStates] = useState<Record<number, boolean>>({});
   const [claimLoadingStates, setClaimLoadingStates] = useState<Record<number, boolean>>({});
 
+  const toBase64 = (bytes: Uint8Array): string => {
+    let binary = '';
+    bytes.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
+  };
+
   const joinCampaign = useCallback(async (campaignId: number): Promise<JoinCampaignResponse> => {
     setJoinLoadingStates(prev => ({ ...prev, [campaignId]: true }));
     try {
-      const sessionId = UserData.getSessionId();
+      const sessionId = UserData.getOrCreateDevnetSession();
       if (!sessionId) {
-        throw new Error('Usuário não autenticado');
+        throw new Error('Nao foi possivel iniciar sessao Devnet');
       }
       
       const response = await api.post<JoinCampaignResponse>(`/campaigns/join`, {
@@ -44,9 +52,9 @@ export const useCampaignActions = () => {
   const verifyTasks = useCallback(async (campaignId: number): Promise<VerifyTasksResponse> => {
     setVerifyLoadingStates(prev => ({ ...prev, [campaignId]: true }));
     try {
-      const sessionId = UserData.getSessionId();
+      const sessionId = UserData.getOrCreateDevnetSession();
       if (!sessionId) {
-        throw new Error('Usuário não autenticado');
+        throw new Error('Nao foi possivel iniciar sessao Devnet');
       }
       
       const response = await api.post<VerifyTasksResponse>(`/campaigns/verify`, {
@@ -73,13 +81,42 @@ export const useCampaignActions = () => {
   const claimReward = useCallback(async (campaignId: number): Promise<ClaimRewardResponse> => {
     setClaimLoadingStates(prev => ({ ...prev, [campaignId]: true }));
     try {
-      const sessionId = UserData.getSessionId();
+      const sessionId = UserData.getOrCreateDevnetSession();
       if (!sessionId) {
-        throw new Error('Usuário não autenticado');
+        throw new Error('Nao foi possivel iniciar sessao Devnet');
       }
-      
+
+      const walletPublicKey = UserData.getDevnetWalletPublicKey();
+      if (!walletPublicKey) {
+        throw new Error('Conecte a Phantom para reclamar recompensas no Devnet');
+      }
+
+      const proofMessage = `XiaoLee Devnet claim|campaign:${campaignId}|session:${sessionId}|wallet:${walletPublicKey || 'guest'}|ts:${Date.now()}`;
+      const proofPayload = {
+        proof_message: proofMessage,
+        proof_encoding: 'none',
+        wallet_public_key: walletPublicKey,
+        wallet_signature: undefined as string | undefined,
+      };
+
+      const provider = (window as Window & {
+        solana?: {
+          signMessage?: (message: Uint8Array, display?: string) => Promise<{ signature: Uint8Array }>;
+        };
+      }).solana;
+
+      if (provider?.signMessage && walletPublicKey) {
+        const encoded = new TextEncoder().encode(proofMessage);
+        const signed = await provider.signMessage(encoded, 'utf8');
+        proofPayload.proof_encoding = 'base64';
+        proofPayload.wallet_signature = toBase64(signed.signature);
+      } else {
+        throw new Error('Conecte a Phantom para assinar o claim da campanha');
+      }
+
       const response = await api.post<ClaimRewardResponse>(`/campaigns/claim`, {
-        campaign_identifier: campaignId.toString()
+        campaign_identifier: campaignId.toString(),
+        ...proofPayload
       }, {
         headers: {
           'Authorization': `Bearer ${sessionId}`
@@ -90,9 +127,10 @@ export const useCampaignActions = () => {
     } catch (error: unknown) {
       console.error('Error claiming reward:', error);
       const apiError = error as { response?: { data?: { error?: string } } };
+      const localError = error instanceof Error ? error.message : '';
       return {
         success: false,
-        error: apiError.response?.data?.error || 'Erro ao coletar recompensa'
+        error: apiError.response?.data?.error || localError || 'Erro ao coletar recompensa'
       };
     } finally {
       setClaimLoadingStates(prev => ({ ...prev, [campaignId]: false }));

@@ -26,6 +26,7 @@ export default class UserData {
   };
   private static twitter_user_id: string = "";
   private static session_id: string = "";
+  private static devnet_wallet_public_key: string = "";
   private static rawSwapData: SwapHistoryItem[] = [];
   private static rawChatHistory: ChatHistoryItem[] = [];
   private static rawTransactionData: TransactionHistoryItem[] = [];
@@ -103,9 +104,94 @@ export default class UserData {
   static getUserCampaigns(): UserCampaignParticipation[] {
     return this.campaigns;
   }
+
+  static getDevnetWalletPublicKey(): string {
+    return this.devnet_wallet_public_key;
+  }
   
   static getSessionId(): string {
+    if (!this.session_id && typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem('xiaolee_devnet_session');
+      if (stored && stored.trim()) {
+        this.session_id = stored.trim();
+      }
+    }
     return this.session_id;
+  }
+
+  static hasCampaignIdentity(): boolean {
+    if (this.session_id && this.session_id.trim()) {
+      return true;
+    }
+
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    const stored = window.localStorage.getItem('xiaolee_devnet_session');
+    return !!stored && stored.trim().length > 0;
+  }
+
+  static getOrCreateDevnetSession(): string {
+    const existing = this.getSessionId();
+    if (existing) {
+      return existing;
+    }
+
+    if (typeof window === 'undefined') {
+      return "";
+    }
+
+    const phantomPublicKey = (
+      window as Window & { solana?: { publicKey?: { toString: () => string } } }
+    ).solana?.publicKey?.toString();
+
+    const token = phantomPublicKey
+      ? `devnet_wallet_${phantomPublicKey}`
+      : `devnet_guest_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+    window.localStorage.setItem('xiaolee_devnet_session', token);
+    this.session_id = token;
+
+    if (!this.twitter_user_id || this.twitter_user_id.trim() === "") {
+      this.twitter_user_id = token;
+    }
+
+    this.devnet_wallet_public_key = phantomPublicKey || this.devnet_wallet_public_key;
+
+    if (!this.user_info || !this.user_info.twitter_user_id) {
+      this.user_info = {
+        twitter_user_id: token,
+        twitter_handle: token.slice(0, 20),
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    return token;
+  }
+
+  static setDevnetWalletSession(publicKey: string): string {
+    const sanitized = publicKey.trim();
+    if (!sanitized) {
+      return this.getOrCreateDevnetSession();
+    }
+
+    const token = `devnet_wallet_${sanitized}`;
+    this.session_id = token;
+    this.twitter_user_id = token;
+    this.devnet_wallet_public_key = sanitized;
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('xiaolee_devnet_session', token);
+    }
+
+    this.user_info = {
+      twitter_user_id: token,
+      twitter_handle: `wallet_${sanitized.slice(0, 8)}`,
+      created_at: new Date().toISOString(),
+    };
+
+    return token;
   }
   
   static setSessionId(session_id: string): void {
@@ -241,6 +327,7 @@ export default class UserData {
     this.campaigns = [];
     this.twitter_user_id = "";
     this.session_id = "";
+    this.devnet_wallet_public_key = "";
     
     // Clear raw data
     this.rawSwapData = [];
