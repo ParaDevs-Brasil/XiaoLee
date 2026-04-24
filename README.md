@@ -107,7 +107,7 @@ graph TB
 
     SOL --> JUP
     FE -->|sign + send| RPC
-    ANCHOR -->|record_swap<br>(admin keypair)| PROG
+    ANCHOR -->|"record_swap<br>(admin keypair)"| PROG
     RPC -->|webhook evento| HEL
 
     APP -.->|prod| DB
