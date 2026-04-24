@@ -41,44 +41,44 @@ Progresso: [#########.] 93% — Código completo. O que falta é exclusivamente 
 ```mermaid
 graph TB
     subgraph CANAIS["Canais de Entrada"]
-        FE["Next.js Frontend\n(Phantom Wallet)"]
+        FE["Next.js Frontend<br>(Phantom Wallet)"]
         TG["Telegram Bot"]
         XX["X / Twitter DM"]
     end
 
     subgraph INFRA_ENTRADA["Camada de Entrada"]
-        RL["Rate Limiter\n(Redis Sliding Window)\n+ fallback in-memory"]
-        CORS["CORS Guard\n(headers restritos por env)"]
+        RL["Rate Limiter<br>(Redis Sliding Window)<br>+ fallback in-memory"]
+        CORS["CORS Guard<br>(headers restritos por env)"]
     end
 
     subgraph BACKEND["Backend FastAPI"]
-        APP["app.py\n(lifespan + middleware)"]
-        ORCH["OrchestrationService\n(intent + resposta)"]
-        GEM["GeminiClient\n(intent detection)"]
-        SOL["SolanaClient\n(Jupiter swap prepare)"]
-        CAMP["Campaigns Router\n(join / verify / claim)"]
-        NOTIF["Notifications Router\n(in-app inbox)"]
-        HEL["Helius Webhook\n(confirma swap on-chain)"]
-        ANCHOR["AnchorClient\n(solders: PDA + Borsh + sign)"]
-        MET["Metrics\n(/metrics Prometheus)"]
-        HLT["Health\n(/health/detailed)"]
+        APP["app.py<br>(lifespan + middleware)"]
+        ORCH["OrchestrationService<br>(intent + resposta)"]
+        GEM["GeminiClient<br>(intent detection)"]
+        SOL["SolanaClient<br>(Jupiter swap prepare)"]
+        CAMP["Campaigns Router<br>(join / verify / claim)"]
+        NOTIF["Notifications Router<br>(in-app inbox)"]
+        HEL["Helius Webhook<br>(confirma swap on-chain)"]
+        ANCHOR["AnchorClient<br>(solders: PDA + Borsh + sign)"]
+        MET["Metrics<br>(/metrics Prometheus)"]
+        HLT["Health<br>(/health/detailed)"]
     end
 
     subgraph BANCO["Persistencia"]
-        DB[("PostgreSQL 16\n(asyncpg + Alembic)")]
-        SQLITE[("SQLite\n(desenvolvimento local)")]
-        REDIS[("Redis 7\n(rate limiting)")]
+        DB[("PostgreSQL 16<br>(asyncpg + Alembic)")]
+        SQLITE[("SQLite<br>(desenvolvimento local)")]
+        REDIS[("Redis 7<br>(rate limiting)")]
     end
 
     subgraph OBS["Observabilidade"]
-        PROM["Prometheus\n:9090"]
-        GRAF["Grafana\n:3001\n(8 paineis)"]
+        PROM["Prometheus<br>:9090"]
+        GRAF["Grafana<br>:3001<br>(8 paineis)"]
     end
 
     subgraph SOLANA["Solana / On-chain"]
-        JUP["Jupiter v6\n(quote + swap tx)"]
-        RPC["Solana RPC\n(Helius)"]
-        PROG["XiaoLee Core Program\n(Anchor / Rust)\nPDA: global_config + user_state\nEmergency pause on-chain"]
+        JUP["Jupiter v6<br>(quote + swap tx)"]
+        RPC["Solana RPC<br>(Helius)"]
+        PROG["XiaoLee Core Program<br>(Anchor / Rust)<br>PDA: global_config + user_state<br>Emergency pause on-chain"]
     end
 
     TG -->|HMAC secret| APP
@@ -107,11 +107,11 @@ graph TB
 
     SOL --> JUP
     FE -->|sign + send| RPC
-    ANCHOR -->|record_swap\n(admin keypair)| PROG
+    ANCHOR -->|record_swap<br>(admin keypair)| PROG
     RPC -->|webhook evento| HEL
 
-    DB -.->|prod| DB
-    DB -.->|dev| SQLITE
+    APP -.->|prod| DB
+    APP -.->|dev| SQLITE
 
     MET --> PROM
     PROM --> GRAF
