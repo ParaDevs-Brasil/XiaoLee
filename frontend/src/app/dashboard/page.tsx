@@ -100,6 +100,27 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Global Economy Stats */}
+          <div className="max-w-5xl mx-auto mb-12">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+              <span>📈</span> Economia XiaoLee (Global)
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: "Total Value Locked", value: "$1,240,500", icon: "🔒", color: "text-green-600" },
+                { label: "Active Users", value: "12,450", icon: "👥", color: "text-blue-600" },
+                { label: "Rewards Distributed", value: "45,200 SOL", icon: "🎁", color: "text-purple-600" },
+                { label: "Campaigns Created", value: "1,120", icon: "🔥", color: "text-orange-600" },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-2xl p-5 border border-white/20 shadow-sm transition-all hover:shadow-md">
+                  <div className="text-2xl mb-2">{stat.icon}</div>
+                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Activity Feed + Arquitetura */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-5xl mx-auto">
             {/* Feed de atividade */}
@@ -121,27 +142,24 @@ export default function DashboardPage() {
                   Web2 (Twitter) à Web3 (Solana) com segurança, sem necessidade de chaves privadas centralizadas.
                 </p>
 
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-3">
                   {[
-                    { icon: "🔐", label: "Wallet-first", desc: "Você sempre assina localmente" },
-                    { icon: "🤖", label: "IA Gemini", desc: "Orquestração de intenções" },
-                    { icon: "⚡", label: "Jupiter", desc: "Melhor preço de swap em Solana" },
-                    { icon: "📡", label: "Helius", desc: "Eventos on-chain em tempo real" },
-                  ].map(({ icon, label, desc }) => (
-                    <div key={label} className="flex items-center gap-3 p-2 rounded-xl bg-white/50 dark:bg-white/5">
+                    { icon: "🔐", label: "Wallet-first" },
+                    { icon: "🤖", label: "IA Gemini" },
+                    { icon: "⚡", label: "Jupiter" },
+                    { icon: "📡", label: "Helius" },
+                  ].map(({ icon, label }) => (
+                    <div key={label} className="flex items-center gap-2 p-2 rounded-xl bg-white/50 dark:bg-white/5">
                       <span className="text-xl">{icon}</span>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{label}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{desc}</p>
-                      </div>
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">{label}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="mt-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
-                <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                  🌐 Solana Devnet · MVP Avançado · Fase 5 em progresso
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center uppercase tracking-widest">
+                  Solana Devnet · MVP 2.0 · Powered by XiaoLee Core
                 </p>
               </div>
             </div>

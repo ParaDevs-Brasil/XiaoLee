@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Link from "next/link";
 import { toast } from 'react-toastify';
 import useCampaigns from '@/hooks/useCampaigns';
 import { useCampaignActions } from '@/hooks/useCampaignActions';
@@ -196,47 +197,52 @@ export default function Campaigns() {
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header da página */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
-            🚀 Campaigns 
+        {/* Premium Guest/Ready Banner */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-6xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 bg-clip-text text-transparent mb-4 animate-pulse">
+            XiaoLee Campaigns
           </h1>
-          <p className="text-gray-600 text-lg mb-6">
-            Join campaigns and earn incredible rewards on Solana Devnet.
+          <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-6 text-lg">
+            Participe de campanhas exclusivas na Solana Devnet e ganhe recompensas reais. 
+            Sua identidade Web2 conectada à Web3 com segurança total.
           </p>
-
-          {/* Status and Create Button */}
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <div className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${
-              isCampaignReady 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-yellow-100 text-yellow-700'
-            }`}>
-              {isCampaignReady 
-                ? '✅ Devnet Session Active' 
-                : '⏳ Initializing Devnet Session'
-              }
+          <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-2xl shadow-lg border-2 backdrop-blur-md transition-all duration-500 ${
+            isCampaignReady 
+              ? 'bg-green-100/80 border-green-200 text-green-800' 
+              : 'bg-amber-100/80 border-amber-200 text-amber-700'
+          }`}>
+            <span className="text-xl">{isCampaignReady ? '✅' : '⏳'}</span>
+            <div className="text-left">
+              <p className="font-bold text-sm">
+                {isCampaignReady ? 'Devnet Session Active' : 'Guest Mode Active'}
+              </p>
+              <p className="text-xs opacity-80">
+                {isCampaignReady 
+                  ? 'Você está pronto para participar e coletar rewards!' 
+                  : 'Para participar, conecte sua wallet ou autentique-se via Chat.'}
+              </p>
             </div>
-            
-            <button
-              onClick={handleConnectDevnetWallet}
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full font-medium hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 transform hover:scale-105"
-            >
-              🔌 Connect Phantom (Devnet)
-            </button>
-
+            {!isCampaignReady ? (
+              <Link href="/" className="ml-4 px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-colors">
+                Login Chat
+              </Link>
+            ) : (
+              <button
+                onClick={handleConnectDevnetWallet}
+                className="ml-4 px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-xs font-bold transition-colors"
+              >
+                Sync Wallet
+              </button>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-center gap-4 mt-6 flex-wrap">
             <button
               onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-200 transform hover:scale-105"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-bold shadow-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 transform hover:scale-105"
             >
               ✨ Create Campaign
             </button>
-
-            {walletAddress && (
-              <div className="inline-block px-3 py-2 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                Wallet: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </div>
-            )}
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import { toast } from 'react-toastify';
 import Navbar from '../../components/navbar/Navbar';
 import useNotifications from '@/hooks/useNotifications';
@@ -87,10 +88,15 @@ export default function NotificationsPage() {
             )}
 
             {!loading && !error && notifications.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-gray-300 bg-white/60 dark:bg-black/20 p-10 text-center">
-                <div className="text-4xl mb-3">🔔</div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">No notifications yet</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Quando um claim for concluído, o receipt vai aparecer aqui.</p>
+              <div className="rounded-3xl border-2 border-dashed border-cyan-200/50 bg-white/40 dark:bg-black/20 p-12 text-center backdrop-blur-sm transition-all duration-300 hover:bg-white/50">
+                <div className="text-6xl mb-6 animate-gentle-bounce">🔔</div>
+                <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">No notifications yet</h3>
+                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+                  Suas notificações de claims e alertas de campanhas aparecerão aqui assim que você começar a participar da economia XiaoLee.
+                </p>
+                <Link href="/campaigns" className="inline-flex items-center px-8 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-lg hover:shadow-cyan-200/50 transition-all transform hover:scale-105 active:scale-95">
+                  Explorar Campanhas 🚀
+                </Link>
               </div>
             )}
 
