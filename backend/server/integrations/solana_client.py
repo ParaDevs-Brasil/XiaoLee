@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 import httpx
-
+from server.settings import settings
 
 class SolanaClient:
     def __init__(self, rpc_url: str, jupiter_quote_url: str, jupiter_swap_url: str):
@@ -41,6 +41,21 @@ class SolanaClient:
         amount_raw: int,
         slippage_bps: int = 50,
     ) -> Dict[str, Any]:
+        if settings.solana_cluster == "devnet":
+            # Mock para Devnet: Jupiter nao suporta Devnet
+            return {
+                "inputMint": input_mint,
+                "outputMint": output_mint,
+                "inAmount": str(amount_raw),
+                "outAmount": str(int(amount_raw * 0.98)),  # Fake exchange rate
+                "otherAmountThreshold": str(int(amount_raw * 0.95)),
+                "swapMode": "ExactIn",
+                "slippageBps": slippage_bps,
+                "platformFee": None,
+                "priceImpactPct": "0.01",
+                "routePlan": []
+            }
+            
         params = {
             "inputMint": input_mint,
             "outputMint": output_mint,
@@ -53,6 +68,13 @@ class SolanaClient:
             return response.json()
 
     async def prepare_swap_transaction(self, quote_response: Dict[str, Any], user_public_key: str) -> Dict[str, Any]:
+        if settings.solana_cluster == "devnet":
+            # Mock para Devnet: Retorna uma base64 vazia (transaction mock)
+            return {
+                "swapTransaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAB",
+                "lastValidBlockHeight": 123456789
+            }
+            
         payload = {
             "quoteResponse": quote_response,
             "userPublicKey": user_public_key,

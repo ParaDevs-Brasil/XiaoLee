@@ -53,10 +53,16 @@
 - `GlobalConfig` expandido: `paused`, `version`, `total_swaps_recorded`
 - Grafana: datasource Prometheus provisionado + dashboard 8 painéis
 - `Makefile` expandido: `db-migrate`, `load-test-smoke`, `run-docker`, `audit-checklist`, `anchor-idl-sync`
+- **Homologação Infra Local**: Infraestrutura containerizada rodando perfeitamente sem gargalos.
+
+### Fase 8 — Homologação E2E e Testes de Carga (Issues #19 e #21)
+- **QA E2E**: Script `qa/scripts/e2e_flow_simulation.py` validando intents do webhooks com HMAC SHA-256 no Devnet.
+- **Mock Jupiter Devnet**: Injeção de mock em `solana_client.py` para testes locais, dado que a Jupiter só opera na Mainnet.
+- **Teste de Carga / Estresse**: `qa/scripts/locustfile.py` simulando 100 usuários simultâneos, +5.000 requests em 30s. Rate limiter no Redis operando com precisão absoluta, salvando 77% dos requests maliciosos com erro 429 sem corromper DB.
 
 ---
 
-## PENDENTE Em Aberto (Fase 8 — Produção)
+## PENDENTE Em Aberto (Fase 9 — Produção)
 
 ### Bloqueadores P0 (mainnet impossível sem estes)
 1. **Auditoria externa** — mínimo 2 firmas independentes (Trail of Bits, Ottersec, Sec3)

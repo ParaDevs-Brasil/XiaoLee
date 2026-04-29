@@ -356,7 +356,8 @@ make anchor-idl-sync
 | Fase 5 | CONCLUIDA | Idempotência, Anchor client, CORS, 65 testes |
 | Fase 6 | CONCLUIDA | PostgreSQL, Redis, solders, Locust |
 | Fase 7 | CONCLUIDA | Docker completo, Grafana, Emergency pause |
-| Fase 8 | PLANEJADA | Infra produção, auditoria, HTTPS, Multisig, Mainnet |
+| Fase 8 | CONCLUIDA | Homologação E2E, Testes de Carga (Locust), Jupiter Mock |
+| Fase 9 | PLANEJADA | Infra produção, auditoria externa, HTTPS, Multisig, Mainnet |
 
 ---
 
