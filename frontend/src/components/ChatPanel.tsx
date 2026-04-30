@@ -175,16 +175,16 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="w-full lg:col-start-2 lg:col-end-5 p-1 md:p-4 rounded-3xl shadow-2xl flex flex-col h-full bg-gradient-to-br from-[var(--panel-bg-start)] via-[var(--panel-bg-middle)] to-[var(--panel-bg-end)] border-2 border-[var(--panel-border)] backdrop-blur-sm relative overflow-hidden">
+    <div className="w-full lg:col-span-2 h-full p-1 md:p-4 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col bg-gradient-to-br from-[var(--panel-bg-start)] via-[var(--panel-bg-middle)] to-[var(--panel-bg-end)] border-2 border-[var(--panel-border)] backdrop-blur-sm relative overflow-hidden">
       {/* Floating decorative elements - hidden on mobile */}
       <div className="absolute top-4 right-4 text-2xl animate-bounce cursor-none hidden md:block">🌸</div>
       <div className="absolute top-8 left-8 text-xl cursor-none hidden md:block">✨</div>
       <div className="absolute top-1/2 left-2 text-sm delay-300 cursor-none hidden md:block">🌟</div>
       
       {/* Header kawaii */}
-      <div className="mb-4 md:mb-6 text-center relative z-10">
-      <div className="inline-block p-2 md:p-4 bg-gradient-to-r from-[var(--panel-header-bg-start)] to-[var(--panel-header-bg-end)] rounded-2xl border border-[var(--panel-header-border)] backdrop-blur-sm">
-        <h2 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-[var(--panel-header-text-start)] via-[var(--panel-header-text-middle)] to-[var(--panel-header-text-end)] bg-clip-text text-transparent mb-1 md:mb-2">
+      <div className="mb-2 md:mb-6 text-center relative z-10">
+      <div className="inline-block p-1.5 md:p-4 bg-gradient-to-r from-[var(--panel-header-bg-start)] to-[var(--panel-header-bg-end)] rounded-2xl border border-[var(--panel-header-border)] backdrop-blur-sm">
+        <h2 className="text-base md:text-2xl font-bold bg-gradient-to-r from-[var(--panel-header-text-start)] via-[var(--panel-header-text-middle)] to-[var(--panel-header-text-end)] bg-clip-text text-transparent mb-1 md:mb-2">
             Chat with Xiaolee
           </h2>
           <div className="flex justify-center items-center space-x-3">
@@ -195,7 +195,7 @@ export default function ChatPanel() {
       </div>
       
       {/* Messages Container */}
-      <div className="flex-grow overflow-y-auto space-y-3 md:space-y-4 pr-1 md:pr-2 custom-scrollbar relative z-10">        {messagesWithCodes.length === 0 && (
+      <div className="flex-1 overflow-y-auto space-y-3 md:space-y-4 pr-1 md:pr-2 custom-scrollbar relative z-10 mb-2 md:mb-4 pb-2">        {messagesWithCodes.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-70">
             <div className="text-4xl md:text-6xl mb-2 md:mb-4 animate-gentle-bounce cursor-none">💫</div>
             <p className="text-[var(--text-accent)] text-base md:text-lg font-medium px-2">
@@ -250,7 +250,7 @@ export default function ChatPanel() {
                         X
                         </div>
                       </div>                      <div className="flex-grow min-w-0">
-                        <p className="text-[var(--chat-bubble-assistant-text)] p-4 leading-relaxed break-words text-sm md:text-base">
+                        <p className="text-[var(--chat-bubble-assistant-text)] leading-relaxed break-words text-sm md:text-base">
                           {msg.response}
                         </p>
                         {/* Verify Button with Status - Only if THIS message has code AND user is not authenticated */}
@@ -315,11 +315,11 @@ export default function ChatPanel() {
                             <span className="text-xs text-[var(--chat-bubble-assistant-accent-light)] italic">
                             Xiaolee
                             </span>
-                            <span className="text-[var(--chat-bubble-assistant-accent)] animate-gentle-bounce hidden md:inline">
+                            <span className="text-[var(--chat-bubble-assistant-accent)] animate-gentle-bounce">
                               ✨
                             </span>
                           </div>
-                          <div className="flex space-x-1 hidden sm:flex">
+                          <div className="flex space-x-2 sm:space-x-1">
                             <button
                               onClick={() => Video.setPfp("xiaolee_love.mp4")}
                               className="text-[var(--chat-action-love)] hover:text-[var(--chat-action-love-hover)] transition-colors duration-200 transform hover:scale-110 text-sm md:text-base"
@@ -355,11 +355,18 @@ export default function ChatPanel() {
         ))}
       </div>
       {/* Message Input */}
-      <div className="mt-auto flex space-x-2 md:space-x-3 relative z-10">
+      <div className="mt-auto flex space-x-2 md:space-x-3 relative z-10 flex-shrink-0">
         <div className="flex-grow relative">          <input
             type="text"
+            inputMode="text"
+            enterKeyHint="send"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
+            onFocus={(e) => {
+              setTimeout(() => {
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 300);
+            }}
             onKeyPress={(e) => {
               if (e.key === "Enter" && message.trim() && !loading) {
                 e.preventDefault();

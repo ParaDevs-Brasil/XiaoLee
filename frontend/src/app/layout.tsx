@@ -9,6 +9,13 @@ const quicksand = Quicksand({
   weight: ["300", "400", "500", "600", "700"]
 });
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
     title: "✨ Xiaolee - Cute AI Chat 💖",
     description: "Um chat super fofo com uma assistente IA kawaii! (◕‿◕)♡",

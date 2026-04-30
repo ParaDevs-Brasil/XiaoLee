@@ -143,8 +143,8 @@ export default function AnimePanel() {
         // Mobile: Draggable version with vanilla JS - NO TITLE, just video
         <div 
           ref={dragElementRef}
-          className="fixed z-50 w-[120px] h-[120px] cursor-move drag-handle select-none touch-none"
-          style={{ position: 'fixed', top: '80px', left: '20px' }}
+          className="fixed z-50 w-[110px] h-[110px] cursor-move drag-handle select-none touch-none"
+          style={{ position: 'fixed', top: '100px', left: '10px' }}
         >
           {/* Just the video container - no title, minimal padding */}
           <div className="w-full h-full rounded-2xl shadow-2xl bg-gradient-to-r from-[var(--pfp-border-start)] via-[var(--pfp-border-middle)] to-[var(--pfp-border-end)] p-1">

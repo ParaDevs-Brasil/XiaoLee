@@ -4,15 +4,15 @@ import ChatPanel from '../components/ChatPanel';
 
 export default function Home() {
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="absolute inset-0 flex flex-col">
       {/* Background decorative elements */}
-      <div className="absolute top-20 left-10 text-4xl opacity-20 animate-bounce">🌸</div>
-      <div className="absolute top-40 right-20 text-3xl opacity-15 animate-pulse">✨</div>
-      <div className="absolute bottom-40 left-20 text-2xl opacity-20 animate-ping">💕</div>
-      <div className="absolute bottom-60 right-10 text-3xl opacity-15 animate-pulse delay-500">🌟</div>
+      <div className="absolute top-20 left-10 text-4xl opacity-20 animate-bounce pointer-events-none">🌸</div>
+      <div className="absolute top-40 right-20 text-3xl opacity-15 animate-pulse pointer-events-none">✨</div>
+      <div className="absolute bottom-40 left-20 text-2xl opacity-20 animate-ping pointer-events-none">💕</div>
+      <div className="absolute bottom-60 right-10 text-3xl opacity-15 animate-pulse delay-500 pointer-events-none">🌟</div>
       
-      <main className="flex flex-1 p-4 md:p-6 lg:p-8 gap-4 md:gap-6 lg:gap-8 overflow-hidden relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 h-full w-full bg-[var(--main-bg)] rounded-3xl p-4 md:p-6 lg:p-8 gap-4 md:gap-6 lg:gap-8 backdrop-blur-sm border border-white/10">
+      <main className="flex-1 w-full p-2 md:p-6 lg:p-8 relative z-10">
+        <div className="w-full h-full bg-[var(--main-bg)] rounded-2xl md:rounded-3xl p-2 md:p-6 lg:p-8 backdrop-blur-sm border border-white/10 flex flex-col lg:grid lg:grid-cols-3 gap-2 md:gap-6 lg:gap-8">
           <AnimePanel />
           <ChatPanel />
         </div>

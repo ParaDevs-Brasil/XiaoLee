@@ -29,6 +29,7 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | IA (Gemini) | [##########] 100% | Intent detection + resposta contextual |
 | Swap Prepare (Jupiter) | [##########] 100% | Quote + tx unsigned para assinatura em wallet |
 | Wallet Execution (Frontend) | [##########] 100% | Connect, prepare, simulate, confirmação explícita, sign/send |
+| UI/UX e Responsividade | [##########] 100% | Otimização mobile (`100dvh`, teclado virtual, drag/drop PFP) |
 | Campanhas | [##########] 100% | Join (409 idempotente), verify, claim com proof assinado, receipt persistido |
 | Redis Rate Limiting | [##########] 100% | Sliding window + fallback in-memory automático |
 | PostgreSQL + Alembic | [########..] 80% | Migração gerada; requer provisionamento em produção |
@@ -50,7 +51,7 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | Fase 4 | Concluida | QA expandido, observabilidade HTTP, CI fullstack |
 | Fase 5 | Concluida | Idempotência 409, Anchor Client, CORS hardening, 65 testes |
 | Fase 6 | Concluida | PostgreSQL/Alembic, Redis Rate Limit, solders PDA, Locust |
-| Fase 7 | Concluida | Docker Compose completo, Grafana, Emergency Pause Rust, Makefile |
+| Fase 7 | Concluida | Docker Compose completo, Grafana, Emergency Pause Rust, Makefile, UI Mobile hardening |
 | Fase 8 | Planejada | Provisionar infra produção, Auditoria, HTTPS, Multisig, Mainnet beta |
 
 ---

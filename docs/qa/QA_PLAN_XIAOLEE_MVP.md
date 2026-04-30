@@ -8,6 +8,7 @@ Atualizacao documental: **2026-04-24**.
 - Roteamento de intencao
 - Execucao de saldo/cotacao no orquestrador
 - Resposta fallback de ajuda
+- Responsividade UI Mobile (100dvh, teclado virtual)
 
 ## Testes implementados
 

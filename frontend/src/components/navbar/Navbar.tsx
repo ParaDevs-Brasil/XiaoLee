@@ -79,42 +79,42 @@ export default function Navbar() {
   return (
     <>
       <nav className="bg-gradient-to-r from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-b-2 border-[var(--navbar-border)] shadow-xl p-3 md:p-4 sticky top-0 z-20 overflow-visible">
-        <div className="container mx-auto flex justify-between items-center relative z-[10000]">
-          <div className="flex items-center space-x-3">
-            <Link href="/" className="text-lg md:text-2xl font-bold bg-gradient-to-r from-[var(--navbar-text-gradient-start)] via-[var(--navbar-text-gradient-middle)] to-[var(--navbar-text-gradient-end)] bg-clip-text text-transparent hover:scale-105 transition-transform">
+        <div className="container mx-auto flex justify-between items-center relative z-[10000] gap-2">
+          <div className="flex items-center shrink-0">
+            <Link href="/" className="text-base md:text-2xl font-bold bg-gradient-to-r from-[var(--navbar-text-gradient-start)] via-[var(--navbar-text-gradient-middle)] to-[var(--navbar-text-gradient-end)] bg-clip-text text-transparent hover:scale-105 transition-transform whitespace-nowrap">
               <span className="hidden sm:inline">XiaoleeChat ✨</span>
               <span className="sm:hidden">Xiaolee ✨</span>
             </Link>
           </div>
           
-          <div className="flex items-center space-x-2 md:space-x-3">
+          <div className="flex items-center space-x-1 md:space-x-3 overflow-x-auto no-scrollbar">
             {/* Navigation Buttons - Responsive */}
             <div className="flex items-center space-x-1 md:space-x-2">
               <Link 
                 href="/campaigns"
-                className={`inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[80px] md:min-w-[140px] h-[40px] md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-1 md:py-3 text-[10px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 md:min-w-[140px] h-[32px] md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
               >
                 <span className="font-semibold hidden sm:inline">Campaigns</span>
-                <span className="font-semibold sm:hidden">Campaigns</span>
-                <span className="text-sm md:text-lg">🚀</span>
+                <span className="font-semibold sm:hidden">Camp</span>
+                <span className="text-[10px] md:text-lg">🚀</span>
               </Link>
 
               <Link 
                 href="/notifications"
-                className={`inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[80px] md:min-w-[140px] h-[40px] md:h-[52px] ${pathname === '/notifications' ? 'ring-4 ring-cyan-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-2 md:px-6 py-1 md:py-3 text-[10px] md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 md:min-w-[140px] h-[32px] md:h-[52px] ${pathname === '/notifications' ? 'ring-4 ring-cyan-300 scale-105' : ''}`}
               >
                 <span className="font-semibold hidden sm:inline">Notifications</span>
                 <span className="font-semibold sm:hidden">Alerts</span>
-                <span className="text-sm md:text-lg">🔔</span>
+                <span className="text-[10px] md:text-lg">🔔</span>
               </Link>
 
               <Link 
                 href="/dashboard"
-                className={`inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[80px] md:min-w-[140px] h-[40px] md:h-[52px] ${pathname === '/dashboard' ? 'ring-4 ring-purple-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-2 md:px-6 py-1 md:py-3 text-[10px] md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 md:min-w-[140px] h-[32px] md:h-[52px] ${pathname === '/dashboard' ? 'ring-4 ring-purple-300 scale-105' : ''}`}
               >
                 <span className="font-semibold hidden sm:inline">Dashboard</span>
                 <span className="font-semibold sm:hidden">Dash</span>
-                <span className="text-sm md:text-lg">📊</span>
+                <span className="text-[10px] md:text-lg">📊</span>
               </Link>
               
               {/*
@@ -133,7 +133,7 @@ export default function Navbar() {
               <div className="relative" data-dropdown>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[80px] md:min-w-[140px] h-[40px] md:h-[52px]"
+                  className="inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 md:min-w-[140px] h-[40px] md:h-[52px]"
                 >
                   <div className="w-4 md:w-6 h-4 md:h-6 bg-white/20 rounded-full flex items-center justify-center">
                     <UserIcon className="h-3 md:h-4 w-3 md:w-4" aria-hidden="true" />
