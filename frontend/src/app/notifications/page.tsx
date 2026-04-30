@@ -19,59 +19,59 @@ export default function NotificationsPage() {
 
   return (
     <ThemeProviderWrapper>
-      <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950 transition-colors duration-500">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-fuchsia-100 transition-colors duration-500">
         <Navbar />
 
         <main className="container mx-auto px-4 py-12">
           <div className="text-center mb-10">
-            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 bg-clip-text text-transparent mb-4">
-              Notification Center
+            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-4">
+              🔔 Notification Center
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               Acompanhe receipts de campanhas, confirme notificações e mantenha o histórico de claims sincronizado com a sua sessão Devnet.
             </p>
           </div>
 
-          <div className="max-w-5xl mx-auto mb-8 rounded-3xl border border-cyan-100 bg-white/70 dark:bg-black/30 backdrop-blur-md p-5 shadow-lg">
+          <div className="max-w-5xl mx-auto mb-8 rounded-3xl border border-pink-200/50 bg-white/70 backdrop-blur-md p-5 shadow-lg">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <div className="text-xs uppercase tracking-wider text-cyan-700 font-semibold">Active Devnet Context</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                  Session: <span className="font-mono text-gray-800 dark:text-white break-all">{sessionId || 'not initialized'}</span>
+                <div className="text-xs uppercase tracking-wider text-fuchsia-600 font-semibold">Active Devnet Context</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Session: <span className="font-mono text-gray-800 break-all">{sessionId || 'not initialized'}</span>
                 </div>
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">
-                Wallet: <span className="font-mono text-gray-800 dark:text-white break-all">{walletPublicKey || 'Phantom not connected'}</span>
+              <div className="text-sm text-gray-600">
+                Wallet: <span className="font-mono text-gray-800 break-all">{walletPublicKey || 'Phantom not connected'}</span>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto mb-8">
-            <div className="rounded-3xl bg-white/70 dark:bg-black/30 border border-white/20 backdrop-blur-md p-5 shadow-lg text-center">
-              <div className="text-3xl font-bold text-blue-600">{notifications.length}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Total receipts</div>
+            <div className="rounded-3xl bg-white/70 border border-pink-100 backdrop-blur-md p-5 shadow-lg text-center">
+              <div className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-fuchsia-500 bg-clip-text text-transparent">{notifications.length}</div>
+              <div className="text-sm text-gray-500 mt-1">Total receipts</div>
             </div>
-            <div className="rounded-3xl bg-white/70 dark:bg-black/30 border border-white/20 backdrop-blur-md p-5 shadow-lg text-center">
-              <div className="text-3xl font-bold text-emerald-600">{deliveredCount}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Delivered</div>
+            <div className="rounded-3xl bg-white/70 border border-pink-100 backdrop-blur-md p-5 shadow-lg text-center">
+              <div className="text-3xl font-bold text-emerald-500">{deliveredCount}</div>
+              <div className="text-sm text-gray-500 mt-1">Delivered</div>
             </div>
-            <div className="rounded-3xl bg-white/70 dark:bg-black/30 border border-white/20 backdrop-blur-md p-5 shadow-lg text-center">
-              <div className="text-3xl font-bold text-amber-600">{pendingCount}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Pending</div>
+            <div className="rounded-3xl bg-white/70 border border-pink-100 backdrop-blur-md p-5 shadow-lg text-center">
+              <div className="text-3xl font-bold text-amber-500">{pendingCount}</div>
+              <div className="text-sm text-gray-500 mt-1">Pending</div>
             </div>
           </div>
 
-          <div className="max-w-5xl mx-auto bg-white/70 dark:bg-black/30 backdrop-blur-md rounded-3xl border border-white/20 shadow-xl p-6 md:p-8">
+          <div className="max-w-5xl mx-auto bg-white/70 backdrop-blur-md rounded-3xl border border-pink-200/40 shadow-xl p-6 md:p-8">
             <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Receipts e alertas</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Claims de campanhas e notificações operacionais do projeto.</p>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">Receipts e alertas</h2>
+                <p className="text-sm text-gray-500">Claims de campanhas e notificações operacionais do projeto.</p>
               </div>
               <button
                 onClick={refetch}
-                className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold hover:from-blue-600 hover:to-indigo-600 transition-all duration-200"
+                className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white font-semibold hover:from-pink-500 hover:to-purple-600 transition-all duration-200 shadow-md kawaii-button"
               >
-                Refresh
+                Refresh ✨
               </button>
             </div>
 
@@ -88,13 +88,13 @@ export default function NotificationsPage() {
             )}
 
             {!loading && !error && notifications.length === 0 && (
-              <div className="rounded-3xl border-2 border-dashed border-cyan-200/50 bg-white/40 dark:bg-black/20 p-12 text-center backdrop-blur-sm transition-all duration-300 hover:bg-white/50">
+              <div className="rounded-3xl border-2 border-dashed border-pink-200/50 bg-white/40 p-12 text-center backdrop-blur-sm transition-all duration-300 hover:bg-white/60">
                 <div className="text-6xl mb-6 animate-gentle-bounce">🔔</div>
-                <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">No notifications yet</h3>
-                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+                <h3 className="text-2xl font-bold text-gray-700 mb-3">No notifications yet</h3>
+                <p className="text-gray-500 max-w-md mx-auto mb-8">
                   Suas notificações de claims e alertas de campanhas aparecerão aqui assim que você começar a participar da economia XiaoLee.
                 </p>
-                <Link href="/campaigns" className="inline-flex items-center px-8 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-lg hover:shadow-cyan-200/50 transition-all transform hover:scale-105 active:scale-95">
+                <Link href="/campaigns" className="inline-flex items-center px-8 py-3 rounded-2xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white font-bold shadow-lg hover:shadow-pink-200/50 transition-all transform hover:scale-105 active:scale-95 kawaii-button">
                   Explorar Campanhas 🚀
                 </Link>
               </div>
@@ -103,21 +103,21 @@ export default function NotificationsPage() {
             {!loading && notifications.length > 0 && (
               <div className="space-y-4">
                 {notifications.map((notification) => (
-                  <div key={notification.id} className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-5 shadow-sm">
+                  <div key={notification.id} className="rounded-3xl border border-pink-100 bg-gradient-to-br from-white to-pink-50/60 p-5 shadow-sm hover:shadow-md transition-all duration-200">
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-lg font-bold text-gray-800">{notification.title}</h3>
-                          <span className="text-xs font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                          <span className="text-xs font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-fuchsia-100 text-fuchsia-700">
                             {notification.status}
                           </span>
                         </div>
                         <p className="mt-2 text-gray-600 text-sm leading-relaxed">{notification.body}</p>
 
                         {notification.related_signature && (
-                          <div className="mt-3 rounded-2xl bg-white/80 border border-blue-100 p-3">
-                            <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Receipt</div>
-                            <div className="text-sm font-mono text-blue-700 break-all">{notification.related_signature}</div>
+                          <div className="mt-3 rounded-2xl bg-white/80 border border-pink-100 p-3">
+                            <div className="text-xs uppercase tracking-wide text-fuchsia-500 mb-1">Receipt</div>
+                            <div className="text-sm font-mono text-purple-700 break-all">{notification.related_signature}</div>
                           </div>
                         )}
 
@@ -140,13 +140,13 @@ export default function NotificationsPage() {
                               }
                             }}
                             disabled={isAckLoading(notification.id)}
-                            className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                            className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-semibold hover:from-emerald-500 hover:to-teal-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all kawaii-button"
                           >
                             {isAckLoading(notification.id) ? 'Acknowledging...' : 'Mark delivered'}
                           </button>
                         ) : (
                           <span className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-sm">
-                            Delivered
+                            ✅ Delivered
                           </span>
                         )}
                       </div>

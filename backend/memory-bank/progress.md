@@ -1,8 +1,8 @@
 # Progress: XiaoLee
 
-> Atualizado em: **2026-04-24** | Sprint 7 concluída.
-> Progresso: [#########.] 93% — Estimativa (faixa 90% a 96%).
-> Classificação: **MVP avançado em Devnet — código completo, infraestrutura de produção pendente**.
+> Atualizado em: **2026-04-30** | Sprint 8 concluída.
+> Progresso: [##########] 96% — Estimativa (faixa 95% a 98%).
+> Classificação: **MVP avançado em Devnet — frontend polido e visualmente consistente, infraestrutura de produção pendente**.
 
 ---
 
@@ -60,6 +60,14 @@
 - **Mock Jupiter Devnet**: Injeção de mock em `solana_client.py` para testes locais, dado que a Jupiter só opera na Mainnet.
 - **Teste de Carga / Estresse**: `qa/scripts/locustfile.py` simulando 100 usuários simultâneos, +5.000 requests em 30s. Rate limiter no Redis operando com precisão absoluta, salvando 77% dos requests maliciosos com erro 429 sem corromper DB.
 
+### Fase 8.1 — Polish de UI/UX: Consistência Visual (Light Theme)
+- **Alinhamento de Cores**: Todas as telas (Chat, Campaigns, Notifications, Dashboard) agora compartilham a mesma paleta rosa/roxo pastel kawaii no tema claro (`from-pink-50 via-purple-50 to-fuchsia/indigo`).
+- **Notifications**: Fundo e componentes migrados de cyan/blue para o tema pink/fuchsia/purple.
+- **Dashboard**: Removidas classes `dark:from-gray-900 dark:via-purple-900` do wrapper que causavam fundo escuro no light mode.
+- **UserStatsCard / TokenomicsCard**: Gradientes de borda e cabeçalhos alinhados ao pink/fuchsia/purple.
+- **globals.css**: Adicionado `background-attachment: fixed` ao body para evitar vazamento de gradiente escuro em conteúdo scrollável.
+- **ThemeProvider**: Preservado com `attribute="class"` — toggle de dark/light continua funcional.
+
 ---
 
 ## PENDENTE Em Aberto (Fase 9 — Produção)
@@ -91,6 +99,7 @@
 |---|---|
 | Testes backend | **65 passando**, 6 skips legados |
 | Build frontend | **Exit code 0** (Next.js, TypeScript sem erros) |
-| Cobertura de rotas | `/health`, `/health/detailed`, `/status`, `/metrics`, `/chat`, `/v1/messages/inbound`, `/v1/solana/swap/prepare`, `/v1/solana/webhooks/helius`, `/campaigns/join|verify|claim`, `/notifications`, `/x/webhook` |
-| Sprints concluídas | **7 de 8** |
-| Estimativa de conclusão | **93%** |
+| Cobertura de rotas | `/health`, `/health/detailed`, `/status`, `/metrics`, `/chat`, `/v1/messages/inbound`, `/v1/solana/swap/prepare`, `/v1/solana/webhooks/helius`, `/campaigns/join\|verify\|claim`, `/notifications`, `/x/webhook` |
+| Telas com tema unificado | **4/4** (Chat, Campaigns, Notifications, Dashboard) |
+| Sprints concluídas | **8 de 8** |
+| Estimativa de conclusão | **96%** |

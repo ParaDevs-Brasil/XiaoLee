@@ -325,6 +325,7 @@
 
 body {
   background-image: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-middle), var(--bg-gradient-end));
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-weight: 400;

@@ -38,10 +38,10 @@ function CampaignSummaryBar() {
         <div key={label}
           className={`bg-gradient-to-br ${color} p-[2px] rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300`}
         >
-          <div className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm rounded-[14px] p-4 text-center">
+          <div className="bg-white/90 rounded-[14px] p-4 text-center">
             <div className="text-2xl mb-1">{icon}</div>
-            <div className="text-2xl font-extrabold text-gray-800 dark:text-white">{value}</div>
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</div>
+            <div className="text-2xl font-extrabold text-gray-800">{value}</div>
+            <div className="text-xs font-medium text-gray-500">{label}</div>
           </div>
         </div>
       ))}
@@ -68,7 +68,7 @@ export default function DashboardPage() {
 
   return (
     <ThemeProviderWrapper>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900 transition-colors duration-500">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 transition-colors duration-500">
         <Navbar />
 
         <main className="container mx-auto px-4 py-12">
@@ -112,10 +112,10 @@ export default function DashboardPage() {
                 { label: "Rewards Distributed", value: "45,200 SOL", icon: "🎁", color: "text-purple-600" },
                 { label: "Campaigns Created", value: "1,120", icon: "🔥", color: "text-orange-600" },
               ].map((stat) => (
-                <div key={stat.label} className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-2xl p-5 border border-white/20 shadow-sm transition-all hover:shadow-md">
+                <div key={stat.label} className="bg-white/70 backdrop-blur-md rounded-2xl p-5 border border-pink-100 shadow-sm transition-all hover:shadow-md hover:scale-105">
                   <div className="text-2xl mb-2">{stat.icon}</div>
                   <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">{stat.label}</div>
+                  <div className="text-xs text-gray-500 font-medium">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -124,7 +124,7 @@ export default function DashboardPage() {
           {/* Activity Feed + Arquitetura */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-5xl mx-auto">
             {/* Feed de atividade */}
-            <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-3xl p-6 border border-white/20 shadow-lg">
+            <div className="bg-white/70 backdrop-blur-md rounded-3xl p-6 border border-pink-100 shadow-lg">
               <h2 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent mb-4 flex items-center gap-2">
                 <span>🔔</span> Atividade Recente
               </h2>
@@ -132,12 +132,12 @@ export default function DashboardPage() {
             </div>
 
             {/* Arquitetura */}
-            <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-3xl p-6 border border-white/20 shadow-lg flex flex-col justify-between">
+            <div className="bg-white/70 backdrop-blur-md rounded-3xl p-6 border border-pink-100 shadow-lg flex flex-col justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                <h2 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent mb-3 flex items-center gap-2">
                   <span>🚀</span> Arquitetura Descentralizada
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
+                <p className="text-sm text-gray-600 leading-relaxed mb-4">
                   A XiaoLee utiliza Program Derived Addresses (PDAs) para conectar sua identidade
                   Web2 (Twitter) à Web3 (Solana) com segurança, sem necessidade de chaves privadas centralizadas.
                 </p>
@@ -149,16 +149,16 @@ export default function DashboardPage() {
                     { icon: "⚡", label: "Jupiter" },
                     { icon: "📡", label: "Helius" },
                   ].map(({ icon, label }) => (
-                    <div key={label} className="flex items-center gap-2 p-2 rounded-xl bg-white/50 dark:bg-white/5">
+                    <div key={label} className="flex items-center gap-2 p-2 rounded-xl bg-pink-50/80">
                       <span className="text-xl">{icon}</span>
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">{label}</p>
+                      <p className="text-xs font-semibold text-gray-700">{label}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center uppercase tracking-widest">
+              <div className="mt-6 pt-4 border-t border-pink-200/50">
+                <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest">
                   Solana Devnet · MVP 2.0 · Powered by XiaoLee Core
                 </p>
               </div>
