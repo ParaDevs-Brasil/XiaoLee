@@ -2,113 +2,104 @@ import React from 'react';
 import ActionButton from '@/components/ActionButton';
 import { UserCampaignCardProps } from '@/interfaces/campaignComponents';
 
-const getStatusBadge = (status: string): React.ReactElement => {
-  const badges: Record<string, React.ReactElement> = {
-    'enrolled': <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">🎯 Enrolled</span>,
-    'tasks_verified': <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">✅ Verified</span>,
-    // 'reward_claimed' removido — 'paid' é o estado final canônico no backend
-    'paid': <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">💎 Claimed</span>,
-  };
-  return badges[status] || <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">❓ Unknown</span>;
-};
+// ── SVG Icons ──────────────────────────────────────────────────────────────
+const IconCheck = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+const IconReceipt = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16l3-2 2 2 2-2 2 2 2-2 3 2V4a2 2 0 0 0-2-2z"/>
+  </svg>
+);
 
-
-const getCampaignTypeIcon = (type: string): string => {
-  const icons: Record<string, string> = {
-    'follow': '👥',
-    'retweet': '🔄', 
-    'like': '❤️',
-    'reply': '💬',
-    'airdrop': '🪂',
-    'referral': '🤝'
-  };
-  return icons[type] || '🎯';
+const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  enrolled:       { label: 'Inscrito',   bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100' },
+  tasks_verified: { label: 'Verificado', bg: 'bg-violet-50',  text: 'text-violet-600',  border: 'border-violet-100' },
+  paid:           { label: 'Claimed',    bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
 };
 
 export const UserCampaignCard: React.FC<UserCampaignCardProps> = ({
-  campaign,
-  onVerify,
-  onClaim,
-  isVerifying,
-  isClaiming
+  campaign, onVerify, onClaim, isVerifying, isClaiming
 }) => {
-  // participation_status é o campo canônico alinhado com o backend
   const currentStatus = campaign.participation_status || 'enrolled';
-  
+  const cfg = statusConfig[currentStatus] ?? { label: currentStatus, bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-100' };
+
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-6 rounded-2xl shadow-lg border border-blue-200 hover:shadow-xl transition-all duration-300">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          {/* Campaign Type Icon */}
-          <span className="text-2xl">
-            {getCampaignTypeIcon(campaign.campaign_type)}
-          </span>
-          
-          {/* Reward Display */}
-          <div className="flex items-center space-x-2">
-            <span className="text-2xl font-bold text-indigo-600">
-              {campaign.reward_per_participant}
-            </span>
-            <span className="text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500 px-3 py-1 rounded-full shadow-sm">
-              {campaign.reward_token}
-            </span>
-          </div>
+    <div className="rounded-xl border border-pink-100 bg-white/70 backdrop-blur-sm hover:shadow-sm transition-shadow duration-150">
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-pink-100/60">
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-gray-800 leading-tight truncate">{campaign.name}</h3>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400">{campaign.campaign_type}</span>
         </div>
-        {getStatusBadge(currentStatus)}
-      </div>
-      
-      <h3 className="text-xl font-bold text-gray-900 mb-2">{campaign.name}</h3>
-      <p className="text-gray-600 mb-4 text-sm leading-relaxed">{campaign.description}</p>
-      
-      {/* Campaign Type Badge */}
-      <div className="mb-3">
-        <span className="text-xs font-medium text-indigo-700 bg-indigo-100 px-2 py-1 rounded-full">
-          {campaign.campaign_type.toUpperCase()} CAMPAIGN
+        <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+          {currentStatus === 'paid' && <IconCheck />}
+          {cfg.label}
         </span>
       </div>
-      
-      {campaign.tasks_verified_at && (
-        <p className="text-xs text-green-600 mb-4">
-          ✅ Tasks verified on: {new Date(campaign.tasks_verified_at).toLocaleDateString('en-US')}
-        </p>
-      )}
 
-      {campaign.claim_receipt_id && (
-        <p className="text-xs text-blue-600 mb-4 break-all">
-          Receipt: {campaign.claim_receipt_id}
-        </p>
-      )}
-      
-      <div className="space-y-2">
-        {currentStatus === 'enrolled' && (
-          <ActionButton
-            onClick={() => onVerify(campaign.id)}
-            disabled={isVerifying(campaign.id)}
-            loading={isVerifying(campaign.id)}
-            loadingText="Verifying... ⏳"
-            variant="secondary"
-          >
-            Verify Tasks 🔍
-          </ActionButton>
+      {/* Body */}
+      <div className="px-4 py-3">
+        <p className="text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2">{campaign.description}</p>
+
+        {/* Reward */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs text-gray-400">Reward</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-black text-fuchsia-600">{campaign.reward_per_participant}</span>
+            <span className="text-xs font-bold text-fuchsia-500 bg-fuchsia-50 px-1.5 py-0.5 rounded-full">{campaign.reward_token}</span>
+          </div>
+        </div>
+
+        {/* Meta */}
+        {campaign.tasks_verified_at && (
+          <p className="text-xs text-gray-400 mb-2">
+            Verificado em: <span className="font-medium">{new Date(campaign.tasks_verified_at).toLocaleDateString('pt-BR')}</span>
+          </p>
         )}
-        
-        {currentStatus === 'tasks_verified' && (
-          <ActionButton
-            onClick={() => onClaim(campaign.id)}
-            disabled={isClaiming(campaign.id)}
-            loading={isClaiming(campaign.id)}
-            loadingText="Claiming... 💰"
-            variant="success"
-          >
-            Claim {campaign.reward_per_participant} {campaign.reward_token} 💎
-          </ActionButton>
-        )}
-        
-        {currentStatus === 'paid' && (
-          <div className="w-full py-3 rounded-xl font-semibold text-center bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300">
-            🎉 Reward of {campaign.reward_per_participant} {campaign.reward_token} {campaign.tasks_claimed ? 'claimed!' : 'processed!'}
+
+        {campaign.claim_receipt_id && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <span className="text-gray-300"><IconReceipt /></span>
+            <p className="text-[10px] text-gray-400 font-mono truncate">{campaign.claim_receipt_id}</p>
           </div>
         )}
+
+        {/* Actions */}
+        <div className="space-y-2">
+          {currentStatus === 'enrolled' && (
+            <ActionButton
+              onClick={() => onVerify(campaign.id)}
+              disabled={isVerifying(campaign.id)}
+              loading={isVerifying(campaign.id)}
+              loadingText="Verificando..."
+              variant="secondary"
+            >
+              Verificar Tasks
+            </ActionButton>
+          )}
+
+          {currentStatus === 'tasks_verified' && (
+            <ActionButton
+              onClick={() => onClaim(campaign.id)}
+              disabled={isClaiming(campaign.id)}
+              loading={isClaiming(campaign.id)}
+              loadingText="Reivindicando..."
+              variant="success"
+            >
+              Reivindicar {campaign.reward_per_participant} {campaign.reward_token}
+            </ActionButton>
+          )}
+
+          {currentStatus === 'paid' && (
+            <div className="w-full py-2.5 rounded-xl text-xs font-bold text-center bg-emerald-50 text-emerald-600 border border-emerald-100">
+              {campaign.reward_per_participant} {campaign.reward_token} {campaign.tasks_claimed ? 'reivindicado' : 'processado'}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

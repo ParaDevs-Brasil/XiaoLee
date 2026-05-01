@@ -12,6 +12,58 @@ import CreateCampaignForm from '@/components/campaigns/CreateCampaignForm';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { UserCampaignsList } from '@/components/campaigns/UserCampaignsList';
 
+// ── SVG Icons ──────────────────────────────────────────────────────────────
+const IconPlus = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+);
+const IconRefresh = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+  </svg>
+);
+const IconCheck = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+const IconClock = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </svg>
+);
+const IconAlert = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+);
+const IconTarget = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+  </svg>
+);
+const IconBell = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+);
+const IconX = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+const IconMegaphone = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+  </svg>
+);
+const IconReceipt = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16l3-2 2 2 2-2 2 2 2-2 3 2V4a2 2 0 0 0-2-2z"/>
+  </svg>
+);
+
 export default function Campaigns() {
   const { campaigns, loading, error, refetch } = useCampaigns();
   const { campaigns: userCampaigns, refetch: refetchUserCampaigns } = useUserCampaigns();
@@ -22,46 +74,29 @@ export default function Campaigns() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Sync userCampaigns with UserData when userCampaigns change
   useEffect(() => {
-    if (userCampaigns) {
-      UserData.updateCampaigns(userCampaigns);
-    }
+    if (userCampaigns) UserData.updateCampaigns(userCampaigns);
   }, [userCampaigns]);
 
   useEffect(() => {
     const sessionId = UserData.getOrCreateDevnetSession();
     setIsCampaignReady(!!sessionId);
-
-    const maybeWallet = (
-      window as Window & { solana?: { publicKey?: { toString: () => string } } }
-    ).solana?.publicKey?.toString();
+    const maybeWallet = (window as Window & { solana?: { publicKey?: { toString: () => string } } }).solana?.publicKey?.toString();
     if (maybeWallet) {
       setWalletAddress(maybeWallet);
       UserData.setDevnetWalletSession(maybeWallet);
     }
-
     refetchUserCampaigns();
   }, [refetchUserCampaigns]);
 
   const handleConnectDevnetWallet = async () => {
-    const provider = (
-      window as Window & {
-        solana?: {
-          isPhantom?: boolean;
-          publicKey?: { toString: () => string };
-          connect?: () => Promise<{ publicKey: { toString: () => string } }>;
-        };
-      }
-    ).solana;
-
+    const provider = (window as Window & { solana?: { isPhantom?: boolean; publicKey?: { toString: () => string }; connect?: () => Promise<{ publicKey: { toString: () => string } }> } }).solana;
     if (!provider || !provider.isPhantom || !provider.connect) {
-      toast.info('🦊 Phantom não detectada. Continuando com sessão Devnet local.');
+      toast.info('Phantom não detectada. Continuando com sessão Devnet local.');
       const fallback = UserData.getOrCreateDevnetSession();
       setIsCampaignReady(!!fallback);
       return;
     }
-
     try {
       const resp = await provider.connect();
       const pubkey = resp.publicKey.toString();
@@ -69,22 +104,16 @@ export default function Campaigns() {
       setWalletAddress(pubkey);
       setIsCampaignReady(true);
       await refetchUserCampaigns();
-      toast.success('✅ Wallet Devnet conectada para campanhas.');
+      toast.success('Wallet Devnet conectada para campanhas.');
     } catch {
-      toast.error('❌ Não foi possível conectar a wallet Devnet.');
+      toast.error('Não foi possível conectar a wallet Devnet.');
     }
   };
 
   useEffect(() => {
-    const handleUserDataLoaded = () => {
-      setIsCampaignReady(UserData.hasCampaignIdentity());
-      refetchUserCampaigns();
-    };
-
-    window.addEventListener('userDataLoaded', handleUserDataLoaded);
-    return () => {
-      window.removeEventListener('userDataLoaded', handleUserDataLoaded);
-    };
+    const handler = () => { setIsCampaignReady(UserData.hasCampaignIdentity()); refetchUserCampaigns(); };
+    window.addEventListener('userDataLoaded', handler);
+    return () => window.removeEventListener('userDataLoaded', handler);
   }, [refetchUserCampaigns]);
 
   const handleRefresh = async () => {
@@ -100,77 +129,41 @@ export default function Campaigns() {
   };
 
   const handleJoinCampaign = async (campaignId: number) => {
-    if (!isCampaignReady) {
-      toast.error('⚠️ Unable to initialize Devnet session. Refresh and try again.');
-      return;
-    }
-
+    if (!isCampaignReady) { toast.error('Sessão Devnet não inicializada. Atualize e tente novamente.'); return; }
     const result = await joinCampaign(campaignId);
-    
-    if (result.success) {
-      toast.success(`✅ ${result.message}`);
-      handleRefresh(); // Update lists and user data
-      await refetchUserCampaigns(); // Refresh user campaigns
-      // Refetch user data after joining (in case it affects user state)
-      await UserData.fetchData();
-    } else {
-      toast.error(`❌ ${result.error}`);
-    }
+    if (result.success) { toast.success(result.message); handleRefresh(); await refetchUserCampaigns(); await UserData.fetchData(); }
+    else { toast.error(result.error); }
   };
 
   const handleVerifyTasks = async (campaignId: number) => {
-    if (!isCampaignReady) {
-      toast.error('⚠️ Unable to initialize Devnet session. Refresh and try again.');
-      return;
-    }
-
+    if (!isCampaignReady) { toast.error('Sessão Devnet não inicializada. Atualize e tente novamente.'); return; }
     const result = await verifyTasks(campaignId);
-    
-    if (result.success) {
-      toast.success(`✅ ${result.message}`);
-      // Refresh user campaigns after verification
-      await refetchUserCampaigns();
-      // Refetch user data after verifying tasks
-      await UserData.fetchData();
-    } else {
-      toast.warning(`⚠️ ${result.message}`);
-    }
+    if (result.success) { toast.success(result.message); await refetchUserCampaigns(); await UserData.fetchData(); }
+    else { toast.warning(result.message); }
   };
 
   const handleClaimReward = async (campaignId: number) => {
-    if (!isCampaignReady) {
-      toast.error('⚠️ Unable to initialize Devnet session. Refresh and try again.');
-      return;
-    }
-
+    if (!isCampaignReady) { toast.error('Sessão Devnet não inicializada. Atualize e tente novamente.'); return; }
     const result = await claimReward(campaignId);
-    
     if (result.success) {
       const receiptSuffix = result.claim_receipt_id ? ` Receipt: ${result.claim_receipt_id}` : '';
-      toast.success(`🎉 ${result.message}${receiptSuffix}`, {
-        autoClose: 5000, // Show success message longer for rewards
-      });
-      // Refresh user campaigns after claiming
+      toast.success(`${result.message}${receiptSuffix}`, { autoClose: 5000 });
       await refetchUserCampaigns();
       await refetchNotifications();
-      // Refetch user data (balances, transactions, etc.) after claiming reward
       await UserData.fetchData();
-    } else {
-      toast.error(`❌ ${result.error}`);
-    }
+    } else { toast.error(result.error); }
   };
 
   const handleCreateSuccess = () => {
     setShowCreateForm(false);
-    toast.success('✅ Campaign created successfully!');
-    handleRefresh(); // Update campaign lists after creating campaign
-    // Refetch user data after creating campaign (in case it affects balances)
+    toast.success('Campanha criada com sucesso!');
+    handleRefresh();
     UserData.fetchData();
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen p-8 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="xl" text="Loading campaigns..." />
       </div>
     );
@@ -178,203 +171,194 @@ export default function Campaigns() {
 
   if (error) {
     return (
-      <div className="min-h-screen p-8 flex items-center justify-center">
-        <div className="text-center bg-red-50 p-8 rounded-2xl border border-red-200">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-2xl font-bold text-red-800 mb-4">Error loading campaigns</h2>
-          <p className="text-red-600 mb-6">{error}</p>
-          <button 
-            onClick={handleRefresh}
-            className="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-600 transition-colors"
-          >
-            Try again
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div className="text-center bg-white border border-red-200 rounded-2xl p-8 max-w-sm w-full shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-4 text-red-400">
+            <IconAlert />
+          </div>
+          <h2 className="text-base font-bold text-gray-700 mb-2">Erro ao carregar campanhas</h2>
+          <p className="text-sm text-gray-400 mb-5">{error}</p>
+          <button onClick={handleRefresh} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white text-sm font-semibold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all">
+            <IconRefresh /> Tentar novamente
           </button>
         </div>
       </div>
     );
   }
-  
+
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Premium Guest/Ready Banner */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-6xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 bg-clip-text text-transparent mb-4 animate-pulse">
-            XiaoLee Campaigns
+    <div className="min-h-screen px-4 py-10">
+      <div className="max-w-2xl mx-auto">
+
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
+            Campaigns
           </h1>
-          <p className="text-gray-800 dark:text-gray-100 max-w-2xl mx-auto mb-6 text-lg font-medium">
-            Participe de campanhas exclusivas na Solana Devnet e ganhe recompensas reais. 
-            Sua identidade Web2 conectada à Web3 com segurança total.
+          <p className="text-sm text-gray-400 max-w-xs mx-auto leading-relaxed">
+            Participe de campanhas na Solana Devnet e ganhe recompensas reais.
           </p>
-          <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-2xl shadow-lg border-2 backdrop-blur-md transition-all duration-500 ${
-            isCampaignReady 
-              ? 'bg-green-100/80 border-green-200 text-green-800' 
-              : 'bg-amber-100/80 border-amber-200 text-amber-700'
-          }`}>
-            <span className="text-xl">{isCampaignReady ? '✅' : '⏳'}</span>
-            <div className="text-left">
-              <p className="font-bold text-sm">
-                {isCampaignReady ? 'Devnet Session Active' : 'Guest Mode Active'}
-              </p>
-              <p className="text-xs opacity-80">
-                {isCampaignReady 
-                  ? 'Você está pronto para participar e coletar rewards!' 
-                  : 'Para participar, conecte sua wallet ou autentique-se via Chat.'}
-              </p>
-            </div>
-            {!isCampaignReady ? (
-              <Link href="/" className="ml-4 px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-colors">
-                Login Chat
-              </Link>
-            ) : (
-              <button
-                onClick={handleConnectDevnetWallet}
-                className="ml-4 px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-xs font-bold transition-colors"
-              >
-                Sync Wallet
-              </button>
-            )}
-          </div>
-          
-          <div className="flex items-center justify-center gap-4 mt-6 flex-wrap">
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-bold shadow-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 transform hover:scale-105"
-            >
-              ✨ Create Campaign
-            </button>
-          </div>
         </div>
 
-        {/* User campaigns section - show when authenticated */}
+        {/* ── Session Status Banner ────────────────────────────────────── */}
+        <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 mb-6 ${
+          isCampaignReady
+            ? 'bg-emerald-50 border-emerald-100'
+            : 'bg-amber-50 border-amber-100'
+        }`}>
+          <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+            isCampaignReady ? 'bg-emerald-100 text-emerald-500' : 'bg-amber-100 text-amber-500'
+          }`}>
+            {isCampaignReady ? <IconCheck /> : <IconClock />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-gray-700">
+              {isCampaignReady ? 'Devnet Session Active' : 'Guest Mode'}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {isCampaignReady
+                ? 'Pronto para participar e coletar rewards.'
+                : 'Conecte sua wallet ou autentique-se via Chat.'}
+            </p>
+          </div>
+          {!isCampaignReady ? (
+            <Link href="/" className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors">
+              Login
+            </Link>
+          ) : (
+            <button onClick={handleConnectDevnetWallet} className="shrink-0 px-3 py-1.5 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-xs font-bold transition-colors">
+              Sync Wallet
+            </button>
+          )}
+        </div>
+
+        {/* ── Create Campaign Button ───────────────────────────────────── */}
+        <div className="mb-6">
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:shadow-pink-300 hover:scale-105 active:scale-95 transition-all duration-200"
+          >
+            <IconPlus />
+            Criar Campanha
+          </button>
+        </div>
+
+        {/* ── My Campaigns ────────────────────────────────────────────── */}
         {userCampaigns && userCampaigns.length > 0 && (
-          <div className="mb-8">
-            <UserCampaignsList 
-              campaigns={userCampaigns} 
-              title="🎯 My Campaigns"
-              className="mb-8"
-            />
+          <div className="mb-6">
+            <UserCampaignsList campaigns={userCampaigns} title="My Campaigns" />
           </div>
         )}
 
+        {/* ── Recent Rewards (Notifications) ──────────────────────────── */}
         {(notifications.length > 0 || notificationsLoading || notificationsError) && (
-          <div className="mb-8 bg-white rounded-3xl border border-gray-200 shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <span>🔔</span>
-                Recent Rewards
-              </h2>
-              <button
-                onClick={refetchNotifications}
-                className="text-sm font-medium text-blue-600 hover:text-blue-800"
-              >
-                Refresh
+          <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm mb-6 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100/60">
+              <div className="flex items-center gap-2">
+                <span className="text-fuchsia-400"><IconBell /></span>
+                <h2 className="text-sm font-bold text-gray-700">Rewards Recentes</h2>
+              </div>
+              <button onClick={refetchNotifications} className="text-xs font-semibold text-fuchsia-500 hover:text-fuchsia-700 transition-colors">
+                Atualizar
               </button>
             </div>
 
-            {notificationsError && (
-              <p className="text-sm text-red-600 mb-3">{notificationsError}</p>
-            )}
-
-            {notificationsLoading ? (
-              <p className="text-sm text-gray-500">Loading notifications...</p>
-            ) : (
-              <div className="space-y-3">
-                {notifications.slice(0, 3).map((notification) => (
-                  <div key={notification.id} className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-semibold text-gray-800">{notification.title}</p>
-                        <p className="text-sm text-gray-600 mt-1">{notification.body}</p>
-                        {notification.related_signature && (
-                          <p className="text-xs text-blue-700 mt-2 break-all">
-                            Receipt: {notification.related_signature}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="text-xs font-semibold uppercase text-blue-700 bg-white px-2 py-1 rounded-full border border-blue-200">
-                          {notification.status}
-                        </span>
-                        {notification.status !== 'delivered' && (
-                          <button
-                            onClick={async () => {
-                              try {
-                                await ackNotification(notification.id);
-                                toast.success('✅ Notification acknowledged.');
-                              } catch {
-                                toast.error('❌ Failed to acknowledge notification.');
-                              }
-                            }}
-                            disabled={isAckLoading(notification.id)}
-                            className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed px-3 py-1 rounded-full"
-                          >
-                            {isAckLoading(notification.id) ? 'Acking...' : 'Mark delivered'}
-                          </button>
-                        )}
+            <div className="p-4">
+              {notificationsError && (
+                <p className="text-xs text-red-500 mb-3">{notificationsError}</p>
+              )}
+              {notificationsLoading ? (
+                <p className="text-xs text-gray-400 py-4 text-center">Carregando notificações...</p>
+              ) : (
+                <div className="space-y-2">
+                  {notifications.slice(0, 3).map((notification) => (
+                    <div key={notification.id} className={`rounded-xl border px-4 py-3 ${
+                      notification.status === 'delivered'
+                        ? 'border-emerald-100 bg-emerald-50/50'
+                        : 'border-pink-100 bg-white'
+                    }`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${notification.status === 'delivered' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
+                            <p className="text-xs font-semibold text-gray-700 truncate">{notification.title}</p>
+                          </div>
+                          <p className="text-xs text-gray-400 line-clamp-1">{notification.body}</p>
+                          {notification.related_signature && (
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <span className="text-gray-300"><IconReceipt /></span>
+                              <p className="text-[10px] text-gray-400 font-mono truncate">{notification.related_signature}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                            notification.status === 'delivered'
+                              ? 'bg-emerald-100 text-emerald-600'
+                              : 'bg-amber-100 text-amber-600'
+                          }`}>
+                            {notification.status}
+                          </span>
+                          {notification.status !== 'delivered' && (
+                            <button
+                              onClick={async () => {
+                                try { await ackNotification(notification.id); toast.success('Notificação confirmada.'); }
+                                catch { toast.error('Erro ao confirmar notificação.'); }
+                              }}
+                              disabled={isAckLoading(notification.id)}
+                              className="text-[10px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed px-2.5 py-1 rounded-lg transition-colors"
+                            >
+                              {isAckLoading(notification.id) ? '...' : 'Confirmar'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
-        
-        {/* Lista de campanhas */}
+
+        {/* ── Campaign List ────────────────────────────────────────────── */}
         {campaigns.length === 0 ? (
-          <div className="text-center bg-gray-50 p-12 rounded-3xl border border-gray-200">
-            <div className="text-6xl mb-4">📢</div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              No active campaigns at the moment
-            </h2>
-            <p className="text-gray-600 text-lg mb-6">
-              New campaigns coming soon! Check back in a few moments.
-            </p>
-            <button 
+          <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm p-12 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-pink-50 border border-pink-100 flex items-center justify-center mx-auto mb-4 text-pink-300">
+              <IconMegaphone />
+            </div>
+            <h2 className="text-sm font-bold text-gray-600 mb-1">Nenhuma campanha ativa</h2>
+            <p className="text-xs text-gray-400 mb-5 leading-relaxed">Novas campanhas em breve. Verifique novamente em alguns instantes.</p>
+            <button
               onClick={handleRefresh}
-              className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-pink-500 hover:to-purple-600 transition-all duration-200 disabled:opacity-50"
               disabled={refreshing}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white text-sm font-semibold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 transition-all"
             >
-              {refreshing ? (
-                <div className="flex items-center space-x-2">
-                  <LoadingSpinner size="sm" />
-                  <span>Refreshing...</span>
-                </div>
-              ) : (
-                <>🔄 Refresh</>
-              )}
+              {refreshing ? <LoadingSpinner size="sm" /> : <IconRefresh />}
+              {refreshing ? 'Atualizando...' : 'Atualizar'}
             </button>
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-gray-700 text-lg">
-                <span className="font-bold text-purple-600">{campaigns.length}</span> active campaign{campaigns.length !== 1 ? 's' : ''}
+            {/* List header */}
+            <div className="flex items-center justify-between mb-4 px-1">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                <span className="text-fuchsia-500">{campaigns.length}</span> campanha{campaigns.length !== 1 ? 's' : ''} ativa{campaigns.length !== 1 ? 's' : ''}
               </p>
-              <button 
+              <button
                 onClick={handleRefresh}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-medium transition-colors flex items-center space-x-2 disabled:opacity-50"
                 disabled={refreshing}
+                className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-fuchsia-500 font-semibold transition-colors disabled:opacity-50"
               >
-                {refreshing ? (
-                  <>
-                    <LoadingSpinner size="sm" />
-                    <span>Refreshing...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>🔄</span>
-                    <span>Refresh</span>
-                  </>
-                )}
+                <IconRefresh />
+                {refreshing ? 'Atualizando...' : 'Atualizar'}
               </button>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <div className="space-y-4">
               {campaigns.map((campaign) => (
-                <CampaignCard 
-                  key={campaign.id} 
+                <CampaignCard
+                  key={campaign.id}
                   campaign={campaign}
                   onJoin={handleJoinCampaign}
                   onVerify={handleVerifyTasks}
@@ -388,46 +372,51 @@ export default function Campaigns() {
           </>
         )}
 
-        {/* Footer informativo */}
-        <div className="mt-12 text-center">
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-2xl border border-purple-200">
-            <h3 className="text-lg font-bold text-purple-800 mb-2">
-              💡 Campaigns running on Devnet
-            </h3>
-            <div className="text-sm text-purple-700 space-y-1">
-              <p>1. 🚀 Join a campaign and complete required steps</p>
-              <p>2. ✅ Verify tasks to unlock reward claim</p>
-              <p>3. 💰 Claim reward using your Devnet session identity</p>
-              <p>4. 🔄 Refresh to sync your latest campaign status</p>
+        {/* ── Footer ──────────────────────────────────────────────────── */}
+        <div className="mt-10 rounded-2xl border border-pink-100 bg-white/60 backdrop-blur-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-fuchsia-400"><IconTarget /></span>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Como funciona — Devnet</h3>
+          </div>
+          <ol className="space-y-2">
+            {[
+              'Participe de uma campanha e complete as etapas exigidas.',
+              'Verifique as tasks para desbloquear o claim de reward.',
+              'Reivindique o reward usando sua identidade de sessão Devnet.',
+              'Atualize para sincronizar o status mais recente das campanhas.',
+            ].map((step, i) => (
+              <li key={i} className="flex items-start gap-2.5 text-xs text-gray-500">
+                <span className="w-4 h-4 rounded-full bg-fuchsia-50 border border-fuchsia-100 text-fuchsia-400 font-bold flex items-center justify-center shrink-0 text-[10px]">
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+      </div>
+
+      {/* ── Create Campaign Modal ────────────────────────────────────── */}
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-base font-bold text-gray-800">Nova Campanha</h2>
+              <button onClick={() => setShowCreateForm(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <IconX />
+              </button>
+            </div>
+            <div className="p-5">
+              <CreateCampaignForm
+                onSuccess={handleCreateSuccess}
+                onCancel={() => setShowCreateForm(false)}
+                onError={(message) => toast.error(message)}
+              />
             </div>
           </div>
         </div>
-
-        {/* Modal de criação de campanha */}
-        {showCreateForm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800">✨ Create New Campaign</h2>
-                  <button
-                    onClick={() => setShowCreateForm(false)}
-                    className="text-gray-500 hover:text-gray-700 text-2xl"
-                  >
-                    ×
-                  </button>
-                </div>
-                
-                <CreateCampaignForm
-                  onSuccess={handleCreateSuccess}
-                  onCancel={() => setShowCreateForm(false)}
-                  onError={(message) => toast.error(message)}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
