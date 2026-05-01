@@ -1,7 +1,7 @@
 # Arquitetura XiaoLee — Estado Atual
 
-> Atualizado em: **2026-04-24** | Sprint 7 concluída.
-> Estimativa geral de construção: **93%** (faixa estimada: **90% a 96%**).
+> Atualizado em: **2026-04-30** | Sprint 8 — UI Premium Refactor concluída.
+> Estimativa geral de construção: **95%** (faixa estimada: **93% a 97%**).
 > O que falta é exclusivamente **infraestrutura de produção e auditoria externa** — não código.
 
 ---
@@ -29,7 +29,7 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | IA (Gemini) | [##########] 100% | Intent detection + resposta contextual |
 | Swap Prepare (Jupiter) | [##########] 100% | Quote + tx unsigned para assinatura em wallet |
 | Wallet Execution (Frontend) | [##########] 100% | Connect, prepare, simulate, confirmação explícita, sign/send |
-| UI/UX e Responsividade | [##########] 100% | Otimização mobile (`100dvh`, teclado virtual, drag/drop PFP) |
+| UI/UX e Responsividade | [##########] 100% | Otimização mobile (`100dvh`, teclado virtual, drag/drop PFP); redesign premium Dashboard e Notifications (SVG icons, paleta unificada, zero emojis de layout) |
 | Campanhas | [##########] 100% | Join (409 idempotente), verify, claim com proof assinado, receipt persistido |
 | Redis Rate Limiting | [##########] 100% | Sliding window + fallback in-memory automático |
 | PostgreSQL + Alembic | [########..] 80% | Migração gerada; requer provisionamento em produção |
@@ -52,7 +52,8 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | Fase 5 | Concluida | Idempotência 409, Anchor Client, CORS hardening, 65 testes |
 | Fase 6 | Concluida | PostgreSQL/Alembic, Redis Rate Limit, solders PDA, Locust |
 | Fase 7 | Concluida | Docker Compose completo, Grafana, Emergency Pause Rust, Makefile, UI Mobile hardening |
-| Fase 8 | Planejada | Provisionar infra produção, Auditoria, HTTPS, Multisig, Mainnet beta |
+| Fase 8 | Concluida | UI Premium Refactor: Dashboard e Notifications redesenhados (SVG icons inline, paleta unificada, responsividade mobile, Navbar com ícones premium) |
+| Fase 9 | Planejada | Provisionar infra produção, Auditoria, HTTPS, Multisig, Mainnet beta |
 
 ---
 
@@ -211,6 +212,7 @@ XiaoLee/
 ├── docs/
 │ ├── API_REFERENCE.md
 │ ├── ARCHITECTURE.md # Este arquivo
+│ ├── DESIGN_SYSTEM.md # Paleta, ícones, padrão de cards e layout
 │ ├── SMART_CONTRACT.md
 │ └── MAINNET_READINESS.md # 6 gates com checklist
 ├── docker-compose.yml # PostgreSQL + Redis + Grafana + migrate

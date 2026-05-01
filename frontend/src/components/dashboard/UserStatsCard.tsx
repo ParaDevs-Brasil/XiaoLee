@@ -6,17 +6,34 @@ interface UserStatsCardProps {
   isConnected: boolean;
 }
 
+const IconWallet = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <path d="M20 12V8H6a2 2 0 0 1 0-4h14v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
+  </svg>
+);
+const IconBarChart = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+  </svg>
+);
+
 export default function UserStatsCard({ twitterId, isConnected }: UserStatsCardProps) {
   const { userState, loading, error } = useXiaoLeeProgram(twitterId || null);
 
   if (!isConnected) {
     return (
-      <div className="bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 p-[2px] rounded-3xl shadow-xl h-full">
-        <div className="bg-white/90 backdrop-blur-md rounded-[22px] p-6 h-full flex flex-col items-center justify-center text-center">
-          <div className="text-5xl mb-4 animate-bounce">🔒</div>
-          <h2 className="text-xl font-bold text-gray-700 mb-2">Carteira Desconectada</h2>
-          <p className="text-sm text-gray-500">
-            Conecte sua Phantom Wallet e associe seu Twitter para ver suas estatísticas on-chain!
+      <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-fuchsia-400"><IconBarChart /></span>
+          <h2 className="text-sm font-bold text-gray-700">Seus Swaps (On-Chain)</h2>
+        </div>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-pink-50 border border-pink-100 flex items-center justify-center mb-3 text-pink-300">
+            <IconWallet />
+          </div>
+          <h3 className="text-sm font-bold text-gray-600 mb-1">Carteira Desconectada</h3>
+          <p className="text-xs text-gray-400 max-w-xs leading-relaxed">
+            Conecte sua Phantom Wallet e associe seu Twitter para ver suas estatísticas on-chain.
           </p>
         </div>
       </div>
@@ -24,35 +41,34 @@ export default function UserStatsCard({ twitterId, isConnected }: UserStatsCardP
   }
 
   return (
-    <div className="bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 p-[2px] rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300">
-      <div className="bg-white/90 backdrop-blur-md rounded-[22px] p-6 h-full">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-4">
-          ✨ Seus Swaps (On-Chain)
-        </h2>
-
-        {loading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fuchsia-500"></div>
-          </div>
-        ) : error ? (
-          <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl">
-            <p className="text-sm text-orange-700 text-center">{error}</p>
-          </div>
-        ) : userState ? (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-pink-50 p-4 rounded-2xl text-center">
-              <p className="text-sm text-pink-500 font-semibold mb-1">Total Swaps</p>
-              <p className="text-3xl font-bold text-pink-700">{userState.swapCount}</p>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-2xl text-center">
-              <p className="text-sm text-purple-500 font-semibold mb-1">Volume USDC</p>
-              <p className="text-3xl font-bold text-purple-700">
-                ${(userState.totalVolume / 1_000_000).toFixed(2)}
-              </p>
-            </div>
-          </div>
-        ) : null}
+    <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-fuchsia-400"><IconBarChart /></span>
+        <h2 className="text-sm font-bold text-gray-700">Seus Swaps (On-Chain)</h2>
       </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-7 w-7 border-2 border-pink-200 border-t-fuchsia-500" />
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3">
+          <p className="text-xs text-orange-600 text-center">{error}</p>
+        </div>
+      ) : userState ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl bg-pink-50 border border-pink-100 p-4 text-center">
+            <p className="text-xs text-pink-400 font-semibold mb-1">Total Swaps</p>
+            <p className="text-2xl font-black text-pink-600">{userState.swapCount}</p>
+          </div>
+          <div className="rounded-xl bg-purple-50 border border-purple-100 p-4 text-center">
+            <p className="text-xs text-purple-400 font-semibold mb-1">Volume USDC</p>
+            <p className="text-2xl font-black text-purple-600">
+              ${(userState.totalVolume / 1_000_000).toFixed(2)}
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

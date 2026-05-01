@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from 'react-toastify';
-import { ChevronDownIcon, UserIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, UserIcon, RocketLaunchIcon, BellIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 import Transacoes from "./Transacoes"; // Fixed import path
 import Historico from "./Historico";
 import Wallet from "./Wallet";
@@ -87,34 +87,34 @@ export default function Navbar() {
             </Link>
           </div>
           
-          <div className="flex items-center space-x-1 md:space-x-3 overflow-x-auto no-scrollbar">
+          <div className="flex items-center space-x-1 md:space-x-3 overflow-x-auto no-scrollbar py-1">
             {/* Navigation Buttons - Responsive */}
             <div className="flex items-center space-x-1 md:space-x-2">
               <Link 
                 href="/campaigns"
-                className={`inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-1 md:py-3 text-[10px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 md:min-w-[140px] h-[32px] md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
               >
-                <span className="font-semibold hidden sm:inline">Campaigns</span>
-                <span className="font-semibold sm:hidden">Camp</span>
-                <span className="text-[10px] md:text-lg">🚀</span>
+                <RocketLaunchIcon className="w-3.5 h-3.5 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <span className="font-semibold hidden lg:inline">Campaigns</span>
+                <span className="font-semibold lg:hidden whitespace-nowrap">Camp</span>
               </Link>
 
               <Link 
                 href="/notifications"
-                className={`inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-2 md:px-6 py-1 md:py-3 text-[10px] md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 md:min-w-[140px] h-[32px] md:h-[52px] ${pathname === '/notifications' ? 'ring-4 ring-cyan-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/notifications' ? 'ring-4 ring-cyan-300 scale-105' : ''}`}
               >
-                <span className="font-semibold hidden sm:inline">Notifications</span>
-                <span className="font-semibold sm:hidden">Alerts</span>
-                <span className="text-[10px] md:text-lg">🔔</span>
+                <BellIcon className="w-3.5 h-3.5 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <span className="font-semibold hidden lg:inline">Notifications</span>
+                <span className="font-semibold lg:hidden whitespace-nowrap">Alerts</span>
               </Link>
 
               <Link 
                 href="/dashboard"
-                className={`inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-2 md:px-6 py-1 md:py-3 text-[10px] md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 md:min-w-[140px] h-[32px] md:h-[52px] ${pathname === '/dashboard' ? 'ring-4 ring-purple-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/dashboard' ? 'ring-4 ring-purple-300 scale-105' : ''}`}
               >
-                <span className="font-semibold hidden sm:inline">Dashboard</span>
-                <span className="font-semibold sm:hidden">Dash</span>
-                <span className="text-[10px] md:text-lg">📊</span>
+                <ChartBarIcon className="w-3.5 h-3.5 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <span className="font-semibold hidden lg:inline">Dashboard</span>
+                <span className="font-semibold lg:hidden whitespace-nowrap">Dash</span>
               </Link>
               
               {/*
@@ -133,16 +133,16 @@ export default function Navbar() {
               <div className="relative" data-dropdown>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 md:min-w-[140px] h-[40px] md:h-[52px]"
+                  className="inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px]"
                 >
-                  <div className="w-4 md:w-6 h-4 md:h-6 bg-white/20 rounded-full flex items-center justify-center">
-                    <UserIcon className="h-3 md:h-4 w-3 md:w-4" aria-hidden="true" />
+                  <div className="w-4 h-4 md:w-5 md:h-5 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                    <UserIcon className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden="true" />
                   </div>
-                  <span className="hidden sm:inline">
+                  <span className="hidden lg:inline">
                     {userData.session_id?.startsWith('devnet_guest_') ? 'Guest' : 'User'}
                   </span>
                   <ChevronDownIcon 
-                    className={`h-3 md:h-4 w-3 md:w-4 transition-transform duration-200 ${
+                    className={`h-3 w-3 md:h-4 md:w-4 shrink-0 transition-transform duration-200 ${
                       isDropdownOpen ? 'rotate-180' : ''
                     }`} 
                     aria-hidden="true" 
@@ -175,10 +175,12 @@ export default function Navbar() {
                         onClick={() => {
                           handleWalletClick();
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/20 hover:to-[var(--btn-primary-hover-bg-end)]/20 backdrop-blur-sm transition-all duration-200 transform hover:scale-[1.02] cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-gradient-to-r from-purple-400 to-pink-400 w-8 h-8 rounded-lg flex items-center justify-center">
-                          💎
+                        <div className="mr-3 text-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                          </svg>
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Wallet</div>
@@ -190,10 +192,12 @@ export default function Navbar() {
                         onClick={() => {
                           handleTransactionClick();
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/20 hover:to-[var(--btn-primary-hover-bg-end)]/20 backdrop-blur-sm transition-all duration-200 transform hover:scale-[1.02] cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-gradient-to-r from-yellow-400 to-orange-400 w-8 h-8 rounded-lg flex items-center justify-center">
-                          💰
+                        <div className="mr-3 text-lg bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                          </svg>
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Transactions</div>
@@ -205,10 +209,12 @@ export default function Navbar() {
                         onClick={() => {
                           handleHistoryClick();
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/20 hover:to-[var(--btn-primary-hover-bg-end)]/20 backdrop-blur-sm transition-all duration-200 transform hover:scale-[1.02] cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-gradient-to-r from-blue-400 to-purple-400 w-8 h-8 rounded-lg flex items-center justify-center">
-                          📜
+                        <div className="mr-3 text-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">History</div>
@@ -226,10 +232,12 @@ export default function Navbar() {
                           toast.info('🚧 Withdraw functionality under development');
                           setIsDropdownOpen(false);
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/20 hover:to-[var(--btn-primary-hover-bg-end)]/20 backdrop-blur-sm transition-all duration-200 transform hover:scale-[1.02] cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-gradient-to-r from-green-400 to-emerald-400 w-8 h-8 rounded-lg flex items-center justify-center">
-                          💸
+                        <div className="mr-3 text-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Withdraw</div>
@@ -244,10 +252,12 @@ export default function Navbar() {
                           toast.info('🚧 Deposit functionality under development');
                           setIsDropdownOpen(false);
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/20 hover:to-[var(--btn-primary-hover-bg-end)]/20 backdrop-blur-sm transition-all duration-200 transform hover:scale-[1.02] cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-gradient-to-r from-blue-400 to-indigo-400 w-8 h-8 rounded-lg flex items-center justify-center">
-                          💰
+                        <div className="mr-3 text-lg bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                          </svg>
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Deposit</div>

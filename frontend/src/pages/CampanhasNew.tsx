@@ -202,7 +202,7 @@ export default function Campaigns() {
           <h1 className="text-4xl md:text-6xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 bg-clip-text text-transparent mb-4 animate-pulse">
             XiaoLee Campaigns
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-6 text-lg">
+          <p className="text-gray-800 dark:text-gray-100 max-w-2xl mx-auto mb-6 text-lg font-medium">
             Participe de campanhas exclusivas na Solana Devnet e ganhe recompensas reais. 
             Sua identidade Web2 conectada à Web3 com segurança total.
           </p>

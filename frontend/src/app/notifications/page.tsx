@@ -14,121 +14,176 @@ export default function NotificationsPage() {
   const sessionId = UserData.getSessionId();
   const walletPublicKey = UserData.getDevnetWalletPublicKey();
 
-  const deliveredCount = notifications.filter((notification) => notification.status === 'delivered').length;
+  const deliveredCount = notifications.filter((n) => n.status === 'delivered').length;
   const pendingCount = notifications.length - deliveredCount;
+
+  const truncate = (str: string, maxLen = 16) =>
+    str ? `${str.slice(0, 6)}...${str.slice(-6)}` : '—';
 
   return (
     <ThemeProviderWrapper>
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-fuchsia-100 transition-colors duration-500">
         <Navbar />
 
-        <main className="container mx-auto px-4 py-12">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-4">
-              🔔 Notification Center
+        <main className="container mx-auto px-4 py-10 max-w-2xl">
+
+          {/* ── Header ── */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-400 to-fuchsia-500 shadow-lg shadow-pink-200 mb-4">
+              <span className="text-2xl">🔔</span>
+            </div>
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
+              Notification Center
             </h1>
-            <p className="text-gray-500 max-w-2xl mx-auto">
-              Acompanhe receipts de campanhas, confirme notificações e mantenha o histórico de claims sincronizado com a sua sessão Devnet.
+            <p className="text-sm text-gray-400 max-w-sm mx-auto leading-relaxed">
+              Receipts de campanhas e histórico de claims da sua sessão Devnet.
             </p>
           </div>
 
-          <div className="max-w-5xl mx-auto mb-8 rounded-3xl border border-pink-200/50 bg-white/70 backdrop-blur-md p-5 shadow-lg">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <div className="text-xs uppercase tracking-wider text-fuchsia-600 font-semibold">Active Devnet Context</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  Session: <span className="font-mono text-gray-800 break-all">{sessionId || 'not initialized'}</span>
+          {/* ── Stats Row ── */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {[
+              { label: 'Total', value: notifications.length, color: 'from-pink-500 to-fuchsia-500', bg: 'from-pink-50 to-fuchsia-50', border: 'border-pink-100' },
+              { label: 'Entregues', value: deliveredCount, color: 'text-emerald-500', solid: true, bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-100' },
+              { label: 'Pendentes', value: pendingCount, color: 'text-amber-500', solid: true, bg: 'from-amber-50 to-orange-50', border: 'border-amber-100' },
+            ].map(({ label, value, color, solid, bg, border }) => (
+              <div
+                key={label}
+                className={`rounded-2xl bg-gradient-to-br ${bg} border ${border} p-4 text-center shadow-sm`}
+              >
+                <div className={`text-2xl font-black leading-none ${solid ? color : `bg-gradient-to-r ${color} bg-clip-text text-transparent`}`}>
+                  {value}
                 </div>
+                <div className="text-xs text-gray-400 mt-1 font-medium">{label}</div>
               </div>
-              <div className="text-sm text-gray-600">
-                Wallet: <span className="font-mono text-gray-800 break-all">{walletPublicKey || 'Phantom not connected'}</span>
+            ))}
+          </div>
+
+          {/* ── Session Context ── */}
+          <div className="rounded-2xl border border-pink-100 bg-white/60 backdrop-blur-sm p-4 mb-6 shadow-sm">
+            <div className="text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
+              Devnet Context
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-gray-400 shrink-0">Session</span>
+                <span className="text-xs font-mono text-gray-600 bg-pink-50 border border-pink-100 rounded-lg px-2 py-1 truncate max-w-[200px]" title={sessionId || ''}>
+                  {sessionId ? truncate(sessionId, 12) : <span className="text-gray-300 italic">not initialized</span>}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-gray-400 shrink-0">Wallet</span>
+                <span className="text-xs font-mono text-gray-600 bg-purple-50 border border-purple-100 rounded-lg px-2 py-1 truncate max-w-[200px]" title={walletPublicKey || ''}>
+                  {walletPublicKey ? truncate(walletPublicKey, 12) : <span className="text-gray-300 italic">Phantom not connected</span>}
+                </span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto mb-8">
-            <div className="rounded-3xl bg-white/70 border border-pink-100 backdrop-blur-md p-5 shadow-lg text-center">
-              <div className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-fuchsia-500 bg-clip-text text-transparent">{notifications.length}</div>
-              <div className="text-sm text-gray-500 mt-1">Total receipts</div>
-            </div>
-            <div className="rounded-3xl bg-white/70 border border-pink-100 backdrop-blur-md p-5 shadow-lg text-center">
-              <div className="text-3xl font-bold text-emerald-500">{deliveredCount}</div>
-              <div className="text-sm text-gray-500 mt-1">Delivered</div>
-            </div>
-            <div className="rounded-3xl bg-white/70 border border-pink-100 backdrop-blur-md p-5 shadow-lg text-center">
-              <div className="text-3xl font-bold text-amber-500">{pendingCount}</div>
-              <div className="text-sm text-gray-500 mt-1">Pending</div>
-            </div>
-          </div>
-
-          <div className="max-w-5xl mx-auto bg-white/70 backdrop-blur-md rounded-3xl border border-pink-200/40 shadow-xl p-6 md:p-8">
-            <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+          {/* ── List Section ── */}
+          <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-lg overflow-hidden">
+            {/* List Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100/60">
               <div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">Receipts e alertas</h2>
-                <p className="text-sm text-gray-500">Claims de campanhas e notificações operacionais do projeto.</p>
+                <h2 className="text-base font-bold text-gray-700">Receipts & Alertas</h2>
+                <p className="text-xs text-gray-400">Claims e notificações operacionais</p>
               </div>
               <button
                 onClick={refetch}
-                className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white font-semibold hover:from-pink-500 hover:to-purple-600 transition-all duration-200 shadow-md kawaii-button"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white text-xs font-semibold shadow-md shadow-pink-200 hover:shadow-pink-300 hover:scale-105 active:scale-95 transition-all duration-200"
               >
-                Refresh ✨
+                <span>↺</span>
+                Refresh
               </button>
             </div>
 
+            {/* Loading */}
             {loading && (
-              <div className="py-10 flex justify-center">
+              <div className="py-16 flex justify-center">
                 <LoadingSpinner size="lg" text="Loading notifications..." />
               </div>
             )}
 
+            {/* Error */}
             {!loading && error && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 mb-4">
+              <div className="m-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}
               </div>
             )}
 
+            {/* Empty State */}
             {!loading && !error && notifications.length === 0 && (
-              <div className="rounded-3xl border-2 border-dashed border-pink-200/50 bg-white/40 p-12 text-center backdrop-blur-sm transition-all duration-300 hover:bg-white/60">
-                <div className="text-6xl mb-6 animate-gentle-bounce">🔔</div>
-                <h3 className="text-2xl font-bold text-gray-700 mb-3">No notifications yet</h3>
-                <p className="text-gray-500 max-w-md mx-auto mb-8">
-                  Suas notificações de claims e alertas de campanhas aparecerão aqui assim que você começar a participar da economia XiaoLee.
+              <div className="px-6 py-16 flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-100 to-fuchsia-100 flex items-center justify-center mb-5 shadow-inner">
+                  <span className="text-3xl">🔕</span>
+                </div>
+                <h3 className="text-base font-bold text-gray-600 mb-1">Nenhuma notificação ainda</h3>
+                <p className="text-xs text-gray-400 max-w-xs mb-6 leading-relaxed">
+                  Seus receipts de claims e alertas de campanhas vão aparecer aqui assim que você começar a participar da economia XiaoLee.
                 </p>
-                <Link href="/campaigns" className="inline-flex items-center px-8 py-3 rounded-2xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white font-bold shadow-lg hover:shadow-pink-200/50 transition-all transform hover:scale-105 active:scale-95 kawaii-button">
+                <Link
+                  href="/campaigns"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                >
                   Explorar Campanhas 🚀
                 </Link>
               </div>
             )}
 
+            {/* Notification List */}
             {!loading && notifications.length > 0 && (
-              <div className="space-y-4">
+              <div className="divide-y divide-pink-50">
                 {notifications.map((notification) => (
-                  <div key={notification.id} className="rounded-3xl border border-pink-100 bg-gradient-to-br from-white to-pink-50/60 p-5 shadow-sm hover:shadow-md transition-all duration-200">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-lg font-bold text-gray-800">{notification.title}</h3>
-                          <span className="text-xs font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-fuchsia-100 text-fuchsia-700">
+                  <div
+                    key={notification.id}
+                    className="px-5 py-4 hover:bg-pink-50/40 transition-colors duration-150"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Status dot */}
+                      <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
+                        notification.status === 'delivered'
+                          ? 'bg-emerald-400'
+                          : 'bg-amber-400 animate-pulse'
+                      }`} />
+
+                      <div className="flex-1 min-w-0">
+                        {/* Title + badge */}
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <h3 className="text-sm font-bold text-gray-800 leading-tight">
+                            {notification.title}
+                          </h3>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            notification.status === 'delivered'
+                              ? 'bg-emerald-100 text-emerald-600'
+                              : 'bg-amber-100 text-amber-600'
+                          }`}>
                             {notification.status}
                           </span>
                         </div>
-                        <p className="mt-2 text-gray-600 text-sm leading-relaxed">{notification.body}</p>
 
+                        {/* Body */}
+                        <p className="text-xs text-gray-500 leading-relaxed mb-2">
+                          {notification.body}
+                        </p>
+
+                        {/* Receipt signature */}
                         {notification.related_signature && (
-                          <div className="mt-3 rounded-2xl bg-white/80 border border-pink-100 p-3">
-                            <div className="text-xs uppercase tracking-wide text-fuchsia-500 mb-1">Receipt</div>
-                            <div className="text-sm font-mono text-purple-700 break-all">{notification.related_signature}</div>
+                          <div className="rounded-lg bg-purple-50 border border-purple-100 px-3 py-2 mb-2">
+                            <div className="text-xs text-fuchsia-400 font-bold uppercase tracking-wider mb-0.5">Receipt</div>
+                            <div className="text-xs font-mono text-purple-600 break-all">{notification.related_signature}</div>
                           </div>
                         )}
 
+                        {/* Metadata */}
                         {notification.metadata && Object.keys(notification.metadata).length > 0 && (
-                          <div className="mt-3 text-xs text-gray-500 break-all">
-                            Metadata: {JSON.stringify(notification.metadata)}
+                          <div className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-1.5 font-mono break-all">
+                            {JSON.stringify(notification.metadata)}
                           </div>
                         )}
                       </div>
 
-                      <div className="flex flex-col items-end gap-2 shrink-0">
+                      {/* Action */}
+                      <div className="shrink-0 mt-0.5">
                         {notification.status !== 'delivered' ? (
                           <button
                             onClick={async () => {
@@ -140,13 +195,13 @@ export default function NotificationsPage() {
                               }
                             }}
                             disabled={isAckLoading(notification.id)}
-                            className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-semibold hover:from-emerald-500 hover:to-teal-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all kawaii-button"
+                            className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-white text-xs font-bold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                           >
-                            {isAckLoading(notification.id) ? 'Acknowledging...' : 'Mark delivered'}
+                            {isAckLoading(notification.id) ? '...' : '✓ Ack'}
                           </button>
                         ) : (
-                          <span className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-sm">
-                            ✅ Delivered
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-500 text-xs font-bold border border-emerald-100">
+                            ✓ Done
                           </span>
                         )}
                       </div>
@@ -156,6 +211,12 @@ export default function NotificationsPage() {
               </div>
             )}
           </div>
+
+          {/* ── Footer note ── */}
+          <p className="text-center text-xs text-gray-300 mt-6">
+            XiaoLee ✨ · Devnet Session
+          </p>
+
         </main>
       </div>
     </ThemeProviderWrapper>
