@@ -29,6 +29,16 @@ class LLMClient:
                 
             self.client = openai.AsyncOpenAI(api_key=api_key)
             self.model = "gpt-4"
+        elif self.provider == "gemini":
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("Gemini API key missing")
+                
+            self.client = openai.AsyncOpenAI(
+                api_key=api_key,
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+            )
+            self.model = "gemini-2.5-pro"
         elif self.provider == "ollama":
             self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
             self.model = os.getenv("OLLAMA_MODEL", "llama2")
@@ -40,7 +50,7 @@ class LLMClient:
             user_context = await self._get_user_context(user_id)
             formatted_message = await self._format_message(message, user_context)
             
-            if self.provider in ["deepseek", "openai"]:
+            if self.provider in ["deepseek", "openai", "gemini"]:
                 return await self._generate_openai_style(formatted_message, tools)
             elif self.provider == "ollama":
                 return await self._generate_ollama(formatted_message)
@@ -55,7 +65,7 @@ class LLMClient:
         try:
             prompt = system_prompt if system_prompt else self._get_system_prompt()
 
-            if self.provider in ["deepseek", "openai"]:
+            if self.provider in ["deepseek", "openai", "gemini"]:
                 messages = [
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": message}
@@ -148,7 +158,7 @@ Assistant:"""
         It does NOT inject the default system prompt or any other context.
         """
         try:
-            if self.provider in ["deepseek", "openai"]:
+            if self.provider in ["deepseek", "openai", "gemini"]:
                 messages = [
                     {"role": "user", "content": classification_prompt}
                 ]

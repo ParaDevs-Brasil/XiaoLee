@@ -23,6 +23,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "deepseek")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Twitter API settings
 TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")

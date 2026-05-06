@@ -21,11 +21,11 @@ class GeminiClient:
         context_str = f" Histórico recente: {history}" if history else ""
 
         prompt = (
-            "Classifique a intenção do usuário em JSON com este formato: "
+            "Classify the user's intent in JSON format. Return ONLY the JSON object: "
             '{"action": "check_balance|swap_quote|swap_execute|help", '
             '"confidence": 0.0, "entities": {}}. '
             f"{context_str} "
-            "Texto do usuário: " + user_text
+            "User's text: " + user_text
         )
 
         url = (
@@ -38,10 +38,14 @@ class GeminiClient:
             "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
         }
 
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post(url, json=payload)
-            response.raise_for_status()
-            body = response.json()
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.post(url, json=payload)
+                response.raise_for_status()
+                body = response.json()
+        except Exception as e:
+            print(f"Gemini API Error in classify_intent: {e}")
+            return {"action": "fallback", "confidence": 0.0, "entities": {}}
 
         text = (
             body.get("candidates", [{}])[0]
@@ -67,7 +71,7 @@ class GeminiClient:
         if not self.enabled:
             return "Posso ajudar com saldo, cotação de swap e operações na Solana Devnet."
 
-        context_str = f"\nHistórico da conversa: {history}" if history else ""
+        context_str = f"\nConversation history: {history}" if history else ""
 
         url = (
             "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -79,10 +83,10 @@ class GeminiClient:
                     "parts": [
                         {
                             "text": (
-                                "Você é XiaoLee, assistente Solana amigável e objetiva. "
+                                "You are XiaoLee, a friendly and objective Solana assistant. "
                                 + instruction
                                 + context_str
-                                + "\nMensagem do usuário: "
+                                + "\nUser message: "
                                 + user_text
                             )
                         }
@@ -92,10 +96,14 @@ class GeminiClient:
             "generationConfig": {"temperature": 0.4},
         }
 
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post(url, json=payload)
-            response.raise_for_status()
-            body = response.json()
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.post(url, json=payload)
+                response.raise_for_status()
+                body = response.json()
+        except Exception as e:
+            print(f"Gemini API Error in generate_reply: {e}")
+            return "Posso ajudar com saldo, cotação de swap e operações na Solana Devnet."
 
         return (
             body.get("candidates", [{}])[0]

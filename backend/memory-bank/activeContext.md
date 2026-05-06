@@ -11,7 +11,9 @@
 - **Notifications**: tema migrado de cyan/blue para pink/fuchsia/purple.
 - **Dashboard**: classe `dark:from-gray-900 dark:via-purple-900` removida do wrapper — light mode agora sempre exibe o fundo pastel correto.
 - **globals.css**: `background-attachment: fixed` adicionado ao body.
-- **ThemeProvider**: mantido sem `forcedTheme` — toggle dark/light funcional.
+- **ThemeProvider**: mantido sem `forcedTheme` — toggle dark/light funcional e totalmente livre.
+- **Integração Gemini Refinada**: Migração do `litellm` para a SDK nativa `google.genai` (`LLMClient`), com prompts atualizados para refletir a persona bilíngue e focada da XiaoLee (Campanhas, Devnet, uso de emojis 🌸).
+- **Ajustes de UI e Estado**: Melhorias de _safe parsing_ em `UserData.tsx` para evitar crashes no carregamento de estado `undefined`, além de ajustes no z-index e responsividade do `Navbar` e atualização do avatar no `ChatPanel`.
 
 ## Proximos Passos Imediatos
 

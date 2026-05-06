@@ -233,16 +233,20 @@ export default class UserData {
       
       // Store the backend history structure directly
       this.history = { 
-        chat_history: (data as DetailedDossier).history.chat_history || [],
-        swaps: (data as DetailedDossier).history.swaps || [],
-        transactions: (data as DetailedDossier).history.transactions || []
+        chat_history: (data as DetailedDossier).history?.chat_history || [],
+        swaps: (data as DetailedDossier).history?.swaps || [],
+        transactions: (data as DetailedDossier).history?.transactions || []
       };
     } else {
       // Frontend TypeUserData format (legacy)
-      this.user_info = data.user_info;
-      this.balances = data.balances;
+      this.user_info = data.user_info || { twitter_user_id: "", twitter_handle: "", created_at: new Date().toISOString() };
+      this.balances = data.balances || [];
       this.campaigns = data.campaigns || [];
-      this.history = data.history;
+      this.history = {
+        chat_history: data.history?.chat_history || [],
+        swaps: data.history?.swaps || [],
+        transactions: data.history?.transactions || []
+      };
     }
     
     // Set session_id if provided
@@ -252,10 +256,10 @@ export default class UserData {
     
     console.log("🔍 Processed user data:", {
       user_info: this.user_info,
-      balances_count: this.balances.length,
-      chat_history_count: this.history.chat_history.length,
-      swaps_count: this.history.swaps.length,
-      transactions_count: this.history.transactions.length
+      balances_count: this.balances?.length || 0,
+      chat_history_count: this.history?.chat_history?.length || 0,
+      swaps_count: this.history?.swaps?.length || 0,
+      transactions_count: this.history?.transactions?.length || 0
     });
     
     // Dispatch custom event when data is loaded (only on client side)
@@ -308,6 +312,14 @@ export default class UserData {
         timestamp: new Date(Date.now() + 1000).toISOString() // Assistant response 1 second later
       }
     };
+    
+    // Initialize history if undefined
+    if (!this.history) {
+      this.history = { chat_history: [], swaps: [], transactions: [] };
+    }
+    if (!this.history.chat_history) {
+      this.history.chat_history = [];
+    }
     
     // Add to chat history
     this.history.chat_history.push(newChatItem);

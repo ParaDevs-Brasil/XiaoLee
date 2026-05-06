@@ -87,9 +87,9 @@ export default function Navbar() {
             </Link>
           </div>
           
-          <div className="flex items-center space-x-1 md:space-x-3 overflow-x-auto no-scrollbar py-1">
+          <div className="flex items-center justify-end flex-1 space-x-1 md:space-x-3">
             {/* Navigation Buttons - Responsive */}
-            <div className="flex items-center space-x-1 md:space-x-2">
+            <div className="flex items-center space-x-1 md:space-x-2 overflow-x-auto no-scrollbar py-1">
               <Link 
                 href="/campaigns"
                 className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
@@ -151,7 +151,7 @@ export default function Navbar() {
                     
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 md:w-64 origin-top-right rounded-2xl bg-gradient-to-br from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-2 border-[var(--navbar-border)] shadow-2xl overflow-hidden transition-all duration-200 animate-in fade-in-0 zoom-in-95">                    
+                <div className="absolute z-50 right-0 mt-2 w-56 md:w-64 origin-top-right rounded-2xl bg-gradient-to-br from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-2 border-[var(--navbar-border)] shadow-2xl overflow-hidden transition-all duration-200 animate-in fade-in-0 zoom-in-95">                    
                     {/* User Info Section */}
                     <div className="px-4 py-3 border-b border-[var(--navbar-border)]/30 backdrop-blur-sm">
                       <div className="flex items-center space-x-3">

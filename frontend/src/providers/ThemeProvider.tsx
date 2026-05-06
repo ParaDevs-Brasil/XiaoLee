@@ -10,7 +10,7 @@ interface ThemeProviderProps {
 
 export function ThemeProviderWrapper({ children }: ThemeProviderProps) {
   return (
-    <ThemeProvider attribute="class" forcedTheme="light" enableSystem={false}>
+    <ThemeProvider attribute="class">
       {children}
       <ToastContainer
         position="top-right"

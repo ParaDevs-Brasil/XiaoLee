@@ -46,15 +46,24 @@ class OrchestrationService:
         if intent.action == "check_balance":
             wallet = intent.entities.get("wallet")
             if not wallet:
+                wallet = self._extract_wallet(text)
+            if not wallet and user_id.startswith("devnet_wallet_"):
+                wallet = user_id.replace("devnet_wallet_", "")
+            elif not wallet and len(user_id) >= 32 and user_id.isalnum():
+                wallet = user_id
+            
+            if not wallet:
                 return {
                     "intent": intent,
-                    "reply_text": "Envie o endereco da carteira para consultar saldo. Ex.: saldo <wallet>",
+                    "reply_text": "Preciso do endereço da sua carteira para ver o saldo! 😅",
                     "execution": {"status": "missing_wallet"},
                 }
             balance = await self.solana.get_balance(wallet)
+            instruction = f"The user asked for their balance. The wallet {wallet} has {balance['sol']:.6f} SOL. Respond in the same language the user is speaking (default to English), being friendly and cute."
+            reply = await self.gemini.generate_reply(instruction=instruction, user_text=text, history=history)
             return {
                 "intent": intent,
-                "reply_text": f"Saldo na devnet: {balance['sol']:.6f} SOL.",
+                "reply_text": reply,
                 "execution": balance,
             }
 
@@ -67,15 +76,16 @@ class OrchestrationService:
                 amount_raw=amount_raw,
             )
             out_amount = quote.get("outAmount", "0")
-            reply = (
-                f"Cotacao Jupiter (devnet): {amount:.2f} USDC -> {out_amount} unidades raw de SOL. "
-                "Se quiser, eu preparo a transacao para assinatura na proxima etapa."
-            )
+            instruction = f"The swap quote for {amount} USDC is {out_amount} raw SOL. Tell the user in the same language they are speaking (default to English), friendly and cute, that you can prepare the transaction if they want."
+            reply = await self.gemini.generate_reply(instruction=instruction, user_text=text, history=history)
             return {"intent": intent, "reply_text": reply, "execution": quote}
 
         instruction = (
-            "Responda em portugues do Brasil e ofereca opcoes: consultar saldo, obter cotacao de swap, "
-            "e preparar transacao na Solana devnet."
+            "You are XiaoLee, a cute, smart, and helpful virtual assistant on the Solana Devnet. "
+            "You help users check balances, get swap quotes, prepare transactions, and talk about the "
+            "Campaigns on the XiaoLee platform where they earn $XLEE tokens for interacting and completing challenges. "
+            "Always be friendly, use emojis (✨, 💕, 🚀), and reply naturally in the SAME language the user is speaking. "
+            "If the user speaks English, reply in English. If they speak Portuguese, reply in Portuguese."
         )
         generic = await self.gemini.generate_reply(instruction=instruction, user_text=text, history=history)
         return {"intent": intent, "reply_text": generic, "execution": {"status": "info"}}

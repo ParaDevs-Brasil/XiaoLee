@@ -68,6 +68,14 @@
 - **globals.css**: Adicionado `background-attachment: fixed` ao body para evitar vazamento de gradiente escuro em conteúdo scrollável.
 - **ThemeProvider**: Preservado com `attribute="class"` — toggle de dark/light continua funcional.
 
+### Fase 8.2 — Integração Inteligente & Refinamentos Finais de UI
+- **Integração Gemini**: Refatoração do `LLMClient` e `gemini_client.py` para usar o SDK `google.genai` diretamente. Personalidade da XiaoLee aprimorada (fofa, prestativa, bilíngue, focada em Devnet e Campanhas).
+- **Frontend Refinements**: 
+  - Avatar da XiaoLee atualizado para `🌸` no ChatPanel.
+  - Correção no `UserData.tsx` com _safe parsing_ de `history` (swaps, transactions, chat_history) garantindo tratamento anti-crash para estados aninhados `undefined`.
+  - Navbar: Ajuste de flex layout para telas responsivas e adição de `z-50` no Dropdown para sobrepor componentes corretamente.
+  - `ThemeProvider`: Remoção definitiva do `forcedTheme="light"` para dar liberdade real ao tema.
+
 ---
 
 ## PENDENTE Em Aberto (Fase 9 — Produção)

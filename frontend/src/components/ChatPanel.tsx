@@ -247,7 +247,7 @@ export default function ChatPanel() {
                     <div className="flex items-start space-x-2 md:space-x-3">
                       <div className="flex-shrink-0">
                         <div className="w-6 h-6 md:w-8 md:h-8 hidden sm:flex  bg-gradient-to-r from-[var(--chat-bubble-assistant-avatar-start)] via-[var(--chat-bubble-assistant-avatar-middle)] to-[var(--chat-bubble-assistant-avatar-end)] rounded-full flex items-center justify-center text-white font-bold text-xs md:text-sm">
-                        X
+                        🌸
                         </div>
                       </div>                      <div className="flex-grow min-w-0">
                         <p className="text-[var(--chat-bubble-assistant-text)] leading-relaxed break-words text-sm md:text-base">
