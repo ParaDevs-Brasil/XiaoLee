@@ -9,11 +9,12 @@ export default async function sendChatMessage(
     
     try {        
 
-        // Verificar se há dados de usuário carregados usando o método hasData()
+        const connectedWallet = typeof window !== "undefined" ? localStorage.getItem("connected_wallet") : null;
         if (!UserData.hasData()) {
             console.log("🔍 Enviando como usuário anônimo (sem dados no UserData)");
             const response = await api.post("/chat", {
-                message: msg
+                message: msg,
+                ...(connectedWallet && { wallet_address: connectedWallet })
             });
             console.log("📬 Mensagem anônima enviada:", response.data);
             return response.data;
@@ -22,7 +23,8 @@ export default async function sendChatMessage(
             console.log("🔍 Enviando como usuário autenticado:", UserData.getSessionId());
 
             const response = await api.post("/chat", {
-                message: msg
+                message: msg,
+                ...(connectedWallet && { wallet_address: connectedWallet })
             },
             {
                 headers: {

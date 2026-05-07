@@ -58,6 +58,15 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
   const [flowMessage, setFlowMessage] = useState<string>("");
   const { isOpen, animateIn, closeModal } = useModal(shouldOpen, onClose);
 
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedWallet = localStorage.getItem("connected_wallet");
+      if (savedWallet) {
+        setWalletAddress(savedWallet);
+      }
+    }
+  }, []);
+
   const getMyBalance = () => {
     // Calculate total balance from all tokens
     if (balance && Array.isArray(balance)) {
@@ -89,6 +98,7 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
     try {
       const resp = await provider.connect();
       setWalletAddress(resp.publicKey.toString());
+      localStorage.setItem("connected_wallet", resp.publicKey.toString());
       setFlowMessage("Carteira conectada na Solana Devnet.");
     } catch {
       setFlowMessage("Nao foi possivel conectar a carteira.");
@@ -259,6 +269,26 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
                         strokeWidth={2}
                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                       />
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setWalletAddress("");
+                      localStorage.removeItem("connected_wallet");
+                      setFlowMessage("Carteira desconectada.");
+                    }}
+                    aria-label="Desconectar carteira"
+                    title="Desconectar carteira"
+                    className="p-2 hover:bg-[var(--modal-close-button-bg-hover)] rounded-lg transition-colors"
+                  >
+                    <svg
+                      className="w-5 h-5 text-red-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                   </button>
 

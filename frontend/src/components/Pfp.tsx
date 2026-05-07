@@ -44,7 +44,7 @@ export default function Pfp({ pfp, loop }: { pfp: string; loop: boolean }) {
                 autoPlay
                 muted
                 playsInline
-                preload="auto"
+                preload={pfp.includes("standby") ? "auto" : "metadata"}
                 loop={loop}
                 onEnded={handleVideoEnded}
             />

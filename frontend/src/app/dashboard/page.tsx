@@ -115,7 +115,7 @@ function CampaignSummaryBar() {
 
 // ── Global Economy Stat ────────────────────────────────────────────────────
 function EconomyStat({ Icon, value, label, accent }: {
-  Icon: () => JSX.Element;
+  Icon: () => React.ReactNode;
   value: string;
   label: string;
   accent: string;

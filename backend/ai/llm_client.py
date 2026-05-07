@@ -38,7 +38,7 @@ class LLMClient:
                 api_key=api_key,
                 base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
             )
-            self.model = "gemini-2.5-pro"
+            self.model = os.getenv("GEMINI_MODEL", "gemini-3.1-pro-preview")
         elif self.provider == "ollama":
             self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
             self.model = os.getenv("OLLAMA_MODEL", "llama2")

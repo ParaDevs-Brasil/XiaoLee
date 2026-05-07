@@ -53,7 +53,7 @@ const IconReceipt = () => (
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function getEventMeta(notification: NotificationItem): {
-  Icon: () => JSX.Element;
+  Icon: () => React.ReactNode;
   accent: string;
   label: string;
 } {

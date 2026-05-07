@@ -243,7 +243,7 @@ async def _process_inbound(
     user = await repo.get_or_create_user(platform, user_id)
     if platform == "telegram" and metadata and metadata.get("chat_id"):
         await repo.set_telegram_chat_id(user.id, metadata["chat_id"])
-    history = await repo.get_user_history(user.id)
+    history = await repo.get_user_history(user.id, limit=10)
     await repo.log_dm(user.id, platform, text, message_type="user")
 
     result = await orchestrator.execute(text, user_id, history=history)
@@ -283,6 +283,10 @@ async def chat_compat(
     text = str(payload.get("message", "")).strip()
     if not text:
         raise HTTPException(status_code=400, detail="message is required")
+
+    wallet_address = payload.get("wallet_address")
+    if wallet_address:
+        text = f"[System Note: User connected wallet is {wallet_address}] {text}"
 
     session_token = ""
     if authorization and authorization.startswith("Bearer "):

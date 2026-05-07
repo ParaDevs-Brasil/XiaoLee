@@ -46,20 +46,8 @@ export default function RootLayout({
     return (
         <html lang="pt-BR" suppressHydrationWarning>
             <head>
-                <link rel="preload" as="video" href="/xiaolee_cheer.mov" />
-                <link rel="preload" as="video" href="/xiaolee_giggle.mp4" />
-                <link rel="preload" as="video" href="/xiaolee_kawaii.mov" />
-                <link rel="preload" as="video" href="/xiaolee_love.mp4" />
-                <link rel="preload" as="video" href="/xiaolee_ola.mov" />
                 <link rel="preload" as="video" href="/xiaolee_standby.mov" />
-                <link rel="preload" as="video" href="/xiaolee_standby2.mov" />
-                <link rel="preload" as="video" href="/xiaolee_standby3.mov" />
-                <link rel="preload" as="video" href="/xiaolee_surprise.mov" />
-                <link rel="preload" as="video" href="/xiaolee_thinklow.mov" />
-                <link rel="preload" as="video" href="/xiaolee_uncomfortable.mov" />
-                <link rel="preload" as="video" href="/xiaolee_ouch.mov" />
-                <link rel="preload" as="video" href="/xiaolee_salute.mov" />
-                </head>
+            </head>
                 <body className={quicksand.className}>
                 <ThemeProviderWrapper>
                     {children}
