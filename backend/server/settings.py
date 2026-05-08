@@ -3,6 +3,10 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from dotenv import find_dotenv, load_dotenv
+
+load_dotenv(find_dotenv(usecwd=False))
+
 
 def _parse_csv_env(name: str, default: str) -> list[str]:
     raw = os.getenv(name, default)
