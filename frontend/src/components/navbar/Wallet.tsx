@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { WalletProps } from "@/interfaces";
 import { formatCurrency } from "@/utils/formatters";
 import { useModal } from "@/hooks/useModal";
-import { Connection, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
+import { Connection, PublicKey, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
 import {
   getQuoteSummary,
   SWAP_TOKEN_OPTIONS,
@@ -56,33 +56,71 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
   const [txSignature, setTxSignature] = useState<string>("");
   const [userConfirmedSend, setUserConfirmedSend] = useState(false);
   const [flowMessage, setFlowMessage] = useState<string>("");
+  const [solBalance, setSolBalance] = useState<number | null>(null);
+  const [isFetchingBalance, setIsFetchingBalance] = useState(false);
   const { isOpen, animateIn, closeModal } = useModal(shouldOpen, onClose);
+
+  const fetchSolBalance = async (address: string) => {
+    if (!address) return;
+    setIsFetchingBalance(true);
+    try {
+      const conn = new Connection(clusterApiUrl("devnet"), "confirmed");
+      const lamports = await conn.getBalance(new PublicKey(address));
+      setSolBalance(lamports / 1_000_000_000);
+    } catch {
+      setSolBalance(null);
+    } finally {
+      setIsFetchingBalance(false);
+    }
+  };
+
+  const autoConnectPhantom = async () => {
+    const provider = getPhantomProvider();
+    if (!provider) return;
+    try {
+      const resp = await (provider as any).connect({ onlyIfTrusted: true });
+      const addr = resp.publicKey.toString();
+      setWalletAddress(addr);
+      localStorage.setItem("connected_wallet", addr);
+      await fetchSolBalance(addr);
+    } catch {
+      // Not previously authorized — check localStorage as fallback
+      const saved = localStorage.getItem("connected_wallet");
+      if (saved) {
+        setWalletAddress(saved);
+        await fetchSolBalance(saved);
+      }
+    }
+  };
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const savedWallet = localStorage.getItem("connected_wallet");
       if (savedWallet) {
         setWalletAddress(savedWallet);
+        fetchSolBalance(savedWallet);
       }
     }
   }, []);
 
-  const getMyBalance = () => {
-    // Calculate total balance from all tokens
-    if (balance && Array.isArray(balance)) {
-      return balance.reduce((total, token) => {
-        return total + (token.valueUSD || 0);
-      }, 0);
+  // Auto-connect and refresh balance every time the modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      autoConnectPhantom();
     }
-    return 0;
+  }, [isOpen]);
+
+  const getMyBalance = () => {
+    const dbUSD = Array.isArray(balance)
+      ? balance.reduce((t, tok) => t + (tok.valueUSD || 0), 0)
+      : 0;
+    return dbUSD;
   };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // Simulate refresh delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Component will refresh automatically
+      if (walletAddress) await fetchSolBalance(walletAddress);
     } finally {
       setIsRefreshing(false);
     }
@@ -97,9 +135,11 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
 
     try {
       const resp = await provider.connect();
-      setWalletAddress(resp.publicKey.toString());
-      localStorage.setItem("connected_wallet", resp.publicKey.toString());
+      const addr = resp.publicKey.toString();
+      setWalletAddress(addr);
+      localStorage.setItem("connected_wallet", addr);
       setFlowMessage("Carteira conectada na Solana Devnet.");
+      fetchSolBalance(addr);
     } catch {
       setFlowMessage("Nao foi possivel conectar a carteira.");
     }
@@ -320,22 +360,47 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
                 <p className="text-sm text-[var(--modal-header-subtitle)] mb-2">
                   Total Balance
                 </p>
-                <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 bg-clip-text text-transparent">
-                  {formatCurrency(getMyBalance())}
-                </p>
+                {solBalance !== null ? (
+                  <>
+                    <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+                      {solBalance.toFixed(4)} SOL
+                    </p>
+                    <p className="text-xs text-[var(--modal-header-subtitle)] mt-1">Solana Devnet</p>
+                  </>
+                ) : (
+                  <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+                    {formatCurrency(getMyBalance())}
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Token List */}
             <div className="p-6 max-h-[60vh] overflow-y-auto">
-              {balance && Array.isArray(balance) && balance.length > 0 ? (
+              {(solBalance !== null || (balance && Array.isArray(balance) && balance.length > 0)) ? (
                 <div className="space-y-4">
                   <h3 className="text-xl font-semibold text-[var(--modal-section-title)] mb-4 flex items-center">
-                    💎 Your Tokens ({balance.length})
+                    💎 Your Tokens
                   </h3>
-                  
+
                   <div className="space-y-3">
-                    {balance.map((tokenData) => (
+                    {solBalance !== null && (
+                      <div className="bg-gradient-to-r from-[var(--token-card-bg-start)] to-[var(--token-card-bg-end)] rounded-xl p-4 border border-[var(--token-card-border)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg flex items-center justify-center text-lg">◎</div>
+                            <div>
+                              <h4 className="font-semibold text-[var(--token-card-title)]">SOL</h4>
+                              <p className="text-xs text-[var(--token-balance-label)]">Solana Devnet</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-[var(--token-value-amount)]">{solBalance.toFixed(6)} SOL</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {Array.isArray(balance) && balance.map((tokenData) => (
                       <div
                         key={tokenData.token}
                         className="bg-gradient-to-r from-[var(--token-card-bg-start)] to-[var(--token-card-bg-end)] rounded-xl p-4 border border-[var(--token-card-border)] hover:border-[var(--token-card-border-hover)] transition-colors"
@@ -435,7 +500,7 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
                 </label>
               </div>
 
-              <div className="flex flex-col md:flex-row gap-3 mb-4">
+              <div className="flex flex-col md:flex-row gap-3 mb-3">
                 <button
                   onClick={handlePrepareAndSimulate}
                   disabled={isPreparing || !walletAddress}
@@ -454,49 +519,28 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
               </div>
 
               {preparedSwap && (
-                <div className="mb-3 p-3 rounded-xl bg-white/70 border border-[var(--token-card-border)]">
-                  <p className="text-sm text-[var(--token-info-label)]">Cluster: {preparedSwap.cluster}</p>
-                  <p className="text-sm text-[var(--token-info-label)]">{preparedSwap.disclaimer}</p>
-                </div>
+                <label className="flex items-center gap-2 mb-3 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={userConfirmedSend}
+                    onChange={(e) => setUserConfirmedSend(e.target.checked)}
+                    className="accent-emerald-600"
+                  />
+                  Confirmo que revisei a simulacao e quero enviar na Devnet.
+                </label>
               )}
 
-              <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
-                <p className="text-sm font-semibold text-amber-800 mb-1">Resumo de risco e execucao</p>
-                <p className="text-xs text-amber-700">
-                  Rota: {inputToken.symbol} {"->"} {outputToken.symbol}
-                </p>
-                <p className="text-xs text-amber-700">
-                  Valor de entrada: {swapAmount || "0"} {inputToken.symbol}
-                </p>
-                <p className="text-xs text-amber-700">
-                  Saida estimada: {quoteSummary.outAmountUi.toFixed(6)} {outputToken.symbol}
-                </p>
-                <p className="text-xs text-amber-700">
-                  Minimo estimado: {quoteSummary.minOutAmountUi.toFixed(6)} {outputToken.symbol}
-                </p>
-                <p className="text-xs text-amber-700">
-                  Price impact estimado: {(quoteSummary.priceImpactPct * 100).toFixed(4)}%
-                </p>
-                <p className="text-xs text-amber-700">
-                  Slippage configurado: {(quoteSummary.slippageBps / 100).toFixed(2)}%
-                </p>
-                <p className="text-xs text-amber-700">
-                  Saltos de rota (Jupiter): {quoteSummary.routeHops}
-                </p>
-                <p className="text-xs text-amber-700 break-all">Carteira: {walletAddress || "nao conectada"}</p>
-                <p className="text-xs text-amber-700">
-                  Envio na Devnet somente apos simulacao sem erro e confirmacao manual.
-                </p>
-              </div>
-
-              <label className="flex items-start gap-2 mb-3 text-sm text-[var(--token-info-label)]">
-                <input
-                  type="checkbox"
-                  checked={userConfirmedSend}
-                  onChange={(e) => setUserConfirmedSend(e.target.checked)}
-                />
-                Confirmo que revisei a simulacao e quero enviar esta transacao na Devnet.
-              </label>
+              {preparedSwap && (
+                <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                  <p className="text-sm font-semibold text-amber-800 mb-1">Resumo de execucao</p>
+                  <p className="text-xs text-amber-700">Rota: {inputToken.symbol} → {outputToken.symbol}</p>
+                  <p className="text-xs text-amber-700">Entrada: {swapAmount || "0"} {inputToken.symbol}</p>
+                  <p className="text-xs text-amber-700">Saida estimada: {quoteSummary.outAmountUi.toFixed(6)} {outputToken.symbol}</p>
+                  <p className="text-xs text-amber-700">Minimo garantido: {quoteSummary.minOutAmountUi.toFixed(6)} {outputToken.symbol}</p>
+                  <p className="text-xs text-amber-700">Price impact: {(quoteSummary.priceImpactPct * 100).toFixed(4)}% | Slippage: {(quoteSummary.slippageBps / 100).toFixed(2)}%</p>
+                  <p className="text-xs text-amber-700">Cluster: {preparedSwap.cluster}</p>
+                </div>
+              )}
 
               {simulationError && (
                 <div className="mb-3 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -505,14 +549,14 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
               )}
 
               {simulationLogs.length > 0 && (
-                <div className="mb-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <p className="text-sm font-semibold mb-2">Logs da simulacao:</p>
-                  <div className="max-h-28 overflow-auto text-xs text-slate-700 space-y-1">
+                <details className="mb-3">
+                  <summary className="text-sm font-semibold cursor-pointer text-slate-600 mb-1">Logs da simulacao ({simulationLogs.length})</summary>
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 max-h-28 overflow-auto text-xs text-slate-700 space-y-1 mt-1">
                     {simulationLogs.map((line, idx) => (
                       <p key={`${idx}-${line}`}>{line}</p>
                     ))}
                   </div>
-                </div>
+                </details>
               )}
 
               {txSignature && (

@@ -4,6 +4,7 @@ node_modules/
 # Next.js build output
 .next/
 out/
+tsconfig.tsbuildinfo
 
 # Python caches and virtualenvs
 __pycache__/

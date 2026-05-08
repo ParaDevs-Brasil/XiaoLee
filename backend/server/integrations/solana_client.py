@@ -69,11 +69,42 @@ class SolanaClient:
 
     async def prepare_swap_transaction(self, quote_response: Dict[str, Any], user_public_key: str) -> Dict[str, Any]:
         if settings.solana_cluster == "devnet":
-            # Mock para Devnet: Retorna uma base64 vazia (transaction mock)
-            return {
-                "swapTransaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAB",
-                "lastValidBlockHeight": 123456789
+            import base64
+            from solders.hash import Hash
+            from solders.message import MessageV0
+            from solders.pubkey import Pubkey
+            from solders.signature import Signature
+            from solders.system_program import TransferParams, transfer
+            from solders.transaction import VersionedTransaction
+
+            # Fetch real blockhash so the tx can be simulated and confirmed
+            bh_payload = {
+                "jsonrpc": "2.0", "id": 1,
+                "method": "getLatestBlockhash",
+                "params": [{"commitment": "finalized"}],
             }
+            async with httpx.AsyncClient(timeout=12) as client:
+                bh_resp = await client.post(self.rpc_url, json=bh_payload)
+                bh_resp.raise_for_status()
+                bh_data = bh_resp.json()
+
+            blockhash_str = bh_data["result"]["value"]["blockhash"]
+            last_valid = bh_data["result"]["value"]["lastValidBlockHeight"]
+
+            # Build a real self-transfer (1 lamport, user → user) as devnet demo tx
+            pk = Pubkey.from_string(user_public_key)
+            ix = transfer(TransferParams(from_pubkey=pk, to_pubkey=pk, lamports=1))
+            msg = MessageV0.try_compile(
+                payer=pk,
+                instructions=[ix],
+                address_lookup_table_accounts=[],
+                recent_blockhash=Hash.from_string(blockhash_str),
+            )
+            # Unsigned — Phantom will fill the signature
+            tx = VersionedTransaction.populate(msg, [Signature.default()])
+            tx_b64 = base64.b64encode(bytes(tx)).decode()
+
+            return {"swapTransaction": tx_b64, "lastValidBlockHeight": last_valid}
             
         payload = {
             "quoteResponse": quote_response,
