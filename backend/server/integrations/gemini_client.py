@@ -42,6 +42,12 @@ class GeminiClient:
             f"{model}:generateContent?key={self.api_key}"
         )
 
+    _ERROR_PHRASES = frozenset([
+        "No momento não consegui gerar resposta.",
+        "Não consegui responder agora. Tenta de novo em um instante!",
+        "Posso ajudar com saldo, cotação de swap e operações na Solana Devnet.",
+    ])
+
     def _build_contents(self, user_text: str, history: list | None) -> List[Dict]:
         """Convert DB history (role: user/bot) to Gemini multi-turn contents array."""
         contents = []
@@ -51,10 +57,14 @@ class GeminiClient:
                 content = turn.get("content", "")
                 if not content:
                     continue
-                gemini_role = "model" if role == "bot" else "user"
                 clean = re.sub(r"\[System Note:[^\]]+\]\s*", "", content).strip()
-                if clean:
-                    contents.append({"role": gemini_role, "parts": [{"text": clean}]})
+                if not clean:
+                    continue
+                # Skip error/fallback messages — they confuse the model.
+                if any(phrase in clean for phrase in self._ERROR_PHRASES):
+                    continue
+                gemini_role = "model" if role == "bot" else "user"
+                contents.append({"role": gemini_role, "parts": [{"text": clean}]})
         contents.append({"role": "user", "parts": [{"text": user_text}]})
         return contents
 
