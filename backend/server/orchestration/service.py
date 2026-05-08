@@ -41,11 +41,17 @@ class OrchestrationService:
         """Remove all [System Note: ...] tags so only the human message reaches Gemini."""
         return re.sub(r"\[System Note:[^\]]+\]\s*", "", text).strip()
 
-    def _wallet_ctx(self, wallet: str | None) -> str:
+    def _wallet_ctx(self, wallet: str | None, platform: str = "web") -> str:
         if wallet:
             return (
                 f"The user has wallet {wallet} connected on Solana Devnet. "
                 "Use this address whenever they ask about their balance or want to swap."
+            )
+        if platform in ("telegram", "x"):
+            return (
+                "The user has not connected a wallet yet. "
+                "This is a chat-only interface — there is no connect button. "
+                "Ask them to send their Solana wallet address directly in this chat."
             )
         return (
             "The user has not connected a wallet yet. "
@@ -98,12 +104,22 @@ class OrchestrationService:
     # Main execution
     # ------------------------------------------------------------------
 
-    async def execute(self, text: str, user_id: str, history: list = None) -> Dict[str, Any]:
+    async def execute(self, text: str, user_id: str, history: list = None, platform: str = "web") -> Dict[str, Any]:
         wallet_address = self._extract_wallet_from_note(text)
         clean_text = self._clean_text(text)
-        wallet_ctx = self._wallet_ctx(wallet_address)
 
+        # If user typed a wallet address inline (e.g. on Telegram/X), treat as check_balance.
+        inline_wallet = self._extract_wallet(clean_text) if not wallet_address else None
+        if inline_wallet:
+            wallet_address = inline_wallet
+
+        wallet_ctx = self._wallet_ctx(wallet_address, platform=platform)
         intent = await self.detect_intent(text, user_id, history=history)
+
+        # Override: if a wallet was found inline, always check balance.
+        if inline_wallet and intent.action not in ("check_balance",):
+            from server.schemas import IntentResponse as _IR
+            intent = _IR(action="check_balance", confidence=0.90, entities={"wallet": inline_wallet})
 
         # --- check_balance ---
         if intent.action == "check_balance":
