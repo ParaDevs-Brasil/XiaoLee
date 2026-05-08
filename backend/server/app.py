@@ -26,6 +26,7 @@ from server.integrations.solana_client import SolanaClient
 from server.integrations.telegram_client import TelegramClient
 from server.integrations.telegram_adapter import TelegramAdapter
 from server.integrations.telegram_poller import TelegramPoller
+from server.integrations.x_poller import XPoller
 from server.integrations.x_adapter import XAdapter
 from server.orchestration.service import OrchestrationService
 from server.metrics import record_http_request, render_prometheus_metrics
@@ -43,24 +44,30 @@ async def lifespan(app: FastAPI):
     await create_tables()
     await get_rate_limiter(redis_url=settings.redis_url or None)
 
-    poller_task: asyncio.Task | None = None
+    telegram_task: asyncio.Task | None = None
     if settings.telegram_bot_token:
-        poller = TelegramPoller(
+        telegram_poller = TelegramPoller(
             bot_token=settings.telegram_bot_token,
             telegram_client=telegram_client,
             orchestrator=orchestrator,
         )
-        poller_task = asyncio.create_task(poller.start())
+        telegram_task = asyncio.create_task(telegram_poller.start())
         logger.info("Telegram poller scheduled")
+
+    x_task: asyncio.Task | None = None
+    x_poller = XPoller(orchestrator=orchestrator)
+    x_task = asyncio.create_task(x_poller.start())
+    logger.info("X poller scheduled")
 
     yield
 
-    if poller_task and not poller_task.done():
-        poller_task.cancel()
-        try:
-            await poller_task
-        except asyncio.CancelledError:
-            pass
+    for task in (telegram_task, x_task):
+        if task and not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
     reset_rate_limiter()
 
 
