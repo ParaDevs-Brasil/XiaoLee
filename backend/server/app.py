@@ -4,8 +4,12 @@ from datetime import datetime, timedelta, timezone
 import asyncio
 import hashlib
 import hmac
+import logging
 from time import perf_counter
 from typing import Deque, Dict
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +25,7 @@ from server.integrations.gemini_client import GeminiClient
 from server.integrations.solana_client import SolanaClient
 from server.integrations.telegram_client import TelegramClient
 from server.integrations.telegram_adapter import TelegramAdapter
+from server.integrations.telegram_poller import TelegramPoller
 from server.integrations.x_adapter import XAdapter
 from server.orchestration.service import OrchestrationService
 from server.metrics import record_http_request, render_prometheus_metrics
@@ -36,10 +41,26 @@ from server.notifications_routes import router as notifications_router
 async def lifespan(app: FastAPI):
     init_db()
     await create_tables()
-    # Inicializa rate limiter (Redis se disponivel, in-memory caso contrario)
     await get_rate_limiter(redis_url=settings.redis_url or None)
+
+    poller_task: asyncio.Task | None = None
+    if settings.telegram_bot_token:
+        poller = TelegramPoller(
+            bot_token=settings.telegram_bot_token,
+            telegram_client=telegram_client,
+            orchestrator=orchestrator,
+        )
+        poller_task = asyncio.create_task(poller.start())
+        logger.info("Telegram poller scheduled")
+
     yield
-    # Cleanup: fecha conexoes do rate limiter
+
+    if poller_task and not poller_task.done():
+        poller_task.cancel()
+        try:
+            await poller_task
+        except asyncio.CancelledError:
+            pass
     reset_rate_limiter()
 
 
@@ -246,7 +267,7 @@ async def _process_inbound(
     history = await repo.get_user_history(user.id, limit=10)
     await repo.log_dm(user.id, platform, text, message_type="user")
 
-    result = await orchestrator.execute(text, user_id, history=history)
+    result = await orchestrator.execute(text, user_id, history=history, platform=platform)
 
     await repo.log_dm(user.id, platform, result["reply_text"], message_type="bot")
     await db.commit()
@@ -321,13 +342,22 @@ async def telegram_webhook(
 
     _enforce_rate_limit(f"telegram:{normalized['user_id']}")
 
-    return await _process_inbound(
+    result = await _process_inbound(
         platform="telegram",
         user_id=normalized["user_id"],
         text=normalized["text"],
         db=db,
         metadata=normalized.get("metadata", {}),
     )
+
+    chat_id = normalized.get("metadata", {}).get("chat_id")
+    if chat_id and result.reply_text:
+        try:
+            await telegram_client.send_message(chat_id, result.reply_text)
+        except Exception as exc:
+            logger.error("Failed to send Telegram reply to chat %s: %s", chat_id, exc)
+
+    return result
 
 
 @app.post("/v1/integrations/x/webhook", response_model=OrchestrationResponse)
