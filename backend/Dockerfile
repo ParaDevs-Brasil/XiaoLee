@@ -49,6 +49,11 @@ COPY --from=builder /install /usr/local
 # Copia código do backend
 COPY backend /app
 
+# Instala dependências Node.js para agent-twitter-client (x_poller)
+WORKDIR /app/database/data
+RUN npm ci --omit=dev
+WORKDIR /app
+
 # Usuário não-root para segurança
 RUN groupadd --gid 1001 xiaolee && \
     useradd --uid 1001 --gid 1001 --no-create-home xiaolee && \
