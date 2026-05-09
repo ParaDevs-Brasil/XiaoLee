@@ -28,6 +28,9 @@ htmlcov/
 .env.*
 !.env.example
 
+# X/Twitter session cookies (contêm auth_token — nunca commitar)
+backend/data/eliza_cookies_v2.json
+
 # OS and editor files
 .DS_Store
 .vscode/

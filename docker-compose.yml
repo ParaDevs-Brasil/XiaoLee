@@ -55,6 +55,9 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - SOLANA_RPC_URL=https://api.devnet.solana.com
       - SOLANA_CLUSTER=devnet
+      - GEMINI_MODEL=gemini-2.5-flash
+    volumes:
+      - ./backend/data:/app/data
     ports:
       - "8000:8000"
     depends_on:

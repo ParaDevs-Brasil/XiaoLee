@@ -33,10 +33,14 @@ FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 
-# Apenas runtime libs (sem gcc, sem headers)
+# Runtime libs + Node.js 20 LTS (necessário para agent-twitter-client via x_poller)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
+    ca-certificates \
+    gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia pacotes instalados do builder
