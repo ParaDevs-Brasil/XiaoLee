@@ -8,6 +8,7 @@ import ActivityFeed from '../../components/dashboard/ActivityFeed';
 import { TypeUserData } from "@/interfaces";
 import { ThemeProviderWrapper } from '@/providers/ThemeProvider';
 import { useUserCampaigns } from '@/hooks/useUserCampaigns';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // ── Inline SVG icons — sem emojis ──────────────────────────────────────────
 const IconTarget = () => (
@@ -74,15 +75,16 @@ const IconShield = () => (
 // ── Campaign Summary Bar ───────────────────────────────────────────────────
 function CampaignSummaryBar() {
   const { campaigns, loading } = useUserCampaigns();
+  const { t } = useLanguage();
 
   const joined   = campaigns.length;
   const verified = campaigns.filter(c => c.participation_status === 'tasks_verified').length;
   const claimed  = campaigns.filter(c => c.tasks_claimed).length;
 
   const stats = [
-    { label: "Campanhas",  value: joined,   Icon: IconTarget, accent: "text-fuchsia-500",  bg: "bg-fuchsia-50",  border: "border-fuchsia-100" },
-    { label: "Verificadas", value: verified, Icon: IconCheck,  accent: "text-violet-500",   bg: "bg-violet-50",   border: "border-violet-100" },
-    { label: "Premiadas",  value: claimed,  Icon: IconAward,  accent: "text-pink-500",     bg: "bg-pink-50",     border: "border-pink-100" },
+    { label: t('dashboard.stat_campaigns'), value: joined,   Icon: IconTarget, accent: "text-fuchsia-500",  bg: "bg-fuchsia-50",  border: "border-fuchsia-100" },
+    { label: t('dashboard.stat_verified'),  value: verified, Icon: IconCheck,  accent: "text-violet-500",   bg: "bg-violet-50",   border: "border-violet-100" },
+    { label: t('dashboard.stat_rewarded'),  value: claimed,  Icon: IconAward,  accent: "text-pink-500",     bg: "bg-pink-50",     border: "border-pink-100" },
   ];
 
   if (loading) {
@@ -135,6 +137,7 @@ function EconomyStat({ Icon, value, label, accent }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const [userData, setUserData] = useState<TypeUserData | null>(null);
 
   useEffect(() => {
@@ -157,10 +160,10 @@ export default function DashboardPage() {
           {/* ── Header ─────────────────────────────────────────────────── */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
-              Dashboard
+              {t('dashboard.title')}
             </h1>
             <p className="text-sm text-gray-400 max-w-xs mx-auto leading-relaxed">
-              Métricas globais da economia XiaoLee registradas na Solana Devnet.
+              {t('dashboard.subtitle')}
             </p>
           </div>
 
@@ -177,13 +180,13 @@ export default function DashboardPage() {
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-3 px-1">
               <span className="text-fuchsia-400"><IconTrendingUp /></span>
-              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Economia Global</h2>
+              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">{t('dashboard.global_economy')}</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <EconomyStat Icon={IconLock}      value="$1,240,500"  label="Total Value Locked"   accent="text-emerald-500" />
-              <EconomyStat Icon={IconUsers}     value="12,450"      label="Active Users"          accent="text-blue-500" />
-              <EconomyStat Icon={IconGift}      value="45,200 SOL"  label="Rewards Distributed"  accent="text-purple-500" />
-              <EconomyStat Icon={IconTrendingUp} value="1,120"      label="Campaigns Created"     accent="text-fuchsia-500" />
+              <EconomyStat Icon={IconLock}      value="$1,240,500"  label={t('dashboard.tvl')}                  accent="text-emerald-500" />
+              <EconomyStat Icon={IconUsers}     value="12,450"      label={t('dashboard.active_users')}         accent="text-blue-500" />
+              <EconomyStat Icon={IconGift}      value="45,200 SOL"  label={t('dashboard.rewards_distributed')}  accent="text-purple-500" />
+              <EconomyStat Icon={IconTrendingUp} value="1,120"      label={t('dashboard.campaigns_created')}    accent="text-fuchsia-500" />
             </div>
           </div>
 
@@ -194,8 +197,8 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 px-5 py-4 border-b border-pink-100/60">
                 <span className="text-fuchsia-400"><IconActivity /></span>
                 <div>
-                  <h2 className="text-sm font-bold text-gray-700">Atividade Recente</h2>
-                  <p className="text-xs text-gray-400">Claims e eventos on-chain</p>
+                  <h2 className="text-sm font-bold text-gray-700">{t('dashboard.recent_activity')}</h2>
+                  <p className="text-xs text-gray-400">{t('dashboard.recent_activity_sub')}</p>
                 </div>
               </div>
               <div className="p-4">
@@ -207,10 +210,10 @@ export default function DashboardPage() {
             <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm p-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-fuchsia-400"><IconCpu /></span>
-                <h2 className="text-sm font-bold text-gray-700">Arquitetura Descentralizada</h2>
+                <h2 className="text-sm font-bold text-gray-700">{t('dashboard.architecture')}</h2>
               </div>
               <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                PDAs conectam sua identidade Web2 (Twitter) à Web3 (Solana) de forma segura, sem chaves privadas centralizadas.
+                {t('dashboard.architecture_desc')}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {[
@@ -226,7 +229,7 @@ export default function DashboardPage() {
                 ))}
               </div>
               <p className="text-center text-[10px] text-gray-300 uppercase tracking-widest mt-4 pt-3 border-t border-pink-100/60">
-                Solana Devnet · MVP 2.0 · XiaoLee Core
+                {t('dashboard.footer')}
               </p>
             </div>
           </div>

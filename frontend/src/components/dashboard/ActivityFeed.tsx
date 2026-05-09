@@ -8,6 +8,7 @@
 
 import React from "react";
 import { useNotifications, NotificationItem } from "@/hooks/useNotifications";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── SVG icons ──────────────────────────────────────────────────────────────
 const IconTrophy = () => (
@@ -64,15 +65,18 @@ function getEventMeta(notification: NotificationItem): {
   return                                 { Icon: IconBell,    accent: "text-gray-400 bg-gray-50 border-gray-100",      label: "Info" };
 }
 
-function timeAgo(isoDate?: string): string {
-  if (!isoDate) return "";
-  const diff = Date.now() - new Date(isoDate).getTime();
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "agora mesmo";
-  if (minutes < 60) return `${minutes}min atrás`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h atrás`;
-  return `${Math.floor(hours / 24)}d atrás`;
+function useTimeAgo() {
+  const { t } = useLanguage();
+  return (isoDate?: string): string => {
+    if (!isoDate) return "";
+    const diff = Date.now() - new Date(isoDate).getTime();
+    const minutes = Math.floor(diff / 60_000);
+    if (minutes < 1) return t('activity_feed.just_now');
+    if (minutes < 60) return `${minutes} ${t('activity_feed.min_ago')}`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}${t('activity_feed.h_ago')}`;
+    return `${Math.floor(hours / 24)}${t('activity_feed.d_ago')}`;
+  };
 }
 
 interface ActivityFeedProps {
@@ -80,6 +84,8 @@ interface ActivityFeedProps {
 }
 
 export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
+  const { t } = useLanguage();
+  const timeAgo = useTimeAgo();
   const { notifications, loading, error, ackNotification, isAckLoading, refetch } = useNotifications();
   const recent = notifications.slice(0, maxItems);
 
@@ -106,7 +112,7 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
           onClick={refetch}
           className="text-xs text-orange-500 font-semibold underline hover:text-orange-700 transition-colors shrink-0"
         >
-          Retry
+          {t('activity_feed.retry')}
         </button>
       </div>
     );
@@ -117,9 +123,9 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center">
         <div className="text-pink-200 mb-3"><IconInbox /></div>
-        <p className="text-xs font-semibold text-gray-500">Nenhuma atividade recente</p>
+        <p className="text-xs font-semibold text-gray-500">{t('activity_feed.empty_title')}</p>
         <p className="text-xs text-gray-400 mt-1 max-w-xs leading-relaxed">
-          Participe de uma campanha ou faça um swap para ver seu histórico aqui.
+          {t('activity_feed.empty_sub')}
         </p>
       </div>
     );
@@ -168,7 +174,7 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
                     className="mt-2 inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg font-semibold bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150"
                   >
                     <IconCheck />
-                    {isAckLoading(notif.id) ? "Confirmando..." : "Confirmar"}
+                    {isAckLoading(notif.id) ? t('activity_feed.confirming') : t('activity_feed.confirm')}
                   </button>
                 )}
 
@@ -187,7 +193,7 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
 
       {notifications.length > maxItems && (
         <p className="text-center text-xs text-gray-400 pt-1">
-          +{notifications.length - maxItems} notificações anteriores
+          {t('activity_feed.more_notifications', { count: notifications.length - maxItems })}
         </p>
       )}
     </div>

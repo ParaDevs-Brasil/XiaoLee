@@ -3,14 +3,37 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from 'react-toastify';
 import { ChevronDownIcon, UserIcon, RocketLaunchIcon, BellIcon, ChartBarIcon } from "@heroicons/react/24/outline";
-import Transacoes from "./Transacoes"; // Fixed import path
+import Transacoes from "./Transacoes";
 import Historico from "./Historico";
 import Wallet from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
 import { TypeUserData } from "@/interfaces";
 import UserData from "../UserData";
+import { useLanguage, Language } from "@/contexts/LanguageContext";
+
+function LangToggle() {
+  const { lang, setLang } = useLanguage();
+  return (
+    <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl p-0.5">
+      {(["en", "pt"] as Language[]).map((l) => (
+        <button
+          key={l}
+          onClick={() => setLang(l)}
+          className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+            lang === l
+              ? "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-sm"
+              : "text-white/70 hover:text-white hover:bg-white/10"
+          }`}
+        >
+          {l === "en" ? "EN" : "PT"}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function Navbar() {
+  const { t } = useLanguage();
   const [userData, setUserData] = useState<TypeUserData | null>(null);
   const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -58,22 +81,28 @@ export default function Navbar() {
  
 
    useEffect(() => {
-    // Verificar se estamos no lado do cliente
     if (typeof window === 'undefined') return;
-    
+
+    // If there's already a session (devnet guest or wallet), show the button immediately.
+    const existingSession = UserData.getSessionId();
+    if (!existingSession) {
+      // Create a guest session so the button always appears.
+      UserData.getOrCreateDevnetSession();
+    }
+    const currentData = UserData.getUserData();
+    if (currentData?.user_info?.twitter_user_id) {
+      setUserData(currentData);
+      setIsUserDataLoaded(true);
+    }
+
     const handleUserDataLoaded = (event: Event) => {
       const customEvent = event as CustomEvent<TypeUserData>;
-      console.log("🎉 UserData loaded event received!", customEvent.detail);
       setUserData(customEvent.detail);
       setIsUserDataLoaded(true);
     };
 
-    // Listen for the custom event
     window.addEventListener('userDataLoaded', handleUserDataLoaded);
-
-        return () => {
-      window.removeEventListener('userDataLoaded', handleUserDataLoaded);
-    };
+    return () => window.removeEventListener('userDataLoaded', handleUserDataLoaded);
   }, []);
 
   return (
@@ -95,8 +124,8 @@ export default function Navbar() {
                 className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
               >
                 <RocketLaunchIcon className="w-3.5 h-3.5 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden lg:inline">Campaigns</span>
-                <span className="font-semibold lg:hidden whitespace-nowrap">Camp</span>
+                <span className="font-semibold hidden lg:inline">{t('navbar.campaigns')}</span>
+                <span className="font-semibold lg:hidden whitespace-nowrap">{t('navbar.campaigns').slice(0,4)}</span>
               </Link>
 
               <Link 
@@ -104,8 +133,8 @@ export default function Navbar() {
                 className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/notifications' ? 'ring-4 ring-cyan-300 scale-105' : ''}`}
               >
                 <BellIcon className="w-3.5 h-3.5 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden lg:inline">Notifications</span>
-                <span className="font-semibold lg:hidden whitespace-nowrap">Alerts</span>
+                <span className="font-semibold hidden lg:inline">{t('navbar.notifications')}</span>
+                <span className="font-semibold lg:hidden whitespace-nowrap">{t('navbar.notifications').slice(0,5)}</span>
               </Link>
 
               <Link 
@@ -113,8 +142,8 @@ export default function Navbar() {
                 className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/dashboard' ? 'ring-4 ring-purple-300 scale-105' : ''}`}
               >
                 <ChartBarIcon className="w-3.5 h-3.5 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden lg:inline">Dashboard</span>
-                <span className="font-semibold lg:hidden whitespace-nowrap">Dash</span>
+                <span className="font-semibold hidden lg:inline">{t('navbar.dashboard')}</span>
+                <span className="font-semibold lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
               </Link>
               
               {/*
@@ -282,6 +311,7 @@ export default function Navbar() {
               <></>
             )}
             
+            <LangToggle />
             <ThemeToggle />
           </div>
         </div>

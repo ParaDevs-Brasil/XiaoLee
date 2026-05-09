@@ -1,6 +1,6 @@
 # XiaoLee Design System & Guidelines
 
-Atualizado em: **2026-04-30** — Revisão v2 (UI Premium Refactor)
+Atualizado em: **2026-05-09** — Revisão v3 (i18n EN/PT + correções de contraste)
 
 Este documento detalha a linguagem visual, padrões e especificações técnicas para a interface premium do XiaoLee, focada em transmitir uma estética moderna, limpa e sofisticada, alinhada aos melhores projetos DeFi do ecossistema Solana.
 
@@ -225,7 +225,78 @@ A diferença de cor no botão Alerts é intencional: cria distinção imediata p
 
 ---
 
-## 9. Referências Web3 / DeFi
+## 9. Contraste e Legibilidade de Texto
+
+**Regra:** nenhum texto de UI usa modificadores de opacidade Tailwind (`/60`, `/70`, `/80`). Opacidade em texto gera ilegibilidade em fundos claros e não passa em WCAG AA.
+
+| Papel | Classe correta | Classe proibida |
+|---|---|---|
+| Subtítulo / descrição | `text-gray-400` | `text-gray-400/70` |
+| Rodapé de modal | `text-fuchsia-500 font-semibold` | `text-fuchsia-500/60` |
+| Timestamp / meta | `text-gray-500 font-medium` | `text-gray-500/80` |
+| Corpo de item | `text-gray-600` | `text-gray-700/70` |
+
+**Tamanho mínimo em cards de conteúdo:** `text-sm` (14px). `text-xs` (12px) é permitido apenas em labels de badge, timestamps e metadados secundários. `text-[10px]` é reservado exclusivamente a badges de status compactos.
+
+---
+
+## 10. Internacionalização (i18n)
+
+### Abordagem
+
+React Context nativo — sem biblioteca externa. Escolha justificada pelo tamanho do bundle e prazo de hackathon.
+
+### Estrutura
+
+```
+src/
+├── locales/
+│   ├── en.json   ← inglês (padrão)
+│   └── pt.json   ← português (pt-BR)
+└── contexts/
+    └── LanguageContext.tsx
+```
+
+### API
+
+```tsx
+const { t, lang, setLang } = useLanguage();
+
+// Chave simples
+t('wallet.title')                          // "My Wallet" / "Minha Carteira"
+
+// Dot-path (aninhado)
+t('activity_feed.more_notifications', { count: 3 })  // "+3 previous notifications"
+```
+
+### Regras
+
+- **Idioma padrão:** inglês (`"en"`).
+- **Persistência:** `localStorage` com chave `xiaolee_lang`.
+- **`document.documentElement.lang`** atualizado a cada troca (`"en"` / `"pt-BR"`).
+- **Fallback:** se a chave não existir no JSON, a própria chave é retornada — nunca `undefined`.
+- **Interpolação:** `{{var}}` substituído via `String.replace` — sem dependência de parser.
+
+### LangToggle
+
+Componente pill localizado na Navbar, antes do ThemeToggle:
+
+```tsx
+<div className="flex items-center gap-0.5 bg-white/20 border border-white/30 rounded-xl p-0.5">
+  {["en", "pt"].map((l) => (
+    <button key={l} onClick={() => setLang(l)}
+      className={lang === l
+        ? "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white ..."
+        : "text-white/70 hover:text-white ..."}>
+      {l === "en" ? "EN" : "PT"}
+    </button>
+  ))}
+</div>
+```
+
+---
+
+## 11. Referências Web3 / DeFi
 
 Este design system busca inspiração em interfaces reconhecidas por sua excelência visual no ecossistema cripto:
 - **Phantom Wallet:** Limpeza, botões arredondados, tons de roxo/azul.

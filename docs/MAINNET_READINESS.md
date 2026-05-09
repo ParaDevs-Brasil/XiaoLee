@@ -1,7 +1,7 @@
 # XiaoLee — Mainnet Readiness Checklist
 
 > Documento de referência para o rollout controlado do protocolo XiaoLee na mainnet Solana.
-> Atualizado em: **2026-04-24** | Sprint 7 concluída.
+> Atualizado em: **2026-05-09** | Sprint 9 concluída.
 
 ---
 
@@ -11,7 +11,7 @@
 |---|---|---|
 | Contratos on-chain | [######....] 60% | Emergency pause Concluido, record_swap dry_run; submit real pendente keypair |
 | Backend API | [##########] 100% | **65 testes** passando, CORS hardened, Redis limiter |
-| Frontend | [##########] 100% | TypeScript sem erros, enum unificado |
+| Frontend | [##########] 100% | TypeScript sem erros, enum unificado, i18n EN/PT completo, contraste corrigido |
 | PostgreSQL + Alembic | [########..] 80% | Migração gerada; **provisionar DB de produção** |
 | Redis Rate Limiting | [########..] 80% | Código pronto + fallback; **configurar REDIS_URL em produção** |
 | Docker Compose | [##########] 100% | PostgreSQL + Redis + Grafana + migrate one-shot |
@@ -78,6 +78,9 @@
 | 409 Conflict tratado | Concluido | `useJoinCampaign.ts` — flag `alreadyJoined` |
 | Wallet connect | Concluido | Devnet configurada |
 | Error handling | Concluido | `extractErrorMessage` centralizado |
+| i18n EN/PT | Concluido | `LanguageContext`, locales completos, toggle na Navbar |
+| Contraste de texto | Concluido | Remoção de opacidade `/60`–`/80` em todos os textos |
+| Tamanhos de texto | Concluido | Mínimo `text-sm` em cards de conteúdo |
 
 ---
 

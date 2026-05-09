@@ -1,7 +1,9 @@
 # XiaoLee Protocol
 
-> Assistente de IA multi-plataforma para Solana com backend FastAPI, integrações Telegram/X, Gemini para orquestração de intenção, fluxo wallet-first e campanhas DeFi on-chain.
-> **Atualizado: 2026-04-24 | Sprint 7 concluída | 93% completo**
+> Assistente de IA conversacional para Solana — swap wallet-first, campanhas DeFi on-chain, notificações in-app e interface bilíngue (EN/PT).
+> **Atualizado: 2026-05-09 | Sprint 9 concluída | 98% completo**
+
+---
 
 ## Interface Atual
 
@@ -9,19 +11,21 @@
 |---|---|---|---|
 | ![Tela do chat XiaoLee](XiaoleeChat.png) | ![Dashboard XiaoLee](Dashboard.png) | ![Tela de campanhas XiaoLee](Campaigns.png) | ![Notificações XiaoLee](Notifications.png) |
 
+> Screenshots do design premium com paleta pink/fuchsia/purple unificada. Toggle EN/PT disponível na Navbar.
+
 ---
 
 ## Status do Projeto
 
-Progresso: [#########.] 93% — Código completo. O que falta é exclusivamente **infraestrutura de produção e auditoria externa**.
+Progresso: [##########] 98% — Código e UI completos. Pendente exclusivamente **deploy de produção (Render + Railway)**.
 
 | Bloco | Status | Detalhe |
 |---|---|---|
 | Core API FastAPI | [##########] 100% | `/health`, `/health/detailed`, `/status`, `/metrics`, `/chat`, `/v1/messages/inbound` |
-| Integração Gemini | [##########] 100% | Intent detection + resposta contextual |
+| Integração Gemini | [##########] 100% | Intent detection + resposta contextual, personalidade bilíngue |
 | Webhooks Telegram/X | [##########] 100% | HMAC + secret token validados |
 | Solana/Jupiter (prepare) | [##########] 100% | Quote + tx unsigned para wallet assinar |
-| Wallet-first frontend | [##########] 100% | Connect, prepare, simulate, sign/send |
+| Wallet-first frontend | [##########] 100% | Connect, prepare, simulate, confirmação explícita, sign/send |
 | Campanhas Devnet | [##########] 100% | Join (409 idempotente), verify, claim com proof assinado |
 | Redis Rate Limiting | [##########] 100% | Sliding window + fallback in-memory automático |
 | PostgreSQL + Alembic | [########..] 80% | Migração gerada; provisionar DB em produção |
@@ -29,14 +33,17 @@ Progresso: [#########.] 93% — Código completo. O que falta é exclusivamente 
 | Grafana Dashboard | [##########] 100% | 8 painéis, provisionamento automático |
 | Anchor on-chain | [######....] 60% | PDA real (solders), record_swap (dry_run até keypair em produção) |
 | Emergency Pause | [##########] 100% | `pause_protocol` / `unpause_protocol` no contrato Rust |
+| UI/UX Premium | [##########] 100% | SVG icons inline, paleta unificada, responsividade mobile, contraste de texto corrigido |
+| i18n EN/PT | [##########] 100% | `LanguageContext`, toggle na Navbar, todos os componentes traduzidos |
 | QA backend | [##########] 100% | **65 testes passando**, 6 skips legados |
-| Auditoria externa | [..........] 0% -- BLOQUEADOR | Não iniciada — P0 para mainnet |
+| Deploy público (Render + Railway) | [..........] 0% | **Próximo passo** |
+| Auditoria externa | [..........] 0% -- BLOQUEADOR MAINNET | Não iniciada — P0 para mainnet (não bloqueia demo) |
 
 ---
 
 ## Arquitetura do Sistema
 
-### Visao Geral dos Componentes
+### Visão Geral dos Componentes
 
 ```mermaid
 graph TB
@@ -64,7 +71,7 @@ graph TB
         HLT["Health<br>(/health/detailed)"]
     end
 
-    subgraph BANCO["Persistencia"]
+    subgraph BANCO["Persistência"]
         DB[("PostgreSQL 16<br>(asyncpg + Alembic)")]
         SQLITE[("SQLite<br>(desenvolvimento local)")]
         REDIS[("Redis 7<br>(rate limiting)")]
@@ -72,7 +79,7 @@ graph TB
 
     subgraph OBS["Observabilidade"]
         PROM["Prometheus<br>:9090"]
-        GRAF["Grafana<br>:3001<br>(8 paineis)"]
+        GRAF["Grafana<br>:3001<br>(8 painéis)"]
     end
 
     subgraph SOLANA["Solana / On-chain"]
@@ -117,11 +124,13 @@ graph TB
     PROM --> GRAF
 ```
 
+---
+
 ### Fluxo de Swap Wallet-first
 
 ```mermaid
 sequenceDiagram
-    actor U as Usuario
+    actor U as Usuário
     participant FE as Frontend Next.js
     participant API as Backend FastAPI
     participant JUP as Jupiter v6
@@ -137,33 +146,35 @@ sequenceDiagram
     API->>JUP: GET /quote (token_in, token_out, amount)
     JUP-->>API: Quote + route
     API->>JUP: POST /swap (unsigned tx)
-    JUP-->>API: Transacao serializada (unsigned)
-    API-->>FE: { quote, tx_unsigned, simulation_result }
+    JUP-->>API: Transação serializada (unsigned)
+    API-->>FE: { quote, swap_transaction_base64 }
 
     FE->>RPC: simulateTransaction()
-    RPC-->>FE: Resultado da simulacao
+    RPC-->>FE: Resultado da simulação + logs
 
-    FE->>U: Exibe quote + taxa de gas
-    U->>FE: 3. Confirma explicitamente
+    FE->>U: Exibe resumo de execução (rota, estimativa, price impact)
+    U->>FE: 3. Marca checkbox de confirmação explícita
 
-    FE->>RPC: sendTransaction() com assinatura Phantom
+    FE->>RPC: sendRawTransaction() com assinatura Phantom
     RPC-->>FE: { signature }
-    FE->>U: Swap confirmado
+    FE->>U: Swap confirmado — tx na Devnet
 
-    Note over RPC,HEL: Helius monitora a transacao on-chain
-    RPC-->>HEL: Evento de confirmacao (webhook)
+    Note over RPC,HEL: Helius monitora a transação on-chain
+    RPC-->>HEL: Evento de confirmação (webhook)
     HEL->>API: POST /v1/solana/webhooks/helius
     API->>ANCH: record_swap(twitter_id, volume)
-    ANCH->>PROG: Instrucao Anchor (PDA + Borsh + admin sign)
+    ANCH->>PROG: Instrução Anchor (PDA + Borsh + admin sign)
     PROG-->>ANCH: Swap gravado on-chain
-    API->>API: Persiste notificacao in-app
+    API->>API: Persiste notificação in-app
 ```
+
+---
 
 ### Fluxo de Campanha
 
 ```mermaid
 sequenceDiagram
-    actor U as Usuario
+    actor U as Usuário
     participant FE as Frontend
     participant API as Backend
     participant DB as PostgreSQL
@@ -173,10 +184,10 @@ sequenceDiagram
     U->>FE: Visualiza campanha ativa
     FE->>API: POST /campaigns/join
     API->>DB: INSERT participant (UniqueConstraint)
-    alt ja inscrito
+    alt já inscrito
         DB-->>API: Constraint violation
         API-->>FE: 409 Conflict { already_joined: true }
-    else nova inscricao
+    else nova inscrição
         DB-->>API: OK
         API-->>FE: 201 Created
     end
@@ -191,9 +202,33 @@ sequenceDiagram
     FE->>API: POST /campaigns/claim { proof_signature }
     API->>API: Valida assinatura ED25519
     API->>DB: INSERT claim_receipt
-    API->>PROG: (futuro) distribuicao de recompensa
     API-->>FE: 200 OK { receipt_id, status: "paid" }
-    FE->>U: Notificacao in-app: recompensa recebida
+    FE->>U: Notificação in-app — recompensa recebida
+```
+
+---
+
+### Fluxo de i18n (EN/PT)
+
+```mermaid
+graph LR
+    LS["localStorage<br>xiaolee_lang"] -->|hidratação| LP["LanguageProvider<br>(React Context)"]
+    LP -->|t(key)| C1["Navbar"]
+    LP -->|t(key)| C2["Campaigns"]
+    LP -->|t(key)| C3["Wallet Modal"]
+    LP -->|t(key)| C4["Transações Modal"]
+    LP -->|t(key)| C5["Dashboard"]
+    LP -->|t(key)| C6["Notifications"]
+
+    subgraph LOCALES["src/locales/"]
+        EN["en.json"]
+        PT["pt.json"]
+    end
+
+    LP -->|lang === 'en'| EN
+    LP -->|lang === 'pt'| PT
+
+    TOGGLE["LangToggle<br>(EN / PT pill)"] -->|setLang()| LP
 ```
 
 ---
@@ -214,7 +249,7 @@ make smoke
 **OU com Docker (stack completa):**
 
 ```bash
-cp .env.example .env # preencha as variáveis
+cp .env.example .env  # preencha as variáveis
 make run-docker
 ```
 
@@ -228,13 +263,39 @@ make run-docker
 
 ---
 
-## Variáveis de Ambiente
+## Deploy (Render + Railway)
+
+O stack de produção usa **Railway** para o backend FastAPI e **Render** para o frontend Next.js.
+
+### Variáveis de ambiente — Frontend (Render)
+
+| Variável | Valor |
+|---|---|
+| `NEXT_PUBLIC_CORE_API_URL` | URL pública do backend no Railway |
+
+### Variáveis de ambiente — Backend (Railway)
+
+| Variável | Descrição |
+|---|---|
+| `GEMINI_API_KEY` | Chave Google Gemini |
+| `DATABASE_URL` | PostgreSQL (Railway provisiona automaticamente) |
+| `REDIS_URL` | Redis (Railway provisiona automaticamente) |
+| `TELEGRAM_WEBHOOK_SECRET` | Secret webhook Telegram |
+| `X_WEBHOOK_SECRET` | HMAC webhook X/Twitter |
+| `HELIUS_WEBHOOK_SECRET` | HMAC webhook Helius |
+| `SOLANA_ADMIN_KEYPAIR_B58` | Admin keypair para record_swap (opcional — dry_run se ausente) |
+
+### CORS
+
+Após o deploy do frontend no Render, adicionar a URL ao `CORS_ALLOWED_ORIGINS` no Railway para liberar as chamadas do browser.
+
+---
+
+## Variáveis de Ambiente (local)
 
 ```bash
 cp .env.example .env
 ```
-
-Obrigatórias para rodar localmente:
 
 | Variável | Descrição |
 |---|---|
@@ -242,21 +303,16 @@ Obrigatórias para rodar localmente:
 | `TELEGRAM_WEBHOOK_SECRET` | Secret para webhook Telegram |
 | `X_WEBHOOK_SECRET` | HMAC para webhook X/Twitter |
 | `HELIUS_WEBHOOK_SECRET` | HMAC para webhook Helius |
-
-Opcionais (habilitam funcionalidades adicionais):
-
-| Variável | Descrição |
-|---|---|
 | `DATABASE_URL` | PostgreSQL em produção (vazio = SQLite) |
 | `REDIS_URL` | Redis para rate limiting (vazio = in-memory) |
-| `SOLANA_ADMIN_KEYPAIR_B58` | Admin keypair para `record_swap` on-chain (vazio = dry_run) |
+| `SOLANA_ADMIN_KEYPAIR_B58` | Admin keypair para `record_swap` (vazio = dry_run) |
 
 ---
 
 ## Testes
 
 ```bash
-# Suite backend completa (65 testes)
+# Suíte backend completa (65 testes)
 make test-backend
 
 # Build frontend limpo
@@ -295,13 +351,8 @@ make db-new-migration MSG="descricao"
 | Instruções | `initialize_global`, `initialize_user`, `record_swap`, `pause_protocol`, `unpause_protocol`, `transfer_admin` |
 
 ```bash
-# Compilar
 make anchor-build
-
-# Deploy devnet
 make anchor-deploy-devnet
-
-# Sincronizar IDL com frontend
 make anchor-idl-sync
 ```
 
@@ -336,7 +387,7 @@ make anchor-idl-sync
 - HMAC SHA-256 para webhooks X e Helius
 - Secret token para webhook Telegram
 - Rate limiting Redis (sliding window) com fallback in-memory
-- CORS headers restritos via `CORS_ALLOWED_HEADERS` env
+- CORS headers restritos via `CORS_ALLOWED_ORIGINS` env
 - Fluxo não-custodial (chave do usuário nunca toca o backend)
 - 409 Conflict idempotente (UniqueConstraint no banco)
 - Emergency pause on-chain (`pause_protocol`)
@@ -349,15 +400,16 @@ make anchor-idl-sync
 
 | Fase | Status | Entregas |
 |---|---|---|
-| Fase 1 | CONCLUIDA | FastAPI, Gemini, inbound |
-| Fase 2 | CONCLUIDA | Wallet-first (prepare/simulate/sign/send) |
-| Fase 3 | CONCLUIDA | Webhooks hardening (Telegram/X/Helius) |
-| Fase 4 | CONCLUIDA | QA, observabilidade, CI fullstack |
-| Fase 5 | CONCLUIDA | Idempotência, Anchor client, CORS, 65 testes |
-| Fase 6 | CONCLUIDA | PostgreSQL, Redis, solders, Locust |
-| Fase 7 | CONCLUIDA | Docker completo, Grafana, Emergency pause |
-| Fase 8 | CONCLUIDA | Homologação E2E, Testes de Carga (Locust), Jupiter Mock |
-| Fase 9 | PLANEJADA | Infra produção, auditoria externa, HTTPS, Multisig, Mainnet |
+| Fase 1 | CONCLUÍDA | FastAPI, Gemini, inbound |
+| Fase 2 | CONCLUÍDA | Wallet-first (prepare/simulate/sign/send) |
+| Fase 3 | CONCLUÍDA | Webhooks hardening (Telegram/X/Helius) |
+| Fase 4 | CONCLUÍDA | QA, observabilidade, CI fullstack |
+| Fase 5 | CONCLUÍDA | Idempotência, Anchor client, CORS, 65 testes |
+| Fase 6 | CONCLUÍDA | PostgreSQL, Redis, solders, Locust |
+| Fase 7 | CONCLUÍDA | Docker completo, Grafana, Emergency pause |
+| Fase 8 | CONCLUÍDA | Homologação E2E, testes de carga, UI Premium Refactor |
+| Fase 9 | CONCLUÍDA | i18n EN/PT — LanguageContext, toggle navbar, todos os componentes traduzidos, correções de contraste e tamanho de texto |
+| Fase 10 | PLANEJADA | Deploy Render + Railway (URL pública para demo) |
 
 ---
 
@@ -366,9 +418,10 @@ make anchor-idl-sync
 | Arquivo | Conteúdo |
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Arquitetura completa, diagramas, fluxos |
+| [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) | Paleta, ícones, i18n, padrão de cards e layout |
 | [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) | Rotas, payloads, códigos de erro |
 | [`docs/SMART_CONTRACT.md`](docs/SMART_CONTRACT.md) | Instruções on-chain, PDAs, eventos |
-| [`docs/MAINNET_READINESS.md`](docs/MAINNET_READINESS.md) | 6 gates + checklist para mainnet |
+| [`docs/MAINNET_READINESS.md`](docs/MAINNET_READINESS.md) | Gates + checklist para mainnet |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, padrões, como contribuir |
 | [`load_tests/README.md`](load_tests/README.md) | Instruções de teste de carga (Locust) |
 | [`backend/memory-bank/progress.md`](backend/memory-bank/progress.md) | Trilha de construção detalhada |

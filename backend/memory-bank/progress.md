@@ -1,8 +1,8 @@
 # Progress: XiaoLee
 
-> Atualizado em: **2026-04-30** | Sprint 8 concluída.
-> Progresso: [##########] 96% — Estimativa (faixa 95% a 98%).
-> Classificação: **MVP avançado em Devnet — frontend polido e visualmente consistente, infraestrutura de produção pendente**.
+> Atualizado em: **2026-05-09** | Sprint 9 concluída.
+> Progresso: [##########] 98% — Estimativa (faixa 97% a 99%).
+> Classificação: **MVP avançado em Devnet — produto completo e bilíngue, deploy público (Render + Railway) é o único passo restante para a demo**.
 
 ---
 
@@ -76,9 +76,24 @@
   - Navbar: Ajuste de flex layout para telas responsivas e adição de `z-50` no Dropdown para sobrepor componentes corretamente.
   - `ThemeProvider`: Remoção definitiva do `forcedTheme="light"` para dar liberdade real ao tema.
 
+### Fase 9 — i18n EN/PT + Correções de UI
+
+- **LanguageContext** (`src/contexts/LanguageContext.tsx`): React Context com `t(key, vars?)`, dot-path resolution, interpolação `{{var}}`, persistência em `localStorage`, atualização de `document.documentElement.lang`.
+- **Locale files** (`src/locales/en.json`, `src/locales/pt.json`): cobertura completa de todos os componentes — navbar, campaigns, campaign_card, user_campaigns, dashboard, notifications, activity_feed, tokenomics, user_stats, wallet, transacoes, common.
+- **LangToggle na Navbar**: pill EN/PT com gradiente ativo pink/fuchsia, inserido antes do ThemeToggle.
+- **Componentes traduzidos**: Navbar, Wallet modal (incluindo todos os estados do swap), Transacoes modal, CampaignCard, UserCampaignsList, CampanhasNew, Dashboard, Notifications, ActivityFeed, TokenomicsCard, UserStatsCard.
+- **Correções de contraste**: remoção de modificadores de opacidade (`/60`, `/70`, `/80`) em textos — todos os labels agora com legibilidade plena.
+- **Tamanhos de texto em campaign cards**: itens promovidos de `text-xs`/`text-[10px]` para `text-sm`/`text-base` onde necessário.
+- **Build limpo**: TypeScript sem erros, zero warnings de tipo.
+
 ---
 
-## PENDENTE Em Aberto (Fase 9 — Produção)
+## PENDENTE Em Aberto (Fase 10 — Deploy Público)
+
+### P0 para demo pública (hackathon)
+1. **Deploy backend** no Railway — configurar variáveis de ambiente, CORS com URL do Render
+2. **Deploy frontend** no Render — `NEXT_PUBLIC_CORE_API_URL` apontando pro Railway
+3. **URL pública** acessível pelos juízes — Devnet mantida (Jupiter só opera em Mainnet)
 
 ### Bloqueadores P0 (mainnet impossível sem estes)
 1. **Auditoria externa** — mínimo 2 firmas independentes (Trail of Bits, Ottersec, Sec3)
@@ -109,5 +124,6 @@
 | Build frontend | **Exit code 0** (Next.js, TypeScript sem erros) |
 | Cobertura de rotas | `/health`, `/health/detailed`, `/status`, `/metrics`, `/chat`, `/v1/messages/inbound`, `/v1/solana/swap/prepare`, `/v1/solana/webhooks/helius`, `/campaigns/join\|verify\|claim`, `/notifications`, `/x/webhook` |
 | Telas com tema unificado | **4/4** (Chat, Campaigns, Notifications, Dashboard) |
-| Sprints concluídas | **8 de 8** |
-| Estimativa de conclusão | **96%** |
+| Componentes com i18n | **15/15** — cobertura total EN/PT |
+| Sprints concluídas | **9 de 9** |
+| Estimativa de conclusão | **98%** |

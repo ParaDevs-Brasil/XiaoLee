@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Quicksand } from "next/font/google";
 import { ThemeProviderWrapper } from "../providers/ThemeProvider";
+import { LanguageProvider } from "../contexts/LanguageContext";
 
 const quicksand = Quicksand({ 
   subsets: ["latin"], 
@@ -49,9 +50,11 @@ export default function RootLayout({
                 <link rel="preload" as="video" href="/xiaolee_standby.mov" />
             </head>
                 <body className={quicksand.className}>
-                <ThemeProviderWrapper>
-                    {children}
-                </ThemeProviderWrapper>
+                <LanguageProvider>
+                  <ThemeProviderWrapper>
+                      {children}
+                  </ThemeProviderWrapper>
+                </LanguageProvider>
             </body>
         </html>
     );

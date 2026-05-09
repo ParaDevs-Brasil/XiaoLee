@@ -8,8 +8,10 @@ import useNotifications from '@/hooks/useNotifications';
 import { ThemeProviderWrapper } from '@/providers/ThemeProvider';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import UserData from '@/components/UserData';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function NotificationsPage() {
+  const { t } = useLanguage();
   const { notifications, loading, error, refetch, ackNotification, isAckLoading } = useNotifications();
   const sessionId = UserData.getSessionId();
   const walletPublicKey = UserData.getDevnetWalletPublicKey();
@@ -33,19 +35,19 @@ export default function NotificationsPage() {
               <span className="text-2xl">🔔</span>
             </div>
             <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
-              Notification Center
+              {t('notifications.title')}
             </h1>
             <p className="text-sm text-gray-400 max-w-sm mx-auto leading-relaxed">
-              Receipts de campanhas e histórico de claims da sua sessão Devnet.
+              {t('notifications.subtitle')}
             </p>
           </div>
 
           {/* ── Stats Row ── */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: 'Total', value: notifications.length, color: 'from-pink-500 to-fuchsia-500', bg: 'from-pink-50 to-fuchsia-50', border: 'border-pink-100' },
-              { label: 'Entregues', value: deliveredCount, color: 'text-emerald-500', solid: true, bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-100' },
-              { label: 'Pendentes', value: pendingCount, color: 'text-amber-500', solid: true, bg: 'from-amber-50 to-orange-50', border: 'border-amber-100' },
+              { label: t('notifications.total'),     value: notifications.length, color: 'from-pink-500 to-fuchsia-500', bg: 'from-pink-50 to-fuchsia-50', border: 'border-pink-100' },
+              { label: t('notifications.delivered'), value: deliveredCount, color: 'text-emerald-500', solid: true, bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-100' },
+              { label: t('notifications.pending'),   value: pendingCount, color: 'text-amber-500', solid: true, bg: 'from-amber-50 to-orange-50', border: 'border-amber-100' },
             ].map(({ label, value, color, solid, bg, border }) => (
               <div
                 key={label}
@@ -62,19 +64,19 @@ export default function NotificationsPage() {
           {/* ── Session Context ── */}
           <div className="rounded-2xl border border-pink-100 bg-white/60 backdrop-blur-sm p-4 mb-6 shadow-sm">
             <div className="text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
-              Devnet Context
+              {t('notifications.devnet_context')}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-gray-400 shrink-0">Session</span>
+                <span className="text-xs text-gray-400 shrink-0">{t('notifications.session')}</span>
                 <span className="text-xs font-mono text-gray-600 bg-pink-50 border border-pink-100 rounded-lg px-2 py-1 truncate max-w-[200px]" title={sessionId || ''}>
-                  {sessionId ? truncate(sessionId, 12) : <span className="text-gray-300 italic">not initialized</span>}
+                  {sessionId ? truncate(sessionId, 12) : <span className="text-gray-300 italic">{t('notifications.not_initialized')}</span>}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-gray-400 shrink-0">Wallet</span>
+                <span className="text-xs text-gray-400 shrink-0">{t('notifications.wallet')}</span>
                 <span className="text-xs font-mono text-gray-600 bg-purple-50 border border-purple-100 rounded-lg px-2 py-1 truncate max-w-[200px]" title={walletPublicKey || ''}>
-                  {walletPublicKey ? truncate(walletPublicKey, 12) : <span className="text-gray-300 italic">Phantom not connected</span>}
+                  {walletPublicKey ? truncate(walletPublicKey, 12) : <span className="text-gray-300 italic">{t('notifications.phantom_not_connected')}</span>}
                 </span>
               </div>
             </div>
@@ -85,8 +87,8 @@ export default function NotificationsPage() {
             {/* List Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100/60">
               <div>
-                <h2 className="text-base font-bold text-gray-700">Receipts & Alertas</h2>
-                <p className="text-xs text-gray-400">Claims e notificações operacionais</p>
+                <h2 className="text-base font-bold text-gray-700">{t('notifications.receipts_title')}</h2>
+                <p className="text-xs text-gray-400">{t('notifications.receipts_sub')}</p>
               </div>
               <button
                 onClick={refetch}
@@ -100,7 +102,7 @@ export default function NotificationsPage() {
             {/* Loading */}
             {loading && (
               <div className="py-16 flex justify-center">
-                <LoadingSpinner size="lg" text="Loading notifications..." />
+                <LoadingSpinner size="lg" text={t('notifications.loading')} />
               </div>
             )}
 
@@ -117,15 +119,15 @@ export default function NotificationsPage() {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-100 to-fuchsia-100 flex items-center justify-center mb-5 shadow-inner">
                   <span className="text-3xl">🔕</span>
                 </div>
-                <h3 className="text-base font-bold text-gray-600 mb-1">Nenhuma notificação ainda</h3>
+                <h3 className="text-base font-bold text-gray-600 mb-1">{t('notifications.empty_title')}</h3>
                 <p className="text-xs text-gray-400 max-w-xs mb-6 leading-relaxed">
-                  Seus receipts de claims e alertas de campanhas vão aparecer aqui assim que você começar a participar da economia XiaoLee.
+                  {t('notifications.empty_sub')}
                 </p>
                 <Link
                   href="/campaigns"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
                 >
-                  Explorar Campanhas 🚀
+                  {t('notifications.explore_campaigns')} 🚀
                 </Link>
               </div>
             )}
@@ -197,11 +199,11 @@ export default function NotificationsPage() {
                             disabled={isAckLoading(notification.id)}
                             className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-white text-xs font-bold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                           >
-                            {isAckLoading(notification.id) ? '...' : '✓ Ack'}
+                            {isAckLoading(notification.id) ? '...' : t('notifications.ack')}
                           </button>
                         ) : (
                           <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-500 text-xs font-bold border border-emerald-100">
-                            ✓ Done
+                            {t('notifications.done')}
                           </span>
                         )}
                       </div>
@@ -214,7 +216,7 @@ export default function NotificationsPage() {
 
           {/* ── Footer note ── */}
           <p className="text-center text-xs text-gray-300 mt-6">
-            XiaoLee ✨ · Devnet Session
+            {t('notifications.footer')}
           </p>
 
         </main>

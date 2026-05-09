@@ -7,6 +7,7 @@ import useUserCampaigns from '@/hooks/useUserCampaigns';
 import useNotifications from '@/hooks/useNotifications';
 
 import UserData from '@/components/UserData';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import CreateCampaignForm from '@/components/campaigns/CreateCampaignForm';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -69,6 +70,7 @@ export default function Campaigns() {
   const { campaigns: userCampaigns, refetch: refetchUserCampaigns } = useUserCampaigns();
   const { notifications, loading: notificationsLoading, error: notificationsError, refetch: refetchNotifications, ackNotification, isAckLoading } = useNotifications();
   const { joinCampaign, verifyTasks, claimReward, isJoinLoading, isVerifyLoading, isClaimLoading } = useCampaignActions();
+  const { t } = useLanguage();
   const [isCampaignReady, setIsCampaignReady] = useState(UserData.hasCampaignIdentity());
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -193,10 +195,10 @@ export default function Campaigns() {
         {/* ── Header ──────────────────────────────────────────────────── */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
-            Campaigns
+            {t('campaigns.title')}
           </h1>
-          <p className="text-sm text-gray-400 max-w-xs mx-auto leading-relaxed">
-            Participe de campanhas na Solana Devnet e ganhe recompensas reais.
+          <p className="text-base text-gray-600 max-w-xs mx-auto leading-relaxed">
+            {t('campaigns.subtitle')}
           </p>
         </div>
 
@@ -212,13 +214,13 @@ export default function Campaigns() {
             {isCampaignReady ? <IconCheck /> : <IconClock />}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-gray-700">
-              {isCampaignReady ? 'Devnet Session Active' : 'Guest Mode'}
+            <p className="text-sm font-bold text-gray-800">
+              {isCampaignReady ? t('campaigns.session_active') : t('campaigns.guest_mode')}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-sm text-gray-600 mt-0.5">
               {isCampaignReady
-                ? 'Pronto para participar e coletar rewards.'
-                : 'Conecte sua wallet ou autentique-se via Chat.'}
+                ? t('campaigns.session_ready')
+                : t('campaigns.session_connect')}
             </p>
           </div>
           {!isCampaignReady ? (
@@ -226,7 +228,7 @@ export default function Campaigns() {
               Login
             </Link>
           ) : (
-            <button onClick={handleConnectDevnetWallet} className="shrink-0 px-3 py-1.5 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-xs font-bold transition-colors">
+            <button onClick={handleConnectDevnetWallet} className="shrink-0 px-4 py-2 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-sm font-bold transition-colors">
               Sync Wallet
             </button>
           )}
@@ -239,7 +241,7 @@ export default function Campaigns() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:shadow-pink-300 hover:scale-105 active:scale-95 transition-all duration-200"
           >
             <IconPlus />
-            Criar Campanha
+            {t('campaigns.create_campaign')}
           </button>
         </div>
 
@@ -256,7 +258,7 @@ export default function Campaigns() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100/60">
               <div className="flex items-center gap-2">
                 <span className="text-fuchsia-400"><IconBell /></span>
-                <h2 className="text-sm font-bold text-gray-700">Rewards Recentes</h2>
+                <h2 className="text-sm font-bold text-gray-700">{t('campaigns.recent_rewards')}</h2>
               </div>
               <button onClick={refetchNotifications} className="text-xs font-semibold text-fuchsia-500 hover:text-fuchsia-700 transition-colors">
                 Atualizar
@@ -268,7 +270,7 @@ export default function Campaigns() {
                 <p className="text-xs text-red-500 mb-3">{notificationsError}</p>
               )}
               {notificationsLoading ? (
-                <p className="text-xs text-gray-400 py-4 text-center">Carregando notificações...</p>
+                <p className="text-xs text-gray-400 py-4 text-center">{t('campaigns.loading_notifications')}</p>
               ) : (
                 <div className="space-y-2">
                   {notifications.slice(0, 3).map((notification) => (
@@ -281,9 +283,9 @@ export default function Campaigns() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${notification.status === 'delivered' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                            <p className="text-xs font-semibold text-gray-700 truncate">{notification.title}</p>
+                            <p className="text-sm font-bold text-gray-800 truncate">{notification.title}</p>
                           </div>
-                          <p className="text-xs text-gray-400 line-clamp-1">{notification.body}</p>
+                          <p className="text-sm text-gray-600 line-clamp-1">{notification.body}</p>
                           {notification.related_signature && (
                             <div className="flex items-center gap-1 mt-1.5">
                               <span className="text-gray-300"><IconReceipt /></span>
@@ -335,14 +337,14 @@ export default function Campaigns() {
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white text-sm font-semibold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 transition-all"
             >
               {refreshing ? <LoadingSpinner size="sm" /> : <IconRefresh />}
-              {refreshing ? 'Atualizando...' : 'Atualizar'}
+              {refreshing ? t('campaigns.refreshing') : t('campaigns.refresh')}
             </button>
           </div>
         ) : (
           <>
             {/* List header */}
             <div className="flex items-center justify-between mb-4 px-1">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              <p className="text-sm font-bold text-gray-600 uppercase tracking-widest">
                 <span className="text-fuchsia-500">{campaigns.length}</span> campanha{campaigns.length !== 1 ? 's' : ''} ativa{campaigns.length !== 1 ? 's' : ''}
               </p>
               <button
@@ -351,7 +353,7 @@ export default function Campaigns() {
                 className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-fuchsia-500 font-semibold transition-colors disabled:opacity-50"
               >
                 <IconRefresh />
-                {refreshing ? 'Atualizando...' : 'Atualizar'}
+                {refreshing ? t('campaigns.refreshing') : t('campaigns.refresh')}
               </button>
             </div>
 
@@ -385,7 +387,7 @@ export default function Campaigns() {
               'Reivindique o reward usando sua identidade de sessão Devnet.',
               'Atualize para sincronizar o status mais recente das campanhas.',
             ].map((step, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-xs text-gray-500">
+              <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
                 <span className="w-4 h-4 rounded-full bg-fuchsia-50 border border-fuchsia-100 text-fuchsia-400 font-bold flex items-center justify-center shrink-0 text-[10px]">
                   {i + 1}
                 </span>

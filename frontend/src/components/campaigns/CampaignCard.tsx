@@ -2,6 +2,7 @@ import React from 'react';
 import UserData from '@/components/UserData';
 import ActionButton from '@/components/ActionButton';
 import { CampaignCardProps } from '@/interfaces/campaignComponents';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // ── SVG Icons ──────────────────────────────────────────────────────────────
 const IconCheck = () => (
@@ -24,6 +25,7 @@ const IconAlert = () => (
 export const CampaignCard: React.FC<CampaignCardProps> = ({
   campaign, onJoin, onVerify, onClaim, isJoining, isVerifying, isClaiming
 }) => {
+  const { t } = useLanguage();
   const hasCampaignIdentity = UserData.hasCampaignIdentity();
   const userCampaignParticipation = hasCampaignIdentity
     ? UserData.getUserCampaigns().find(uc => uc.id === campaign.id)
@@ -48,14 +50,14 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
       <div className="px-5 py-4 border-b border-pink-100/60">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-gray-800 leading-tight mb-1">{campaign.name}</h3>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400 bg-fuchsia-50 border border-fuchsia-100 px-2 py-0.5 rounded-full">
+            <h3 className="text-base font-bold text-gray-900 leading-tight mb-1.5">{campaign.name}</h3>
+            <span className="text-xs font-bold uppercase tracking-widest text-fuchsia-500 bg-fuchsia-50 border border-fuchsia-200 px-2.5 py-0.5 rounded-full">
               {campaign.campaign_type}
             </span>
           </div>
           {(isPaid || isTasksClaimed) && (
-            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-600 border border-emerald-200">
-              <IconCheck /> Claimed
+            <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+              <IconCheck /> {t('campaign_card.claimed_badge')}
             </span>
           )}
         </div>
@@ -63,37 +65,37 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
 
       {/* Description */}
       <div className="px-5 py-3">
-        <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{campaign.description}</p>
+        <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">{campaign.description}</p>
       </div>
 
       {/* Stats + Progress */}
       <div className="px-5 pb-3">
         <div className="rounded-xl bg-gray-50/80 border border-gray-100 p-3">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm mb-3">
             <div className="flex justify-between">
-              <span className="text-gray-400">Máx.</span>
-              <span className="font-semibold text-gray-700">{campaign.max_participants}</span>
+              <span className="text-gray-500 font-medium">{t('campaign_card.max')}</span>
+              <span className="font-bold text-gray-800">{campaign.max_participants}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Pool</span>
-              <span className="font-semibold text-gray-700">{campaign.reward_pool} {campaign.reward_token}</span>
+              <span className="text-gray-500 font-medium">{t('campaign_card.pool')}</span>
+              <span className="font-bold text-gray-800">{campaign.reward_pool} {campaign.reward_token}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Inscritos</span>
-              <span className="font-semibold text-gray-700">{campaign.completed_participants || 0}</span>
+              <span className="text-gray-500 font-medium">{t('campaign_card.enrolled')}</span>
+              <span className="font-bold text-gray-800">{campaign.completed_participants || 0}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Vagas</span>
-              <span className={`font-semibold ${spotsLeft === 0 ? 'text-rose-500' : 'text-gray-700'}`}>
-                {spotsLeft === 0 ? 'Esgotado' : spotsLeft}
+              <span className="text-gray-500 font-medium">{t('campaign_card.spots')}</span>
+              <span className={`font-bold ${spotsLeft === 0 ? 'text-rose-500' : 'text-gray-800'}`}>
+                {spotsLeft === 0 ? t('campaign_card.sold_out') : spotsLeft}
               </span>
             </div>
           </div>
           {/* Progress bar */}
           <div>
-            <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-              <span>Vagas preenchidas</span>
-              <span className="font-semibold">{pct}%</span>
+            <div className="flex justify-between text-xs text-gray-500 font-medium mb-1">
+              <span>{t('campaign_card.spots_filled')}</span>
+              <span className="font-bold">{pct}%</span>
             </div>
             <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
               <div className={`h-full ${barColor} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
@@ -105,10 +107,10 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
       {/* Reward */}
       <div className="px-5 pb-3">
         <div className="flex items-center justify-between rounded-xl border border-pink-100 bg-pink-50/60 px-4 py-2.5">
-          <span className="text-xs text-gray-500 font-medium">Reward por participante</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-base font-black text-fuchsia-600">{campaign.reward_per_participant}</span>
-            <span className="text-xs font-bold text-fuchsia-500 bg-fuchsia-100 px-2 py-0.5 rounded-full">{campaign.reward_token}</span>
+          <span className="text-sm text-gray-600 font-semibold">{t('campaign_card.reward_per_participant')}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-black text-fuchsia-600">{campaign.reward_per_participant}</span>
+            <span className="text-sm font-bold text-fuchsia-500 bg-fuchsia-100 px-2.5 py-0.5 rounded-full">{campaign.reward_token}</span>
           </div>
         </div>
       </div>
@@ -119,14 +121,14 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
           <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-3">
             <div className="flex items-center gap-1.5 mb-2">
               <span className="text-violet-400"><IconList /></span>
-              <span className="text-xs font-bold text-violet-600 uppercase tracking-wider">Tasks obrigatórias</span>
+              <span className="text-sm font-bold text-violet-700 uppercase tracking-wider">{t('campaign_card.required_tasks')}</span>
             </div>
-            <div className="space-y-1 text-xs text-violet-700">
+            <div className="space-y-1 text-sm text-violet-700">
               {campaign.profile_to_follow && (
-                <div>Seguir: <a className="underline font-medium" target="_blank" rel="noreferrer" href={`https://x.com/${campaign.profile_to_follow.replace(/^@/, '')}`}>{campaign.profile_to_follow}</a></div>
+                <div>{t('campaign_card.follow')} <a className="underline font-medium" target="_blank" rel="noreferrer" href={`https://x.com/${campaign.profile_to_follow.replace(/^@/, '')}`}>{campaign.profile_to_follow}</a></div>
               )}
               {campaign.tweet_id_to_engage && (
-                <div className="break-all">Engajar: <a className="underline font-medium" target="_blank" rel="noreferrer" href={campaign.tweet_id_to_engage}>{campaign.tweet_id_to_engage}</a></div>
+                <div className="break-all">{t('campaign_card.engage')} <a className="underline font-medium" target="_blank" rel="noreferrer" href={campaign.tweet_id_to_engage}>{campaign.tweet_id_to_engage}</a></div>
               )}
             </div>
           </div>
@@ -138,7 +140,7 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
         <div className="px-5 pb-3">
           <div className="flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-amber-600">
             <IconAlert />
-            <span className="text-xs font-medium">Sessão Devnet não inicializada</span>
+            <span className="text-sm font-semibold">{t('campaign_card.no_session')}</span>
           </div>
         </div>
       )}
@@ -148,10 +150,10 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
         <div className="px-5 pb-3">
           <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-600">
             <IconCheck />
-            <span className="text-xs font-medium">
-              {isPaid ? 'Reward já reivindicado.' :
-               isTasksVerified ? 'Tasks verificadas — pronto para claim.' :
-               'Já inscrito nesta campanha.'}
+            <span className="text-sm font-semibold">
+              {isPaid ? t('campaign_card.status_paid') :
+               isTasksVerified ? t('campaign_card.status_verified') :
+               t('campaign_card.status_enrolled')}
             </span>
           </div>
         </div>
@@ -165,11 +167,11 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
             onClick={() => onJoin(campaign.id)}
             disabled={isJoining(campaign.id)}
             loading={isJoining(campaign.id)}
-            loadingText="Entrando..."
+            loadingText={t('campaign_card.btn_joining')}
             variant="primary"
             isLocked={!hasCampaignIdentity}
           >
-            {!hasCampaignIdentity ? 'Aguardando Sessão Devnet' : 'Participar'}
+            {!hasCampaignIdentity ? t('campaign_card.btn_waiting') : t('campaign_card.btn_join')}
           </ActionButton>
         )}
 
@@ -178,14 +180,14 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
           onClick={() => onVerify(campaign.id)}
           disabled={isVerifying(campaign.id) || !isEnrolled || isTasksVerified || isPaid}
           loading={isVerifying(campaign.id)}
-          loadingText="Verificando..."
+          loadingText={t('campaign_card.btn_verifying')}
           variant="secondary"
           isLocked={!hasCampaignIdentity}
         >
-          {!hasCampaignIdentity ? 'Aguardando Sessão Devnet' :
-           isTasksVerified || isPaid ? 'Tasks Verificadas' :
-           !isEnrolled ? 'Participe Primeiro' :
-           'Verificar Tasks'}
+          {!hasCampaignIdentity ? t('campaign_card.btn_waiting') :
+           isTasksVerified || isPaid ? t('campaign_card.btn_verified') :
+           !isEnrolled ? t('campaign_card.btn_join_first') :
+           t('campaign_card.btn_verify')}
         </ActionButton>
 
         {/* Claim */}
@@ -193,20 +195,20 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
           onClick={() => onClaim(campaign.id)}
           disabled={isClaiming(campaign.id) || !isTasksVerified || isPaid || isTasksClaimed}
           loading={isClaiming(campaign.id)}
-          loadingText="Reivindicando..."
+          loadingText={t('campaign_card.btn_claiming')}
           variant="success"
           isLocked={!hasCampaignIdentity}
         >
-          {!hasCampaignIdentity ? 'Aguardando Sessão Devnet' :
-           isPaid || isTasksClaimed ? 'Reward Reivindicado' :
-           !isTasksVerified ? 'Verifique as Tasks Primeiro' :
-           'Reivindicar Reward'}
+          {!hasCampaignIdentity ? t('campaign_card.btn_waiting') :
+           isPaid || isTasksClaimed ? t('campaign_card.btn_claimed') :
+           !isTasksVerified ? t('campaign_card.btn_verify_first') :
+           t('campaign_card.btn_claim')}
         </ActionButton>
       </div>
 
       {/* Footer meta */}
       <div className="px-5 pb-4 pt-0">
-        <div className="flex justify-between items-center text-[10px] text-gray-300 border-t border-pink-100/60 pt-3">
+        <div className="flex justify-between items-center text-xs text-gray-500 font-medium border-t border-pink-100/60 pt-3">
           <span>@{campaign.creator_twitter_user_id}</span>
           <span>{new Date(campaign.created_at).toLocaleDateString()}</span>
         </div>

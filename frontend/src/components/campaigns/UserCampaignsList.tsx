@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserCampaignParticipation } from '@/interfaces';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // ── SVG Icons ──────────────────────────────────────────────────────────────
 const IconTarget = () => (
@@ -30,29 +31,36 @@ const statusConfig: Record<string, { label: string; bg: string; text: string; bo
 };
 
 export const UserCampaignCard: React.FC<UserCampaignCardProps> = ({ campaign, className = '' }) => {
+  const { t } = useLanguage();
   const currentStatus = campaign.participation_status;
+  const statusLabels: Record<string, string> = {
+    enrolled: t('user_campaigns.status_enrolled'),
+    tasks_verified: t('user_campaigns.status_verified'),
+    paid: t('user_campaigns.status_claimed'),
+  };
   const cfg = statusConfig[currentStatus] ?? { label: currentStatus, bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-100' };
+  const statusLabel = statusLabels[currentStatus] ?? cfg.label;
 
   return (
     <div className={`rounded-xl border border-pink-100 bg-white/70 backdrop-blur-sm p-4 hover:shadow-sm transition-shadow duration-150 ${className}`}>
       <div className="flex items-start justify-between gap-3 mb-2">
-        <h3 className="text-sm font-bold text-gray-800 leading-tight flex-1 min-w-0">{campaign.name}</h3>
-        <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+        <h3 className="text-base font-bold text-gray-900 leading-tight flex-1 min-w-0">{campaign.name}</h3>
+        <span className={`shrink-0 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
           {currentStatus === 'paid' && <IconCheck />}
-          {cfg.label}
+          {statusLabel}
         </span>
       </div>
 
-      <p className="text-xs text-gray-500 mb-3 leading-relaxed line-clamp-2">{campaign.description}</p>
+      <p className="text-sm text-gray-600 mb-3 leading-relaxed line-clamp-2">{campaign.description}</p>
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-400">Reward:</span>
-          <span className="text-xs font-black text-fuchsia-600">{campaign.reward_per_participant}</span>
-          <span className="text-[10px] font-bold text-fuchsia-500 bg-fuchsia-50 px-1.5 py-0.5 rounded-full">{campaign.reward_token}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600 font-medium">{t('user_campaigns.reward')}</span>
+          <span className="text-base font-black text-fuchsia-600">{campaign.reward_per_participant}</span>
+          <span className="text-xs font-bold text-fuchsia-500 bg-fuchsia-50 px-2 py-0.5 rounded-full">{campaign.reward_token}</span>
         </div>
         {campaign.tasks_verified_at && (
-          <div className="flex items-center gap-1 text-[10px] text-gray-400">
+          <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
             <IconReceipt />
             {new Date(campaign.tasks_verified_at).toLocaleDateString('pt-BR')}
           </div>
@@ -69,16 +77,18 @@ interface UserCampaignsListProps {
 }
 
 export const UserCampaignsList: React.FC<UserCampaignsListProps> = ({
-  campaigns, className = '', title = 'My Campaigns'
+  campaigns, className = '', title
 }) => {
+  const { t } = useLanguage();
+  const listTitle = title ?? t('user_campaigns.title');
   if (campaigns.length === 0) {
     return (
       <div className={`rounded-2xl border border-pink-100 bg-white/60 p-8 text-center ${className}`}>
         <div className="w-10 h-10 rounded-2xl bg-pink-50 border border-pink-100 flex items-center justify-center mx-auto mb-3 text-pink-300">
           <IconTarget />
         </div>
-        <h3 className="text-sm font-bold text-gray-600 mb-1">Nenhuma campanha ainda</h3>
-        <p className="text-xs text-gray-400">Participe de campanhas para começar!</p>
+        <h3 className="text-sm font-bold text-gray-600 mb-1">{t('user_campaigns.empty_title')}</h3>
+        <p className="text-xs text-gray-400">{t('user_campaigns.empty_sub')}</p>
       </div>
     );
   }
@@ -87,7 +97,7 @@ export const UserCampaignsList: React.FC<UserCampaignsListProps> = ({
     <div className={className}>
       <div className="flex items-center gap-2 mb-3 px-1">
         <span className="text-fuchsia-400"><IconTarget /></span>
-        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">{title}</h2>
+        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest">{listTitle}</h2>
       </div>
       <div className="space-y-3">
         {campaigns.map((campaign) => (
