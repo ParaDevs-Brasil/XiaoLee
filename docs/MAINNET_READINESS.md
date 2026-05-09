@@ -1,7 +1,7 @@
 # XiaoLee — Mainnet Readiness Checklist
 
 > Documento de referência para o rollout controlado do protocolo XiaoLee na mainnet Solana.
-> Atualizado em: **2026-05-09** | Sprint 9 concluída.
+> Atualizado em: **2026-05-09** | Sprint 10 em andamento — deploy Render + Railway configurado, CI verde.
 
 ---
 
@@ -10,8 +10,11 @@
 | Categoria | Status | Progresso |
 |---|---|---|
 | Contratos on-chain | [######....] 60% | Emergency pause Concluido, record_swap dry_run; submit real pendente keypair |
-| Backend API | [##########] 100% | **65 testes** passando, CORS hardened, Redis limiter |
-| Frontend | [##########] 100% | TypeScript sem erros, enum unificado, i18n EN/PT completo, contraste corrigido |
+| Backend API | [##########] 100% | **65 testes** passando, CI verde, CORS hardened, Redis limiter |
+| Frontend | [##########] 100% | TypeScript sem erros, enum unificado, i18n EN/PT, contraste corrigido |
+| Deploy Render + Railway | [######....] 60% | `railway.toml` + `render.yaml` prontos; provisionar serviços cloud |
+| Telegram Bot | [##########] 100% | Canal principal para hackathon — operacional |
+| X/Twitter DM outbound | [####......] 40% | Poller implementado — **requer Twitter Developer App ($100/mês)** — ver Gate 7 |
 | PostgreSQL + Alembic | [########..] 80% | Migração gerada; **provisionar DB de produção** |
 | Redis Rate Limiting | [########..] 80% | Código pronto + fallback; **configurar REDIS_URL em produção** |
 | Docker Compose | [##########] 100% | PostgreSQL + Redis + Grafana + migrate one-shot |
@@ -156,24 +159,50 @@ locust -f load_tests/locustfile.py \
 
 ---
 
-## Plano de Rollout (Sprint 7 → Mainnet)
+## Gate 7 — X/Twitter DM Outbound
+
+> Este gate é **exclusivo para mainnet** e não bloqueia o hackathon. O Telegram cobre 100% do fluxo conversacional até lá.
+
+| Item | Status | Detalhe |
+|---|---|---|
+| Webhook inbound HMAC | Concluido | `/v1/integrations/x/webhook` valida SHA-256 |
+| Poller implementado (`x_poller.py`) | Concluido | Suporta login, env cookies e arquivo de cookies |
+| Twitter API oficial (DM v2) | Pendente | Requer Developer App com permissão de DM |
+| Plano mínimo para ativar | Pendente | **Basic ($100/mês)** — [developer.twitter.com](https://developer.twitter.com) |
+
+### Por que o DM outbound não está ativo no hackathon
+
+A biblioteca `agent-twitter-client` (scraper não-oficial) parou de funcionar em 2025 porque o Twitter removeu o endpoint `guest/activate.json` da API v1.1. Mesmo com autenticação por cookies válidos de sessão, a API retorna 401 por vinculação server-side de sessão ao fingerprint do browser.
+
+A única via confiável é a **API oficial v2** com um Twitter Developer App credenciado. O plano Free não inclui DM access; o plano Basic ($100/mês) é o mínimo necessário.
+
+**Ação para mainnet:** criar Developer App, gerar Access Token com escopo `dm.write`, configurar `TWITTER_BEARER_TOKEN` e `TWITTER_ACCESS_TOKEN` no vault.
+
+---
+
+## Plano de Rollout
 
 ```
-Sprint 7
-├── Configurar PostgreSQL de produção + migrar
-├── Configurar Redis em produção
+Sprint 10 — Hackathon Demo (em andamento)
+├── Provisionar Railway (PostgreSQL + Redis + env vars)
+├── Provisionar Render (static site frontend)
+├── CORS atualizado com URL do Render
+└── URL pública para demo e juízes
+
+Sprint 11 — Mainnet Prep
+├── Twitter Developer App Basic → ativar DM outbound
 ├── SOLANA_ADMIN_KEYPAIR_B58 no vault
 ├── record_swap submit real (solders completo)
 ├── Testes de carga em staging (p95 < 500ms)
 └── Contratar auditores
 
-Sprint 8
+Sprint 12 — Auditoria
 ├── Auditoria Smart Contracts (2–4 semanas)
 ├── Correções pós-auditoria
 ├── Pen test frontend
 └── Bug bounty em testnet pública
 
-Sprint 9 — Mainnet Beta
+Sprint 13 — Mainnet Beta
 ├── Deploy em mainnet com TVL limitado
 ├── Monitor Tenderly + OpenZeppelin Defender
 ├── Rollout gradual: 10% → 50% → 100%

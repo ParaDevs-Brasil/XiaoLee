@@ -1,7 +1,7 @@
 # XiaoLee Protocol
 
 > Assistente de IA conversacional para Solana — swap wallet-first, campanhas DeFi on-chain, notificações in-app e interface bilíngue (EN/PT).
-> **Atualizado: 2026-05-09 | Sprint 9 concluída | 98% completo**
+> **Atualizado: 2026-05-09 | Sprint 10 em andamento | Deploy Render + Railway configurado, CI verde**
 
 ---
 
@@ -17,13 +17,15 @@
 
 ## Status do Projeto
 
-Progresso: [##########] 98% — Código e UI completos. Pendente exclusivamente **deploy de produção (Render + Railway)**.
+Progresso: [##########] 98% — Código e UI completos. Deploy configurado (Railway + Render); pendente provisionamento dos serviços cloud.
 
 | Bloco | Status | Detalhe |
 |---|---|---|
 | Core API FastAPI | [##########] 100% | `/health`, `/health/detailed`, `/status`, `/metrics`, `/chat`, `/v1/messages/inbound` |
 | Integração Gemini | [##########] 100% | Intent detection + resposta contextual, personalidade bilíngue |
-| Webhooks Telegram/X | [##########] 100% | HMAC + secret token validados |
+| Webhook Telegram | [##########] 100% | Secret token validado, bot operacional |
+| Webhook X/Twitter (inbound) | [##########] 100% | HMAC SHA-256 validado, endpoint pronto para receber eventos |
+| X/Twitter DM (outbound) | [####......] 40% | Código do poller pronto — **requer Twitter Developer App** (ver nota abaixo) |
 | Solana/Jupiter (prepare) | [##########] 100% | Quote + tx unsigned para wallet assinar |
 | Wallet-first frontend | [##########] 100% | Connect, prepare, simulate, confirmação explícita, sign/send |
 | Campanhas Devnet | [##########] 100% | Join (409 idempotente), verify, claim com proof assinado |
@@ -35,9 +37,18 @@ Progresso: [##########] 98% — Código e UI completos. Pendente exclusivamente 
 | Emergency Pause | [##########] 100% | `pause_protocol` / `unpause_protocol` no contrato Rust |
 | UI/UX Premium | [##########] 100% | SVG icons inline, paleta unificada, responsividade mobile, contraste de texto corrigido |
 | i18n EN/PT | [##########] 100% | `LanguageContext`, toggle na Navbar, todos os componentes traduzidos |
-| QA backend | [##########] 100% | **65 testes passando**, 6 skips legados |
-| Deploy público (Render + Railway) | [..........] 0% | **Próximo passo** |
+| QA backend | [##########] 100% | **65 testes passando**, CI GitHub verde |
+| Deploy público (Render + Railway) | [######....] 60% | `railway.toml` + `render.yaml` prontos; provisionar serviços |
 | Auditoria externa | [..........] 0% -- BLOQUEADOR MAINNET | Não iniciada — P0 para mainnet (não bloqueia demo) |
+
+### Nota: X/Twitter DM
+
+O canal X/Twitter tem **duas camadas** com status distintos:
+
+- **Webhook inbound (100%)** — o endpoint `/v1/integrations/x/webhook` valida HMAC e processa eventos da API oficial. Pronto para receber mensagens assim que configurado no Twitter Developer Portal.
+- **DM Poller outbound (bloqueado para hackathon)** — envio ativo de DMs pela XiaoLee exige acesso à [Twitter API v2 DM](https://developer.twitter.com/en/docs/twitter-api/direct-messages/introduction), disponível a partir do plano **Basic ($100/mês)**. A biblioteca `agent-twitter-client` (scraper não-oficial) não é mais viável porque o Twitter removeu o endpoint `guest/activate.json` em 2025.
+
+**Decisão de produto:** o outbound DM via X faz sentido econômico apenas no lançamento em mainnet, quando o volume de usuários justifica o custo do Developer App. Para o hackathon e devnet, o **Telegram está 100% operacional** como canal de mensagens. O X é o canal alvo para mainnet.
 
 ---
 
@@ -409,7 +420,8 @@ make anchor-idl-sync
 | Fase 7 | CONCLUÍDA | Docker completo, Grafana, Emergency pause |
 | Fase 8 | CONCLUÍDA | Homologação E2E, testes de carga, UI Premium Refactor |
 | Fase 9 | CONCLUÍDA | i18n EN/PT — LanguageContext, toggle navbar, todos os componentes traduzidos, correções de contraste e tamanho de texto |
-| Fase 10 | PLANEJADA | Deploy Render + Railway (URL pública para demo) |
+| Fase 10 | EM ANDAMENTO | Deploy Render + Railway — configuração pronta (`railway.toml`, `render.yaml`), CI verde; provisionamento dos serviços em andamento |
+| Fase 11 | PLANEJADA MAINNET | Twitter Developer App (Basic $100/mês) → ativar DM outbound; PostgreSQL prod, Redis prod, auditoria, multisig, mainnet beta |
 
 ---
 

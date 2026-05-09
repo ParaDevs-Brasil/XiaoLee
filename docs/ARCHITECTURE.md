@@ -25,7 +25,10 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | Camada | Status | Entregas |
 |---|---|---|
 | Backend Core (FastAPI) | [##########] 100% | `/health`, `/health/detailed`, `/status`, `/chat`, `/metrics`, `/v1/messages/inbound` |
-| Integrações de Canal | [##########] 100% | Webhooks Telegram/X (HMAC), Helius (best-effort record_swap) |
+| Webhook Telegram | [##########] 100% | Secret token validado, bot operacional |
+| Webhook X/Twitter (inbound) | [##########] 100% | HMAC SHA-256 validado, endpoint pronto |
+| X/Twitter DM outbound | [####......] 40% | Poller implementado — requer Twitter Developer App para ativar em produção |
+| Helius Webhook | [##########] 100% | HMAC validado, best-effort record_swap |
 | IA (Gemini) | [##########] 100% | Intent detection + resposta contextual |
 | Swap Prepare (Jupiter) | [##########] 100% | Quote + tx unsigned para assinatura em wallet |
 | Wallet Execution (Frontend) | [##########] 100% | Connect, prepare, simulate, confirmação explícita, sign/send |
@@ -130,6 +133,15 @@ PROM --> GRAF
 3. Backend valida segredo/HMAC e orquestra intent via Gemini.
 4. Resposta persistida e entregue no canal de origem.
 
+**Canais de entrada:**
+
+| Canal | Status | Observação |
+|---|---|---|
+| Frontend Next.js | Operacional | REST direto |
+| Telegram Bot | Operacional | Secret token validado |
+| X/Twitter (inbound webhook) | Pronto | HMAC SHA-256; requer configuração no Twitter Developer Portal |
+| X/Twitter (DM outbound) | Planejado — mainnet | Requer Twitter Developer App Basic ($100/mês); biblioteca unofficial não-viável desde 2025 |
+
 ### 4.2 Swap Wallet-first
 
 1. Frontend chama `/v1/solana/swap/prepare` — quote + tx unsigned.
@@ -223,10 +235,18 @@ XiaoLee/
 
 ---
 
-## 7. Próximos Passos (Fase 10 — Mainnet)
+## 7. Próximos Passos
 
-1. **Provisionar PostgreSQL 16+** e rodar `make db-migrate`.
-2. **Provisionar Redis** e configurar `REDIS_URL` em produção.
+### Fase 10 — Deploy Hackathon (em andamento)
+
+1. **Provisionar Railway** — conectar repo, adicionar PostgreSQL + Redis, configurar env vars.
+2. **Provisionar Render** — static site com `rootDir: frontend`, `out/` como publish path.
+3. **Atualizar CORS** — após URL do Render, adicionar em `CORS_ALLOWED_ORIGINS` no Railway.
+
+### Fase 11 — Mainnet
+
+1. **Twitter Developer App Basic ($100/mês)** — ativar DM outbound da XiaoLee via API oficial v2. O webhook inbound (`/v1/integrations/x/webhook`) já está pronto; só falta o token de acesso com permissão de DM.
+2. **Provisionar PostgreSQL 16+** e rodar `make db-migrate`.
 3. **Configurar `SOLANA_ADMIN_KEYPAIR_B58`** no vault → testar `record_swap` submit real em devnet.
 4. **HTTPS + HSTS** no servidor de produção.
 5. **Contratar auditores** — mínimo 2 firmas independentes (ver `docs/MAINNET_READINESS.md`).
@@ -236,6 +256,24 @@ XiaoLee/
 
 ---
 
-## 8. Nota sobre Testes Legados
+## 8. Notas Operacionais
 
-Scripts de integração com Twikit e ferramentas de suporte antigas foram mantidos como referência operacional. Estão skipados no pytest (`-p no:anchorpy`, skip decorators) para não quebrar a suíte principal. A suíte ativa é de **65 testes passando**.
+### CI/CD
+
+GitHub Actions (`fullstack-ci.yml`) roda em todo push para `main`:
+- **Backend:** `pytest -q --ignore=tests/test_anchor_integration.py` (65 testes, ignora teste de integração Anchor que requer validador local)
+- **Frontend:** `npm run lint` + `npm run build`
+
+### X/Twitter DM — Decisão de Arquitetura
+
+O poller de DMs (`backend/server/integrations/x_poller.py`) está implementado e suporta três modos de auth (login, env cookies, arquivo de cookies). Está desativado em produção por enquanto porque:
+
+1. A biblioteca `agent-twitter-client` (não-oficial) parou de funcionar em 2025 — o Twitter removeu `guest/activate.json` da v1.1 API.
+2. A API oficial v2 com permissão de DM requer o plano **Basic ($100/mês)** no Twitter Developer Portal.
+3. Para hackathon/devnet, o **Telegram é o canal principal** e cobre 100% do fluxo conversacional.
+
+A ativação do X DM outbound é o primeiro passo da Fase 11 (mainnet), quando o volume de usuários justifica o custo.
+
+### Testes Legados
+
+Scripts de integração com Twikit e ferramentas de suporte antigas foram mantidos como referência. Estão skipados no pytest para não quebrar a suíte principal. A suíte ativa é de **65 testes passando**.
