@@ -7,6 +7,59 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import Wallet from "./Wallet";
 
+vi.mock("@/contexts/LanguageContext", () => ({
+  useLanguage: () => ({
+    language: "pt",
+    setLanguage: vi.fn(),
+    t: (key: string) => {
+      const pt: Record<string, string> = {
+        "wallet.title": "Minha Carteira",
+        "wallet.subtitle": "Seu saldo de cripto",
+        "wallet.total_balance": "Saldo Total",
+        "wallet.network": "Solana Devnet",
+        "wallet.your_tokens": "Seus Tokens",
+        "wallet.no_tokens": "Sem tokens ainda!",
+        "wallet.no_tokens_sub": "Comece a ganhar participando de campanhas",
+        "wallet.swap_title": "Swap — Solana Devnet",
+        "wallet.connect_phantom": "Conectar Phantom",
+        "wallet.connected": "Conectada",
+        "wallet.input_token": "Token de entrada",
+        "wallet.output_token": "Token de saída",
+        "wallet.qty": "Qtd.",
+        "wallet.prepare": "Preparar e Simular",
+        "wallet.preparing": "Preparando...",
+        "wallet.sign_send": "Assinar e Enviar",
+        "wallet.sending": "Enviando...",
+        "wallet.confirm_text": "Confirmo que revisei a simulação e quero enviar na Devnet.",
+        "wallet.exec_summary": "Resumo de execução",
+        "wallet.route": "Rota:",
+        "wallet.input": "Entrada:",
+        "wallet.estimated_output": "Saída estimada:",
+        "wallet.min_output": "Mínimo garantido:",
+        "wallet.price_impact": "Impacto no preço:",
+        "wallet.cluster": "Cluster:",
+        "wallet.sim_logs": "Logs da simulação",
+        "wallet.secured": "Protegido pela Xiaolee",
+        "wallet.disconnect": "Desconectar carteira",
+        "wallet.phantom_not_found": "Phantom Wallet não encontrada. Instale a extensão para continuar.",
+        "wallet.connected_msg": "Carteira conectada na Solana Devnet.",
+        "wallet.connect_error": "Não foi possível conectar a carteira.",
+        "wallet.connect_first": "Conecte a carteira antes de preparar o swap.",
+        "wallet.select_valid": "Selecione tokens válidos para o swap.",
+        "wallet.same_token": "Token de entrada e saída não podem ser iguais.",
+        "wallet.invalid_amount": "Informe um valor válido para o token de entrada.",
+        "wallet.prepare_success": "Swap preparado e simulado. Revise antes de assinar.",
+        "wallet.prepare_error": "Erro inesperado ao preparar swap.",
+        "wallet.confirm_first": "Confirme que revisou a simulação antes de enviar.",
+        "wallet.phantom_missing": "Phantom Wallet não encontrada.",
+        "wallet.tx_success": "Transação enviada com sucesso na Devnet.",
+        "wallet.tx_error": "Falha ao assinar/enviar transação.",
+      };
+      return pt[key] ?? key;
+    },
+  }),
+}));
+
 vi.mock("@/hooks/useModal", () => ({
   useModal: () => ({
     isOpen: true,
@@ -46,6 +99,7 @@ describe("Wallet swap flow", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
 
     simulateTransactionMock.mockResolvedValue({
       value: {
@@ -81,9 +135,12 @@ describe("Wallet swap flow", () => {
 
     (window as Window & { solana?: unknown }).solana = {
       isPhantom: true,
-      connect: vi.fn(async () => ({
-        publicKey: { toString: () => "Wallet111111111111111111111111111111111111" },
-      })),
+      // Reject onlyIfTrusted so auto-connect silently fails (wallet stays disconnected).
+      // Manual connect (no opts) succeeds so tests can click "Conectar Phantom" themselves.
+      connect: vi.fn(async (opts?: { onlyIfTrusted?: boolean }) => {
+        if (opts?.onlyIfTrusted) throw new Error("Not trusted");
+        return { publicKey: { toString: () => "Wallet111111111111111111111111111111111111" } };
+      }),
       signTransaction: vi.fn(async (tx: unknown) => tx),
     };
   });
@@ -98,7 +155,7 @@ describe("Wallet swap flow", () => {
     await user.click(screen.getByRole("button", { name: "Conectar Phantom" }));
 
     expect(
-      await screen.findByText("Phantom Wallet nao encontrada. Instale a extensao para continuar."),
+      await screen.findByText("Phantom Wallet não encontrada. Instale a extensão para continuar."),
     ).toBeTruthy();
   });
 
@@ -113,19 +170,19 @@ describe("Wallet swap flow", () => {
     await user.click(screen.getByRole("button", { name: "Preparar e Simular" }));
     expect(await screen.findByText("Swap preparado e simulado. Revise antes de assinar.")).toBeTruthy();
 
-    expect(screen.getByText(/Saida estimada:/)).toBeTruthy();
-    expect(screen.getByText(/Minimo estimado:/)).toBeTruthy();
-    expect(screen.getByText(/Slippage configurado:/)).toBeTruthy();
+    expect(screen.getByText(/Saída estimada:/)).toBeTruthy();
+    expect(screen.getByText(/Mínimo garantido:/)).toBeTruthy();
+    expect(screen.getByText(/Impacto no preço:/)).toBeTruthy();
 
     await user.click(
       screen.getByRole("checkbox", {
-        name: "Confirmo que revisei a simulacao e quero enviar esta transacao na Devnet.",
+        name: "Confirmo que revisei a simulação e quero enviar na Devnet.",
       }),
     );
     await user.click(screen.getByRole("button", { name: "Assinar e Enviar" }));
 
-    expect(await screen.findByText("Transacao enviada com sucesso na Devnet.")).toBeTruthy();
-    expect(await screen.findByText(/Tx Signature: tx-signature-123/)).toBeTruthy();
+    expect(await screen.findByText("Transação enviada com sucesso na Devnet.")).toBeTruthy();
+    expect(await screen.findByText(/Tx: tx-signature-123/)).toBeTruthy();
   });
 
   it("blocks send when simulation returns error", async () => {
@@ -143,11 +200,11 @@ describe("Wallet swap flow", () => {
     await user.click(screen.getByRole("button", { name: "Conectar Phantom" }));
     await user.click(screen.getByRole("button", { name: "Preparar e Simular" }));
 
-    expect(await screen.findByText(/Erro na simulacao:/)).toBeTruthy();
+    expect(await screen.findByText(/InstructionError/)).toBeTruthy();
 
     await user.click(
       screen.getByRole("checkbox", {
-        name: "Confirmo que revisei a simulacao e quero enviar esta transacao na Devnet.",
+        name: "Confirmo que revisei a simulação e quero enviar na Devnet.",
       }),
     );
 
@@ -163,11 +220,11 @@ describe("Wallet swap flow", () => {
 
     await user.click(screen.getByRole("button", { name: "Conectar Phantom" }));
 
-    await user.clear(screen.getByPlaceholderText("Quantidade USDC"));
-    await user.type(screen.getByPlaceholderText("Quantidade USDC"), "1.5");
+    await user.clear(screen.getByPlaceholderText("Qtd. USDC"));
+    await user.type(screen.getByPlaceholderText("Qtd. USDC"), "1.5");
 
     await user.selectOptions(screen.getByLabelText("Token de entrada"), "So11111111111111111111111111111111111111112");
-    await user.selectOptions(screen.getByLabelText("Token de saida"), "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+    await user.selectOptions(screen.getByLabelText("Token de saída"), "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
     await user.click(screen.getByRole("button", { name: "Preparar e Simular" }));
 
@@ -211,13 +268,13 @@ describe("Wallet swap flow", () => {
 
     await user.click(screen.getByRole("button", { name: "Conectar Phantom" }));
     await user.selectOptions(
-      screen.getByLabelText("Token de saida"),
+      screen.getByLabelText("Token de saída"),
       "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
     );
 
     await user.click(screen.getByRole("button", { name: "Preparar e Simular" }));
 
-    expect(await screen.findByText("Token de entrada e saida nao podem ser iguais.")).toBeTruthy();
+    expect(await screen.findByText("Token de entrada e saída não podem ser iguais.")).toBeTruthy();
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
 
@@ -228,12 +285,12 @@ describe("Wallet swap flow", () => {
 
     await user.click(screen.getByRole("button", { name: "Conectar Phantom" }));
 
-    await user.clear(screen.getByPlaceholderText("Quantidade USDC"));
-    await user.type(screen.getByPlaceholderText("Quantidade USDC"), "0");
+    await user.clear(screen.getByPlaceholderText("Qtd. USDC"));
+    await user.type(screen.getByPlaceholderText("Qtd. USDC"), "0");
 
     await user.click(screen.getByRole("button", { name: "Preparar e Simular" }));
 
-    expect(await screen.findByText("Informe um valor valido para o token de entrada.")).toBeTruthy();
+    expect(await screen.findByText("Informe um valor válido para o token de entrada.")).toBeTruthy();
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
 
@@ -244,12 +301,12 @@ describe("Wallet swap flow", () => {
 
     await user.click(screen.getByRole("button", { name: "Conectar Phantom" }));
 
-    await user.clear(screen.getByPlaceholderText("Quantidade USDC"));
-    await user.type(screen.getByPlaceholderText("Quantidade USDC"), "abc");
+    await user.clear(screen.getByPlaceholderText("Qtd. USDC"));
+    await user.type(screen.getByPlaceholderText("Qtd. USDC"), "abc");
 
     await user.click(screen.getByRole("button", { name: "Preparar e Simular" }));
 
-    expect(await screen.findByText("Informe um valor valido para o token de entrada.")).toBeTruthy();
+    expect(await screen.findByText("Informe um valor válido para o token de entrada.")).toBeTruthy();
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
 
@@ -269,7 +326,7 @@ describe("Wallet swap flow", () => {
     await user.click(screen.getByRole("button", { name: "Preparar e Simular" }));
     await user.click(
       screen.getByRole("checkbox", {
-        name: "Confirmo que revisei a simulacao e quero enviar esta transacao na Devnet.",
+        name: "Confirmo que revisei a simulação e quero enviar na Devnet.",
       }),
     );
     await user.click(screen.getByRole("button", { name: "Assinar e Enviar" }));
@@ -289,7 +346,7 @@ describe("Wallet swap flow", () => {
     await user.click(screen.getByRole("button", { name: "Preparar e Simular" }));
     await user.click(
       screen.getByRole("checkbox", {
-        name: "Confirmo que revisei a simulacao e quero enviar esta transacao na Devnet.",
+        name: "Confirmo que revisei a simulação e quero enviar na Devnet.",
       }),
     );
     await user.click(screen.getByRole("button", { name: "Assinar e Enviar" }));
