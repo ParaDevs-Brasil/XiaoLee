@@ -176,6 +176,16 @@ export function deriveGlobalConfigPda(): PublicKey {
 
 export type XiaoLeeProgramErrorCode = 'not_found' | 'connection_error' | null;
 
+// Devnet session tokens (devnet_wallet_* / devnet_guest_*) are frontend-only
+// identifiers and never correspond to on-chain UserState accounts. They also
+// frequently exceed the 32-byte PDA seed limit, causing a hard crash.
+function isRealTwitterId(id: string | null): boolean {
+  if (!id) return false;
+  if (id.startsWith('devnet_')) return false;
+  if (Buffer.from(id).length > 32) return false;
+  return true;
+}
+
 export function useXiaoLeeProgram(twitterId: string | null) {
   const [userState, setUserState] = useState<XiaoLeeUserState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -183,7 +193,7 @@ export function useXiaoLeeProgram(twitterId: string | null) {
   const [errorCode, setErrorCode] = useState<XiaoLeeProgramErrorCode>(null);
 
   const fetchUserState = useCallback(async () => {
-    if (!twitterId) {
+    if (!isRealTwitterId(twitterId)) {
       setUserState(null);
       setErrorCode(null);
       return;
@@ -209,7 +219,7 @@ export function useXiaoLeeProgram(twitterId: string | null) {
 
       const program = new anchor.Program(XIAOLEE_IDL, provider);
 
-      const pda = deriveUserStatePda(twitterId);
+      const pda = deriveUserStatePda(twitterId as string);
 
       // Fetch da conta UserState via PDA derivado
       // O IDL real garante que o decode está correto com os campos do contrato
@@ -259,6 +269,6 @@ export function useXiaoLeeProgram(twitterId: string | null) {
     errorCode,
     refetch: fetchUserState,
     /** PDA derivado para uso externo (ex: exibir explorer link) */
-    userStatePda: twitterId ? deriveUserStatePda(twitterId) : null,
+    userStatePda: isRealTwitterId(twitterId) ? deriveUserStatePda(twitterId as string) : null,
   };
 }
