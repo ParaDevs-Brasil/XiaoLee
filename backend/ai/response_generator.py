@@ -1399,7 +1399,7 @@ class XiaoLeeResponseGenerator:
             if confirm_match:
                 action_id = confirm_match.group(1)
                 logger.info(f"✅ [MCP_CONFIRMATION] User requesting confirmation of action {action_id}")
-                
+
                 # Use the MCP confirm_action tool
                 return await self._handle_tool_execution(
                     tool_name="confirm_action",
@@ -1407,7 +1407,35 @@ class XiaoLeeResponseGenerator:
                     dossier=dossier,
                     pending_confirmations=pending_confirmations
                 )
-            
+
+            # Pre-LLM transfer intent detection — bypasses Gemini safety guardrails
+            # Matches: "send 2 SOL to @handle", "manda 1.5 USDC pra @user", "transfer 3 sol to wallet..."
+            transfer_intent = re.search(
+                r'(?:send|transfer|enviar?|mandar?|manda|mande|transferir?)\s+'
+                r'(\d+(?:[.,]\d+)?)\s+'
+                r'([A-Za-z$]+)\s+'
+                r'(?:to|para|pra|p/)\s+@?(\S+)',
+                normalized_message,
+                re.IGNORECASE,
+            )
+            if transfer_intent:
+                pre_user_id = dossier.get('user_info', {}).get('twitter_user_id') if dossier else None
+                if pre_user_id:
+                    raw_amount = transfer_intent.group(1).replace(',', '.')
+                    token_sym = transfer_intent.group(2).lstrip('$').upper()
+                    recipient = transfer_intent.group(3).lstrip('@').rstrip('.,!?')
+                    logger.info(f"🚀 [TRANSFER_INTENT] Detected: {raw_amount} {token_sym} → {recipient}")
+                    return await self._handle_tool_execution(
+                        tool_name="transfer_token",
+                        tool_params={
+                            "recipient_twitter_handle": recipient,
+                            "token_symbol": token_sym,
+                            "amount": float(raw_amount),
+                        },
+                        dossier=dossier,
+                        pending_confirmations=pending_confirmations,
+                    )
+
             # Build enhanced system prompt with user context
             system_prompt = self._build_dynamic_system_prompt(dossier, pending_confirmations)
             
