@@ -31,10 +31,22 @@ export default function ChatPanel() {
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
   const [authLoading, setAuthLoading] = useState<{[key: number]: boolean}>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
 
-  // Auto-scroll to latest message
+  // Track whether user is near the bottom
+  const handleScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isNearBottomRef.current = distanceFromBottom < 80;
+  };
+
+  // Only auto-scroll if already near bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [msgs]);
 
   // Check initial authentication status and load existing chat history
@@ -125,6 +137,7 @@ export default function ChatPanel() {
   const handleSendMessage = async (message: string) => {
     setLoading(true);
     setMessage("");
+    isNearBottomRef.current = true; // always scroll on send
 
     // Show user message + typing indicator immediately
     setMsgs(prev => [...prev, { sent: message, response: TYPING_SENTINEL, hasCode: false, code: "" }]);
@@ -193,7 +206,7 @@ export default function ChatPanel() {
       </div>
       
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto space-y-3 md:space-y-4 pr-1 md:pr-2 custom-scrollbar relative z-10 mb-2 md:mb-4 pb-2">        {messagesWithCodes.length === 0 && (
+      <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto space-y-3 md:space-y-4 pr-1 md:pr-2 custom-scrollbar relative z-10 mb-2 md:mb-4 pb-2">        {messagesWithCodes.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-70">
             <div className="text-4xl md:text-6xl mb-2 md:mb-4 animate-gentle-bounce cursor-none">💫</div>
             <p className="text-[var(--text-accent)] text-base md:text-lg font-medium px-2">
