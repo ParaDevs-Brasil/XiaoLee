@@ -166,7 +166,7 @@ export default function AnimePanel() {
         </div>
       ) : (
         // Desktop: Static version - WITH TITLE and full design
-        <div className="w-full lg:col-span-1 h-full p-6 rounded-3xl shadow-2xl flex flex-col items-center bg-gradient-to-br from-[var(--panel-bg-start)] via-[var(--panel-bg-middle)] to-[var(--panel-bg-end)] border-2 border-[var(--panel-border)] backdrop-blur-sm relative overflow-hidden">
+        <div className="w-full lg:col-span-1 h-full min-h-0 p-6 rounded-3xl shadow-2xl flex flex-col items-center bg-gradient-to-br from-[var(--panel-bg-start)] via-[var(--panel-bg-middle)] to-[var(--panel-bg-end)] border-2 border-[var(--panel-border)] backdrop-blur-sm relative overflow-hidden">
           {/* Floating decorative elements */}
           <div className="absolute top-12 left-6 text-lg animate-pulse">🌟</div>
           <div className="absolute bottom-24 right-4 text-sm animate-bounce">💖</div>
