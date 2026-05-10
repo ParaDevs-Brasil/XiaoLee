@@ -213,7 +213,9 @@ def _verify_claim_proof(payload: CampaignActionRequest, campaign_id: int, sessio
 
     # Custodial sessions (Google/Telegram) are already authenticated via Bearer token in
     # _resolve_user — wallet signature is redundant and not required for them.
-    is_custodial = session_token.startswith(("google_session_", "tg_session_"))
+    # Covers both session tokens (google_session_*, tg_session_*) and twitter_user_id
+    # format (google_*, tg_*) since getSessionId() may return either.
+    is_custodial = session_token.startswith(("google_", "tg_"))
 
     if not public_key or not message:
         raise HTTPException(status_code=400, detail="Wallet public key and proof message are required")
