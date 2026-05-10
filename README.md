@@ -1,7 +1,7 @@
 # XiaoLee Protocol
 
-> Assistente de IA conversacional para Solana — swap wallet-first, campanhas DeFi on-chain, notificações in-app e interface bilíngue (EN/PT).
-> **Atualizado: 2026-05-10 | Sprint 10 concluída | Deploy Railway configurado, CI verde**
+> Assistente de IA conversacional para Solana — swap wallet-first, campanhas DeFi on-chain, transfer universal por @handle, notificações in-app e interface bilíngue (EN/PT).
+> **Atualizado: 2026-05-10 | Sprint 11 concluída | Deploy Railway ativo, transfer universal por @handle/carteira**
 
 ---
 
@@ -17,30 +17,32 @@
 
 ## Status do Projeto
 
-Progresso: [##########] 98% — Código e UI completos. Deploy configurado (Railway + Render); pendente provisionamento dos serviços cloud.
+Progresso: [##########] 99% — Código, UI e deploy completos. Sprint 11 encerrada.
 
 | Bloco | Status | Detalhe |
 |---|---|---|
 | Core API FastAPI | [##########] 100% | `/health`, `/health/detailed`, `/status`, `/metrics`, `/chat`, `/v1/messages/inbound` |
-| Integração Gemini | [##########] 100% | Intent detection + resposta contextual, personalidade bilíngue |
+| Integração Gemini | [##########] 100% | Intent detection + resposta contextual, idioma espelhado (PT/EN automático) |
 | Webhook Telegram | [##########] 100% | Secret token validado, bot operacional |
 | Webhook X/Twitter (inbound) | [##########] 100% | HMAC SHA-256 validado, endpoint pronto para receber eventos |
 | X/Twitter DM (outbound) | [####......] 40% | Código do poller pronto — **requer Twitter Developer App** (ver nota abaixo) |
+| Transfer Universal | [##########] 100% | `ModernTransferService` — envia para @handle (Telegram/Twitter) ou endereço de carteira Solana |
+| Pre-LLM Transfer Intent | [##########] 100% | Regex detecta "envia X SOL para @user" antes do Gemini — bypassa safety refusal |
 | Solana/Jupiter (prepare) | [##########] 100% | Quote + tx unsigned para wallet assinar |
 | Wallet-first frontend | [##########] 100% | Connect, prepare, simulate, confirmação explícita, sign/send |
-| Campanhas Devnet | [##########] 100% | Join (409 idempotente), verify, claim com proof assinado |
+| Campanhas Devnet | [##########] 100% | Join (409 idempotente), verify, claim com proof — custodial (Google/Telegram) sem assinatura Ed25519 |
 | Redis Rate Limiting | [##########] 100% | Sliding window + fallback in-memory automático |
-| PostgreSQL + Alembic | [########..] 80% | Migração gerada; provisionar DB em produção |
+| PostgreSQL + Alembic | [##########] 100% | Railway provisiona e migra automaticamente no deploy |
 | Docker Compose completo | [##########] 100% | PostgreSQL + Redis + Grafana + migrate one-shot |
 | Grafana Dashboard | [##########] 100% | 8 painéis, provisionamento automático |
 | Anchor on-chain | [######....] 60% | PDA real (solders), record_swap (dry_run até keypair em produção) |
 | Emergency Pause | [##########] 100% | `pause_protocol` / `unpause_protocol` no contrato Rust |
-| UI/UX Premium | [##########] 100% | SVG icons inline, paleta unificada, responsividade mobile, Navbar xs responsiva, Wallet balance no scroll, Historico redesenhado |
-| i18n EN/PT | [##########] 100% | `LanguageContext`, toggle na Navbar, todos os componentes traduzidos, errorCode pattern em hooks |
-| Auth (Web3Auth + Phantom) | [##########] 100% | Google OAuth via Web3Auth, carteira custodial, Phantom devnet, sessão persistida em localStorage |
+| UI/UX Premium | [##########] 100% | Crossfade de vídeo sem flash, typing indicator (PT/EN), mensagem imediata no envio, auto-scroll inteligente |
+| i18n EN/PT | [##########] 100% | `LanguageContext`, toggle na Navbar, todos os componentes traduzidos; Xiaolee responde no idioma do usuário |
+| Auth (Web3Auth + Phantom) | [##########] 100% | Google OAuth via Web3Auth, carteira custodial, Phantom devnet, sessão persistida — fallback por `twitter_user_id` |
 | Chat History | [##########] 100% | Historico modal com filtros All/You/Xiaolee; persistência dual (in-memory + localStorage); sobrevive fetchData() |
 | QA backend | [##########] 100% | **65 testes passando**, CI GitHub verde |
-| Deploy público (Render + Railway) | [######....] 60% | `railway.toml` + `render.yaml` prontos; provisionar serviços |
+| Deploy público (Railway) | [##########] 100% | Frontend + backend em produção no Railway; ARG/ENV corretos no Dockerfile |
 | Auditoria externa | [..........] 0% -- BLOQUEADOR MAINNET | Não iniciada — P0 para mainnet (não bloqueia demo) |
 
 ### Nota: X/Twitter DM
@@ -427,7 +429,8 @@ make anchor-idl-sync
 | Fase 8 | CONCLUÍDA | Homologação E2E, testes de carga, UI Premium Refactor |
 | Fase 9 | CONCLUÍDA | i18n EN/PT — LanguageContext, toggle navbar, todos os componentes traduzidos, correções de contraste e tamanho de texto |
 | Fase 10 | CONCLUÍDA | UX sprint — CampaignCard reativo, Dashboard fix, ActivityFeed unificado, Historico redesenhado, Navbar responsiva xs, Wallet scroll fix, chat history localStorage, Web3Auth auth flow |
-| Fase 11 | PLANEJADA MAINNET | Deploy Railway/Render (provisionar serviços), Twitter Developer App ($100/mês) → DM outbound, PostgreSQL prod, Redis prod, auditoria, multisig, mainnet beta |
+| Fase 11 | CONCLUÍDA | Transfer universal (@handle + carteira), pre-LLM intent detection, idioma automático PT/EN, claim reward custodial, crossfade vídeo, typing indicator, auto-scroll inteligente, auth fallback por twitter_user_id |
+| Fase 12 | PLANEJADA MAINNET | Twitter Developer App ($100/mês) → DM outbound, auditoria externa, multisig, mainnet beta |
 
 ---
 

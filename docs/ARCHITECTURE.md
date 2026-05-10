@@ -1,8 +1,8 @@
 # Arquitetura XiaoLee — Estado Atual
 
-> Atualizado em: **2026-05-10** | Sprint 10 — UX sprint concluída.
-> Estimativa geral de construção: **99%** — código e UI completos.
-> O que falta é exclusivamente **infraestrutura de produção e auditoria externa**.
+> Atualizado em: **2026-05-10** | Sprint 11 — Transfer universal, UX de chat e AI bilíngue.
+> Estimativa geral de construção: **99%** — código, UI e deploy completos.
+> O que falta é exclusivamente **auditoria externa e mainnet**.
 
 ---
 
@@ -32,10 +32,12 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | IA (Gemini) | [##########] 100% | Intent detection + resposta contextual |
 | Swap Prepare (Jupiter) | [##########] 100% | Quote + tx unsigned para assinatura em wallet |
 | Wallet Execution (Frontend) | [##########] 100% | Connect, prepare, simulate, confirmação explícita, sign/send |
-| UI/UX e Responsividade | [##########] 100% | Otimização mobile; redesign Dashboard/Notifications; Navbar xs responsiva (sem scrollbar fantasma); Wallet balance no fluxo de scroll; Historico redesenhado |
-| Auth (Web3Auth + Phantom) | [##########] 100% | Google OAuth via Web3Auth, carteira custodial gerada, Phantom devnet, sessão em `UserData` + localStorage |
+| UI/UX e Responsividade | [##########] 100% | Crossfade de vídeo (sem flash), typing indicator PT/EN, mensagem imediata no envio, auto-scroll inteligente, AnimePanel contido no grid |
+| Auth (Web3Auth + Phantom) | [##########] 100% | Google OAuth via Web3Auth, carteira custodial gerada, Phantom devnet; `get_user_from_session()` aceita `twitter_user_id` como Bearer |
 | Chat History | [##########] 100% | `addLocalChatMessage` persiste em localStorage; `getChatHistory` merge dedup; Historico modal com filtros All/You/Xiaolee |
-| Campanhas | [##########] 100% | Join (409 idempotente), verify, claim com proof assinado, receipt persistido |
+| Campanhas | [##########] 100% | Join (409 idempotente), verify, claim com proof; custodial (google_*/tg_*) dispensado de Ed25519 |
+| Transfer Universal | [##########] 100% | `ModernTransferService` resolve @telegram, @twitter, endereço Solana base58; pending transfer se destinatário sem conta |
+| AI Bilíngue + Transfer Intent | [##########] 100% | Xiaolee espelha idioma do usuário; regex pre-LLM detecta transfer intent e bypassa safety refusal do Gemini |
 | Redis Rate Limiting | [##########] 100% | Sliding window + fallback in-memory automático |
 | PostgreSQL + Alembic | [########..] 80% | Migração gerada; requer provisionamento em produção |
 | Docker Compose | [##########] 100% | PostgreSQL + Redis + Grafana + migrate one-shot |
@@ -60,7 +62,8 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | Fase 8 | Concluida | UI Premium Refactor: Dashboard e Notifications redesenhados (SVG icons inline, paleta unificada, responsividade mobile, Navbar com ícones premium) |
 | Fase 9 | Concluida | i18n EN/PT: `LanguageContext`, `useLanguage()`, `t()` com dot-path + interpolação `{{var}}`, toggle EN/PT na Navbar, locale files `en.json`/`pt.json`, todos os componentes traduzidos, correções de contraste e tamanho de texto |
 | Fase 10 | Concluida | UX sprint: CampaignCard reativo (fix pós-claim), Dashboard fix (Carteira Desconectada), ActivityFeed unificado (campanhas+notifs), errorCode pattern em hooks, Navbar xs responsiva, Historico redesenhado + chat history localStorage, Wallet scroll fix, Withdraw/Deposit → Wallet modal |
-| Fase 11 | Planejada | Deploy Railway/Render, Twitter Developer App, PostgreSQL/Redis prod, auditoria, multisig, mainnet beta |
+| Fase 11 | Concluida | Transfer universal (`ModernTransferService`), pre-LLM transfer intent detection, Xiaolee bilíngue (espelha idioma), claim reward custodial sem Ed25519, crossfade de vídeo sem flash, typing indicator PT/EN, mensagem imediata no envio, auto-scroll inteligente, auth fallback por `twitter_user_id` |
+| Fase 12 | Planejada | Twitter Developer App, auditoria externa, multisig, mainnet beta |
 
 ---
 
@@ -157,9 +160,52 @@ PROM --> GRAF
 
 1. Usuário chama `POST /campaigns/join` — `UniqueConstraint` garante idempotência (409 Conflict se já inscrito).
 2. `POST /campaigns/verify` — verifica tarefas e emite `campaign:tasks_verified`.
-3. `POST /campaigns/claim` — valida proof assinado pela wallet, persiste receipt, cria notificação in-app.
+3. `POST /campaigns/claim` — valida proof. Usuários custodiais (`google_*`/`tg_*`) dispensados de assinatura Ed25519; apenas Phantom precisa assinar.
 
-### 4.4 Observabilidade
+### 4.4 Transfer Universal
+
+```
+Usuário (chat): "envia 2 SOL para @jistriane"
+       ↓
+response_generator.py
+  1. Regex pre-LLM detecta: amount=2, token=SOL, recipient="jistriane"
+  2. Chama ModernTransferService.transfer_tokens() diretamente
+       ↓
+ModernTransferService._resolve_recipient_with_enhanced_logic()
+  1. É endereço base58? → busca Wallet no DB → resolve user_id
+  2. É @handle? → busca por twitter_handle OU telegram_chat_id (case-insensitive)
+  3. Não encontrado? → cria pending transfer (tokens guardados até o destinatário criar conta)
+       ↓
+Resultado: TRANSFER_SUCCESS_DIRECT ou TRANSFER_SUCCESS_PENDING
+```
+
+**Formatos aceitos pelo chat:**
+- `"envia 2 SOL para @jistriane"` — handle Telegram ou Twitter
+- `"send 1.5 USDC to EZKVUN9R..."` — endereço Solana base58
+- `"manda 3 XLEE pra @brazilliancare"` — PT-BR também detectado
+
+### 4.5 Fluxo de Chat Autenticado
+
+```
+POST /chat  { Authorization: Bearer <token> }
+       ↓
+get_user_from_session()
+  1. Busca WebSession por session_id (google_session_*, tg_session_*)
+  2. Fallback: busca User por twitter_user_id diretamente (google_*, tg_*, devnet_*)
+       ↓
+handle_chat_request(user, is_authenticated=True)
+       ↓
+generate_response()  [response_generator.py]
+  1. Verifica token 6-dígitos → auth flow
+  2. Verifica pending confirmations → executa ação pendente
+  3. Pre-LLM transfer intent (regex) → transfer_token direto
+  4. Pre-LLM confirm intent (regex) → confirm_action direto
+  5. Fallback → Gemini com tools + system prompt bilíngue
+```
+
+### 4.6 Observabilidade
+
+### 4.7 Observabilidade
 
 1. Cada request HTTP é registrado em `xiaolee_http_requests_total` e `xiaolee_http_request_duration_seconds_avg`.
 2. `GET /metrics` expõe métricas em formato Prometheus.
@@ -238,15 +284,55 @@ XiaoLee/
 
 ---
 
-## 7. Próximos Passos
+## 7. UX de Chat — Decisões de Implementação (Sprint 11)
 
-### Fase 10 — Deploy Hackathon (em andamento)
+### Typing Indicator & Feedback Visual
 
-1. **Provisionar Railway** — conectar repo, adicionar PostgreSQL + Redis, configurar env vars.
-2. **Provisionar Render** — static site com `rootDir: frontend`, `out/` como publish path.
-3. **Atualizar CORS** — após URL do Render, adicionar em `CORS_ALLOWED_ORIGINS` no Railway.
+```
+Usuário envia mensagem
+  → setMessage("") imediato (input limpa)
+  → setMsgs([...prev, { sent, response: "__typing__" }])  ← aparece na tela
+  → API call (async)
+  → resposta chega → replace último item com conteúdo real
+```
 
-### Fase 11 — Mainnet
+O sentinel `"__typing__"` é renderizado como bolha animada com três pontinhos (`typing-dot` CSS) e texto `digitando... / typing...` em itálico.
+
+### Auto-Scroll Inteligente
+
+```
+scrollContainerRef (div overflow-y-auto)
+  → onScroll: atualiza isNearBottomRef (true se < 80px do fundo)
+
+useEffect([msgs]):
+  if isNearBottomRef.current → messagesEndRef.scrollIntoView(smooth)
+
+handleSendMessage:
+  isNearBottomRef.current = true  ← força scroll no envio
+```
+
+Comportamento: scroll automático só quando o usuário já está perto do fundo **ou** acabou de enviar uma mensagem.
+
+### Crossfade de Vídeo (Pfp.tsx)
+
+```
+activeSrc  (opacity: 1, sempre visível)
+pendingSrc (opacity: 0, carregando em background)
+  → onCanPlay → swapToPending()
+       → fade: active opacity 0 → 250ms → activeSrc = pendingSrc, opacity 1
+```
+
+Elimina o flash branco que ocorria ao usar `key={videoKey}` para forçar remount do `<video>`.
+
+---
+
+## 8. Próximos Passos
+
+### Fase 11 — Concluída
+
+Deploy Railway operacional. Frontend e backend em produção com CI automático via GitHub push.
+
+### Fase 12 — Mainnet
 
 1. **Twitter Developer App Basic ($100/mês)** — ativar DM outbound da XiaoLee via API oficial v2. O webhook inbound (`/v1/integrations/x/webhook`) já está pronto; só falta o token de acesso com permissão de DM.
 2. **Provisionar PostgreSQL 16+** e rodar `make db-migrate`.
@@ -259,7 +345,7 @@ XiaoLee/
 
 ---
 
-## 8. Notas Operacionais
+## 9. Notas Operacionais
 
 ### CI/CD
 
