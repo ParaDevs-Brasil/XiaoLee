@@ -123,6 +123,10 @@ export default class UserData {
   }
   
   static getSessionId(): string {
+    // Prefer twitter_user_id (set after real auth) over guest session token
+    if (this.user_info?.twitter_user_id && this.user_info.twitter_user_id.trim()) {
+      return this.user_info.twitter_user_id;
+    }
     if (!this.session_id && typeof window !== 'undefined') {
       const stored = window.localStorage.getItem('xiaolee_devnet_session');
       if (stored && stored.trim()) {
