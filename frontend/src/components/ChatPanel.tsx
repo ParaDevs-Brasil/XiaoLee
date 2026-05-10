@@ -1,5 +1,5 @@
 import sendChatMessage from "@/hooks/useChat";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Video from "./Video";
 import UserData from "./UserData";
 import handleAuth, { AuthStatus } from "@/hooks/useAuth";
@@ -30,6 +30,12 @@ export default function ChatPanel() {
   const [loading, setLoading] = useState(false);
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
   const [authLoading, setAuthLoading] = useState<{[key: number]: boolean}>({});
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [msgs]);
 
   // Check initial authentication status and load existing chat history
   useEffect(() => {
@@ -353,6 +359,7 @@ export default function ChatPanel() {
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
       {/* Message Input */}
       <div className="mt-auto flex space-x-2 md:space-x-3 relative z-10 flex-shrink-0">
