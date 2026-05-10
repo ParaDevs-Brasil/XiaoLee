@@ -120,61 +120,53 @@ export default function ChatPanel() {
     }));
   }, [msgs]);
 
+  const TYPING_SENTINEL = "__typing__";
+
   const handleSendMessage = async (message: string) => {
     setLoading(true);
-    
+    setMessage("");
+
+    // Show user message + typing indicator immediately
+    setMsgs(prev => [...prev, { sent: message, response: TYPING_SENTINEL, hasCode: false, code: "" }]);
+
     try {
       const response = await sendChatMessage(message);
-      
+
       let messageHasCode = false;
       let messageCode = "";
-        
+
       if (response.code !== null && response.code !== undefined) {
         messageCode = response.code;
         messageHasCode = true;
-        console.log("🔍 Code found:", response.code);
       }
 
       if (response.animations !== null && response.animations !== undefined) {
         Video.setPfp(actions[response.animations as keyof typeof actions]);
       }
-      
+
       if (response && response.response[0].content) {
-        const newMsg = [...msgs, { 
-          sent: message, 
-          response: response.response[0].content,
-          hasCode: messageHasCode,
-          code: messageCode
-        }];
-        setMsgs(newMsg);
-        
-        // Store in UserData for persistence and history access
-        UserData.addLocalChatMessage(message, response.response[0].content);
+        const content = response.response[0].content;
+        setMsgs(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { sent: message, response: content, hasCode: messageHasCode, code: messageCode };
+          return updated;
+        });
+        UserData.addLocalChatMessage(message, content);
       }
-      
-      setMessage("");
-     
+
       if (UserData.getUserData() !== null) {
         await fetchData();
       }
-      
+
     } catch (error) {
       console.error("❌ Error sending message:", error);
-      const errorMsg = [
-        ...msgs,
-        {
-          sent: message,
-          response: "Sorry, there was an error sending your message. Please try again.",
-          hasCode: false,
-          code: ""
-        },
-      ];
-      setMsgs(errorMsg);
-      
-      // Store error message in UserData too
-      UserData.addLocalChatMessage(message, "Sorry, there was an error sending your message. Please try again.");
-      
-      setMessage("");
+      const errText = "Sorry, there was an error sending your message. Please try again.";
+      setMsgs(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { sent: message, response: errText, hasCode: false, code: "" };
+        return updated;
+      });
+      UserData.addLocalChatMessage(message, errText);
     } finally {
       setLoading(false);
     }
@@ -256,9 +248,22 @@ export default function ChatPanel() {
                         🌸
                         </div>
                       </div>                      <div className="flex-grow min-w-0">
+                        {msg.response === TYPING_SENTINEL ? (
+                          <div className="flex items-center space-x-2 py-1">
+                            <div className="flex items-center space-x-1 text-[var(--chat-bubble-assistant-text)]">
+                              <span className="typing-dot" />
+                              <span className="typing-dot" />
+                              <span className="typing-dot" />
+                            </div>
+                            <span className="text-xs text-[var(--chat-bubble-assistant-text)] opacity-60 italic animate-pulse">
+                              digitando... / typing...
+                            </span>
+                          </div>
+                        ) : (
                         <p className="text-[var(--chat-bubble-assistant-text)] leading-relaxed break-words text-sm md:text-base">
                           {msg.response}
                         </p>
+                        )}
                         {/* Verify Button with Status - Only if THIS message has code AND user is not authenticated */}
                         {msg.hasCode && msg.code && authStatus?.status !== "active" && (
                           <div className="mt-2 md:mt-3 flex items-center space-x-1 md:space-x-2 flex-wrap gap-1 md:gap-2">
@@ -307,8 +312,8 @@ export default function ChatPanel() {
                           </div>
                         )}
                         
-                        {/* Show only status if user is already authenticated */}
-                        {authStatus?.status === "active" && (
+                        {/* Show only status if user is already authenticated and not typing */}
+                        {authStatus?.status === "active" && msg.response !== TYPING_SENTINEL && (
                           <div className="mt-2 md:mt-3">
                             <div className="px-2 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 bg-green-100 text-green-600 w-fit">
                               <span className="text-xs">✅</span>
@@ -316,7 +321,7 @@ export default function ChatPanel() {
                             </div>
                           </div>
                         )}
-                        <div className="flex items-center justify-between mt-2 md:mt-3">
+                        <div className={`flex items-center justify-between mt-2 md:mt-3 ${msg.response === TYPING_SENTINEL ? 'hidden' : ''}`}>
                           <div className="flex items-center space-x-1">
                             <span className="text-xs text-[var(--chat-bubble-assistant-accent-light)] italic">
                             Xiaolee
