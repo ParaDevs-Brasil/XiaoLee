@@ -1,8 +1,8 @@
 # Arquitetura XiaoLee — Estado Atual
 
-> Atualizado em: **2026-05-09** | Sprint 9 — i18n EN/PT concluída.
-> Estimativa geral de construção: **98%** (faixa estimada: **97% a 99%**).
-> O que falta é exclusivamente **infraestrutura de produção e auditoria externa** — não código.
+> Atualizado em: **2026-05-10** | Sprint 10 — UX sprint concluída.
+> Estimativa geral de construção: **99%** — código e UI completos.
+> O que falta é exclusivamente **infraestrutura de produção e auditoria externa**.
 
 ---
 
@@ -32,7 +32,9 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | IA (Gemini) | [##########] 100% | Intent detection + resposta contextual |
 | Swap Prepare (Jupiter) | [##########] 100% | Quote + tx unsigned para assinatura em wallet |
 | Wallet Execution (Frontend) | [##########] 100% | Connect, prepare, simulate, confirmação explícita, sign/send |
-| UI/UX e Responsividade | [##########] 100% | Otimização mobile (`100dvh`, teclado virtual, drag/drop PFP); redesign premium Dashboard e Notifications (SVG icons, paleta unificada, zero emojis de layout); correções de contraste de texto |
+| UI/UX e Responsividade | [##########] 100% | Otimização mobile; redesign Dashboard/Notifications; Navbar xs responsiva (sem scrollbar fantasma); Wallet balance no fluxo de scroll; Historico redesenhado |
+| Auth (Web3Auth + Phantom) | [##########] 100% | Google OAuth via Web3Auth, carteira custodial gerada, Phantom devnet, sessão em `UserData` + localStorage |
+| Chat History | [##########] 100% | `addLocalChatMessage` persiste em localStorage; `getChatHistory` merge dedup; Historico modal com filtros All/You/Xiaolee |
 | Campanhas | [##########] 100% | Join (409 idempotente), verify, claim com proof assinado, receipt persistido |
 | Redis Rate Limiting | [##########] 100% | Sliding window + fallback in-memory automático |
 | PostgreSQL + Alembic | [########..] 80% | Migração gerada; requer provisionamento em produção |
@@ -57,7 +59,8 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | Fase 7 | Concluida | Docker Compose completo, Grafana, Emergency Pause Rust, Makefile, UI Mobile hardening |
 | Fase 8 | Concluida | UI Premium Refactor: Dashboard e Notifications redesenhados (SVG icons inline, paleta unificada, responsividade mobile, Navbar com ícones premium) |
 | Fase 9 | Concluida | i18n EN/PT: `LanguageContext`, `useLanguage()`, `t()` com dot-path + interpolação `{{var}}`, toggle EN/PT na Navbar, locale files `en.json`/`pt.json`, todos os componentes traduzidos, correções de contraste e tamanho de texto |
-| Fase 10 | Planejada | Provisionar infra produção, Auditoria, HTTPS, Multisig, Mainnet beta |
+| Fase 10 | Concluida | UX sprint: CampaignCard reativo (fix pós-claim), Dashboard fix (Carteira Desconectada), ActivityFeed unificado (campanhas+notifs), errorCode pattern em hooks, Navbar xs responsiva, Historico redesenhado + chat history localStorage, Wallet scroll fix, Withdraw/Deposit → Wallet modal |
+| Fase 11 | Planejada | Deploy Railway/Render, Twitter Developer App, PostgreSQL/Redis prod, auditoria, multisig, mainnet beta |
 
 ---
 
@@ -277,3 +280,130 @@ A ativação do X DM outbound é o primeiro passo da Fase 11 (mainnet), quando o
 ### Testes Legados
 
 Scripts de integração com Twikit e ferramentas de suporte antigas foram mantidos como referência. Estão skipados no pytest para não quebrar a suíte principal. A suíte ativa é de **65 testes passando**.
+
+---
+
+## 9. Arquitetura Frontend
+
+### 9.1 UserData — Singleton de Estado Global
+
+`UserData` é uma classe estática que centraliza todo o estado do usuário no frontend. Não é um Context React — é um singleton acessível de qualquer lugar sem prop drilling.
+
+```
+UserData (static class)
+├── user_info        — twitter_user_id, twitter_handle, created_at
+├── session_id       — token usado no header Authorization
+├── balances         — TokenBalance[]
+├── campaigns        — UserCampaignParticipation[]
+├── history
+│   ├── chat_history — ChatHistoryItem[] (in-memory, sobrescrito por fetchData)
+│   ├── swaps        — SwapHistoryItem[]
+│   └── transactions — TransactionHistoryItem[]
+└── devnet_wallet_public_key
+```
+
+**Persistência em localStorage:**
+
+| Chave | Conteúdo | Sobrevive fetchData? |
+|---|---|---|
+| `xiaolee_devnet_session` | session_id (token de auth) | Sim |
+| `xiaolee_user_info` | UserInfo serializado | Sim |
+| `xiaolee_chat_history` | ChatHistoryItem[] (até 200) | Sim — merge por timestamp |
+| `connected_wallet` | Public key Phantom | Sim |
+
+`getChatHistory()` faz merge entre localStorage e in-memory com deduplicação por `user_message.timestamp`, garantindo que mensagens locais não somem após `fetchData()` sobrescrever `history.chat_history`.
+
+### 9.2 Fluxo de Autenticação
+
+```mermaid
+flowchart TD
+    A[Página carrega] --> B{localStorage\nxiaolee_devnet_session?}
+    B -- sim --> C[UserData.restoreSession()]
+    B -- não --> D[Navbar monta]
+
+    C --> E[session_id + user_info restaurados]
+    D --> F{Usuário clica\nLogin}
+
+    F --> G[Web3Auth Google OAuth]
+    F --> H[Phantom Wallet Connect]
+
+    G --> I[UserData.setDevnetWalletSession\ncustodial_wallet_address]
+    H --> J[UserData.setDevnetWalletSession\npublic_key Phantom]
+
+    I --> K[fetchData → setUserData]
+    J --> K
+    E --> K
+
+    K --> L[CustomEvent userDataLoaded]
+    L --> M[Dashboard / ActivityFeed\natualizam via listener]
+```
+
+**Sessões disponíveis:**
+- `devnet_guest_*` — guest anônimo criado automaticamente
+- `devnet_wallet_<pubkey>` — Phantom conectado
+- token Web3Auth — Google OAuth via custodial wallet
+
+### 9.3 Navegação de Telas
+
+```mermaid
+flowchart LR
+    CHAT["/\nChat Principal\nXiaolee + AnimePFP"] -->|Navbar| CAMP
+    CHAT -->|Navbar| DASH
+    CHAT -->|Navbar| NOTIF
+    CHAT -->|Botão Histórico| HIST
+
+    CAMP["/campaigns\nCampanhas\nJoin/Verify/Claim"]
+    DASH["/dashboard\nDashboard\nStats + Activity + Economy"]
+    NOTIF["/notifications\nNotificações\nIn-app inbox"]
+
+    HIST["Modal Historico\nChat filtrado\nAll/You/Xiaolee"]
+    WALL["Modal Wallet\nBalance + Tokens\n+ Swap"]
+
+    CHAT -->|Withdraw/Deposit/Wallet| WALL
+    CAMP -->|Wallet button| WALL
+```
+
+### 9.4 Fluxo de Dados — Chat e Histórico
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant CP as ChatPanel
+    participant UC as useChat
+    participant API as Backend /chat
+    participant UD as UserData
+    participant LS as localStorage
+    participant HI as Historico Modal
+
+    U->>CP: digita mensagem + Send
+    CP->>UC: sendChatMessage(msg)
+    UC->>API: POST /chat { message, Authorization }
+    API-->>UC: { response, animations, intent }
+    UC-->>CP: response
+    CP->>UD: addLocalChatMessage(msg, response)
+    UD->>LS: push em xiaolee_chat_history (max 200)
+    UD->>UD: dispatch userDataLoaded
+
+    U->>HI: abre modal Histórico
+    HI->>UD: getChatHistory()
+    UD->>LS: lê xiaolee_chat_history
+    UD-->>HI: merge(localStorage + in-memory) sorted por timestamp
+    HI-->>U: exibe bolhas filtradas (All/You/Xiaolee)
+```
+
+### 9.5 Fluxo de Dados — Campanhas e ActivityFeed
+
+```mermaid
+flowchart TD
+    API_CAMP[Backend /campaigns] -->|useUserCampaigns| CAMP_STATE
+    API_NOTIF[Backend /notifications/me] -->|useNotifications| NOTIF_STATE
+
+    CAMP_STATE --> CAMP_CARD[CampaignCard\nprop: userCampaignParticipation\nestado reativo — sem cache estático]
+    CAMP_STATE --> ACTIVITY
+    NOTIF_STATE --> ACTIVITY
+
+    ACTIVITY[ActivityFeed\nmerge dedup por claim_receipt_id\nsintético: campaign paid → item de claim]
+    ACTIVITY --> DASH[Dashboard\nActivityFeed maxItems=5]
+```
+
+**Deduplicação no ActivityFeed:** notificações cujo `related_signature` coincide com `claim_receipt_id` de uma campanha paga são excluídas — o item sintético da campanha substitui, evitando duplicatas quando o webhook Helius também gera notificação.

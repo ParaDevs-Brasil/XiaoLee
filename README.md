@@ -1,7 +1,7 @@
 # XiaoLee Protocol
 
 > Assistente de IA conversacional para Solana — swap wallet-first, campanhas DeFi on-chain, notificações in-app e interface bilíngue (EN/PT).
-> **Atualizado: 2026-05-09 | Sprint 10 em andamento | Deploy Render + Railway configurado, CI verde**
+> **Atualizado: 2026-05-10 | Sprint 10 concluída | Deploy Railway configurado, CI verde**
 
 ---
 
@@ -35,8 +35,10 @@ Progresso: [##########] 98% — Código e UI completos. Deploy configurado (Rail
 | Grafana Dashboard | [##########] 100% | 8 painéis, provisionamento automático |
 | Anchor on-chain | [######....] 60% | PDA real (solders), record_swap (dry_run até keypair em produção) |
 | Emergency Pause | [##########] 100% | `pause_protocol` / `unpause_protocol` no contrato Rust |
-| UI/UX Premium | [##########] 100% | SVG icons inline, paleta unificada, responsividade mobile, contraste de texto corrigido |
-| i18n EN/PT | [##########] 100% | `LanguageContext`, toggle na Navbar, todos os componentes traduzidos |
+| UI/UX Premium | [##########] 100% | SVG icons inline, paleta unificada, responsividade mobile, Navbar xs responsiva, Wallet balance no scroll, Historico redesenhado |
+| i18n EN/PT | [##########] 100% | `LanguageContext`, toggle na Navbar, todos os componentes traduzidos, errorCode pattern em hooks |
+| Auth (Web3Auth + Phantom) | [##########] 100% | Google OAuth via Web3Auth, carteira custodial, Phantom devnet, sessão persistida em localStorage |
+| Chat History | [##########] 100% | Historico modal com filtros All/You/Xiaolee; persistência dual (in-memory + localStorage); sobrevive fetchData() |
 | QA backend | [##########] 100% | **65 testes passando**, CI GitHub verde |
 | Deploy público (Render + Railway) | [######....] 60% | `railway.toml` + `render.yaml` prontos; provisionar serviços |
 | Auditoria externa | [..........] 0% -- BLOQUEADOR MAINNET | Não iniciada — P0 para mainnet (não bloqueia demo) |
@@ -278,11 +280,15 @@ make run-docker
 
 O stack de produção usa **Railway** para o backend FastAPI e **Render** para o frontend Next.js.
 
-### Variáveis de ambiente — Frontend (Render)
+### Variáveis de ambiente — Frontend (Railway)
 
 | Variável | Valor |
 |---|---|
 | `NEXT_PUBLIC_CORE_API_URL` | URL pública do backend no Railway |
+| `NEXT_PUBLIC_WEB3AUTH_CLIENT_ID` | Client ID do Web3Auth (dashboard.web3auth.io) |
+| `NEXT_PUBLIC_TELEGRAM_BOT_NAME` | Nome do bot Telegram (sem @) |
+
+> No painel do Web3Auth, adicionar a URL do frontend em **Whitelisted URLs** antes do deploy.
 
 ### Variáveis de ambiente — Backend (Railway)
 
@@ -420,8 +426,8 @@ make anchor-idl-sync
 | Fase 7 | CONCLUÍDA | Docker completo, Grafana, Emergency pause |
 | Fase 8 | CONCLUÍDA | Homologação E2E, testes de carga, UI Premium Refactor |
 | Fase 9 | CONCLUÍDA | i18n EN/PT — LanguageContext, toggle navbar, todos os componentes traduzidos, correções de contraste e tamanho de texto |
-| Fase 10 | EM ANDAMENTO | Deploy Render + Railway — configuração pronta (`railway.toml`, `render.yaml`), CI verde; provisionamento dos serviços em andamento |
-| Fase 11 | PLANEJADA MAINNET | Twitter Developer App (Basic $100/mês) → ativar DM outbound; PostgreSQL prod, Redis prod, auditoria, multisig, mainnet beta |
+| Fase 10 | CONCLUÍDA | UX sprint — CampaignCard reativo, Dashboard fix, ActivityFeed unificado, Historico redesenhado, Navbar responsiva xs, Wallet scroll fix, chat history localStorage, Web3Auth auth flow |
+| Fase 11 | PLANEJADA MAINNET | Deploy Railway/Render (provisionar serviços), Twitter Developer App ($100/mês) → DM outbound, PostgreSQL prod, Redis prod, auditoria, multisig, mainnet beta |
 
 ---
 
