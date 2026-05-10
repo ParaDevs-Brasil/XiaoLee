@@ -73,26 +73,36 @@ class ChatHandler:
             return active_token is not None
 
     async def get_user_from_session(self) -> Optional[User]:
-        """Validates session_id from Authorization header and returns the user."""
+        """Validates session_id from Authorization header and returns the user.
+
+        Accepts two Bearer token formats:
+        1. google_session_* / tg_session_* — looked up via WebSession table
+        2. google_* / tg_* / devnet_* — treated directly as twitter_user_id
+        """
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return None
 
-        session_id = auth_header.split(' ')[1]
+        token = auth_header.split(' ')[1].strip()
+        if not token:
+            return None
 
         async with self.db_session_factory() as session:
-            stmt = select(WebSession).where(
-                WebSession.session_id == session_id)
+            # 1. Try WebSession lookup (google_session_*, tg_session_*)
+            stmt = select(WebSession).where(WebSession.session_id == token)
             web_session = (await session.execute(stmt)).scalar_one_or_none()
 
-            if not web_session or web_session.expires_at < datetime.utcnow():
-                if web_session:  # It's expired, so delete it
+            if web_session:
+                if web_session.expires_at < datetime.utcnow():
                     await session.delete(web_session)
                     await session.commit()
-                return None
+                    return None
+                return await self.user_service.get_user_by_twitter_id(
+                    web_session.twitter_user_id)
 
-            return await self.user_service.get_user_by_twitter_id(
-                web_session.twitter_user_id)
+            # 2. Fallback: token IS the twitter_user_id (google_*, tg_*, devnet_*)
+            user = await self.user_service.get_user_by_twitter_id(token)
+            return user
 
     async def build_user_dossier(self, user: Optional[User],
                                  session_id: str) -> Dict:
