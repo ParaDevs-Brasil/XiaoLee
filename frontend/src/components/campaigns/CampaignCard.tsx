@@ -23,12 +23,13 @@ const IconAlert = () => (
 );
 
 export const CampaignCard: React.FC<CampaignCardProps> = ({
-  campaign, onJoin, onVerify, onClaim, isJoining, isVerifying, isClaiming
+  campaign, userCampaigns, onJoin, onVerify, onClaim, isJoining, isVerifying, isClaiming
 }) => {
   const { t } = useLanguage();
   const hasCampaignIdentity = UserData.hasCampaignIdentity();
+  // Prefer reactive prop (updated after actions) over static UserData cache
   const userCampaignParticipation = hasCampaignIdentity
-    ? UserData.getUserCampaigns().find(uc => uc.id === campaign.id)
+    ? (userCampaigns ?? UserData.getUserCampaigns()).find(uc => uc.id === campaign.id)
     : null;
 
   const isEnrolled      = userCampaignParticipation?.participation_status === 'enrolled';
@@ -146,7 +147,7 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
       )}
 
       {/* Status info when already participating */}
-      {hasCampaignIdentity && UserData.verifyCampaignParticipation(campaign.id) && (
+      {!!userCampaignParticipation && (
         <div className="px-5 pb-3">
           <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-600">
             <IconCheck />
@@ -162,7 +163,7 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
       {/* Actions */}
       <div className="px-5 pb-5 space-y-2">
         {/* Join */}
-        {!(hasCampaignIdentity && UserData.verifyCampaignParticipation(campaign.id)) && (
+        {!userCampaignParticipation && (
           <ActionButton
             onClick={() => onJoin(campaign.id)}
             disabled={isJoining(campaign.id)}

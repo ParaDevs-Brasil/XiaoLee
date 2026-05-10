@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
+import hmac as _hmac
 import json
+import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Header, HTTPException, status
@@ -23,7 +26,10 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from solders.pubkey import Pubkey
 
 from database.database import get_db_session
-from database.models import AuthToken, Campaign as CampaignModel, CampaignParticipant, NotificationEvent, User, WebSession
+import logging
+from database.models import AuthToken, Campaign as CampaignModel, CampaignParticipant, NotificationEvent, User, Wallet, WebSession
+
+logger = logging.getLogger(__name__)
 from fastapi import Depends
 from server.metrics import record_campaign_event
 
@@ -205,7 +211,14 @@ def _verify_claim_proof(payload: CampaignActionRequest, campaign_id: int, sessio
     message = (payload.proof_message or "").strip()
     proof_encoding = (payload.proof_encoding or "").strip().lower()
 
-    if not public_key or not signature or not message:
+    # Custodial sessions (Google/Telegram) are already authenticated via Bearer token in
+    # _resolve_user — wallet signature is redundant and not required for them.
+    is_custodial = session_token.startswith(("google_session_", "tg_session_"))
+
+    if not public_key or not message:
+        raise HTTPException(status_code=400, detail="Wallet public key and proof message are required")
+
+    if not is_custodial and not signature:
         raise HTTPException(status_code=400, detail="Wallet signature proof is required to claim campaign rewards")
 
     expected_prefix = f"XiaoLee Devnet claim|campaign:{campaign_id}|session:{session_token}|wallet:{public_key}"
@@ -214,6 +227,10 @@ def _verify_claim_proof(payload: CampaignActionRequest, campaign_id: int, sessio
 
     if proof_encoding not in {"base64", "none"}:
         raise HTTPException(status_code=400, detail="Unsupported claim proof encoding")
+
+    # Custodial users: identity verified via Bearer session — skip Ed25519 check
+    if is_custodial:
+        return
 
     try:
         wallet_pubkey = Pubkey.from_string(public_key)
@@ -373,6 +390,82 @@ async def auth_status(token: str, db: AsyncSession = Depends(get_db_session)):
 
 
 # ---------------------------------------------------------------------------
+# Telegram Login Widget auth
+# ---------------------------------------------------------------------------
+
+@router.post("/auth/telegram/login")
+async def telegram_widget_login(payload: dict, db: AsyncSession = Depends(get_db_session)):
+    """Validate Telegram Login Widget data and issue a web session."""
+    from server.settings import settings
+
+    if not settings.telegram_bot_token:
+        raise HTTPException(status_code=503, detail="Telegram bot not configured")
+
+    data = dict(payload)
+    provided_hash = data.pop("hash", None)
+    if not provided_hash:
+        raise HTTPException(status_code=400, detail="Missing hash")
+
+    auth_date = data.get("auth_date")
+    if not auth_date:
+        raise HTTPException(status_code=400, detail="Missing auth_date")
+    if time.time() - int(auth_date) > 86400:
+        raise HTTPException(status_code=401, detail="Auth data expired")
+
+    # Validate hash: HMAC-SHA256(data_check_string, SHA256(bot_token))
+    data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
+    secret_key = hashlib.sha256(settings.telegram_bot_token.encode()).digest()
+    expected = _hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    if not _hmac.compare_digest(expected, provided_hash):
+        raise HTTPException(status_code=401, detail="Invalid Telegram auth hash")
+
+    tg_id = str(data["id"])
+    username = data.get("username") or data.get("first_name") or f"tg_{tg_id}"
+    twitter_user_id = f"tg_{tg_id}"
+
+    # Try by canonical twitter_user_id first
+    user_stmt = select(User).where(User.twitter_user_id == twitter_user_id)
+    user_res = await db.execute(user_stmt)
+    user = user_res.scalars().first()
+
+    if not user:
+        # Fall back to existing user created by the Telegram bot (twitter_user_id = raw tg_id)
+        tg_stmt = select(User).where(User.telegram_chat_id == tg_id)
+        tg_res = await db.execute(tg_stmt)
+        user = tg_res.scalars().first()
+
+    if not user:
+        user = User(
+            twitter_user_id=twitter_user_id,
+            twitter_handle=username,
+            telegram_chat_id=tg_id,
+        )
+        db.add(user)
+        await db.flush()
+    else:
+        # Normalize the user to our canonical format
+        if user.twitter_user_id != twitter_user_id:
+            user.twitter_user_id = twitter_user_id
+        if not user.telegram_chat_id:
+            user.telegram_chat_id = tg_id
+        if not user.twitter_handle or user.twitter_handle.startswith("telegram_"):
+            user.twitter_handle = username
+        await db.flush()
+
+    session_id = f"tg_session_{uuid.uuid4().hex}"
+    expires_at = datetime.utcnow() + timedelta(days=30)
+    db.add(WebSession(session_id=session_id, twitter_user_id=twitter_user_id, expires_at=expires_at))
+    await db.commit()
+
+    return {
+        "session_id": session_id,
+        "twitter_user_id": twitter_user_id,
+        "username": username,
+        "first_name": data.get("first_name", ""),
+    }
+
+
+# ---------------------------------------------------------------------------
 # User endpoints
 # ---------------------------------------------------------------------------
 
@@ -396,19 +489,116 @@ async def get_user(user_id: str, db: AsyncSession = Depends(get_db_session)):
     participant_res = await db.execute(participant_stmt)
     joined = list(participant_res.scalars().all())
 
+    wallet_stmt = select(Wallet).where(Wallet.user_id == user.id)
+    wallet_res = await db.execute(wallet_stmt)
+    custodial_wallet = wallet_res.scalars().first()
+
+    created_at = user.created_at if user.created_at else datetime.utcnow()
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+
     return UserResponse(
         id=user_id,
-        username=f"user_{user_id[:8]}",
+        username=user.twitter_handle,
         swap_count=0,
         total_volume=0.0,
         campaigns_joined=joined,
         dossier={
-            "id": user_id,
-            "username": f"user_{user_id[:8]}",
-            "swap_count": 0,
-            "total_volume": 0.0,
+            "user_info": {
+                "twitter_user_id": user.twitter_user_id,
+                "twitter_handle": user.twitter_handle,
+                "created_at": created_at.isoformat(),
+                "custodial_wallet_address": custodial_wallet.address if custodial_wallet else None,
+            },
+            "balances": [],
+            "history": {
+                "chat_history": [],
+                "swaps": [],
+                "transactions": [],
+            },
+            "campaigns": [],
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Non-custodial wallet save
+# ---------------------------------------------------------------------------
+
+@router.post("/user/{user_id}/wallet")
+async def save_user_wallet(user_id: str, payload: dict, db: AsyncSession = Depends(get_db_session)):
+    """Save a user-generated non-custodial wallet address. Private key never touches the server."""
+    address = (payload.get("address") or "").strip()
+    if not address:
+        raise HTTPException(status_code=400, detail="address is required")
+
+    user_stmt = select(User).where(User.twitter_user_id == user_id)
+    user_res = await db.execute(user_stmt)
+    user = user_res.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    wallet_stmt = select(Wallet).where(Wallet.user_id == user.id)
+    wallet_res = await db.execute(wallet_stmt)
+    existing = wallet_res.scalars().first()
+    if existing:
+        return {"address": existing.address, "created": False}
+
+    db.add(Wallet(user_id=user.id, address=address, private_key_encrypted="user_managed"))
+    await db.commit()
+    return {"address": address, "created": True}
+
+
+# ---------------------------------------------------------------------------
+# Google / Web3Auth login
+# ---------------------------------------------------------------------------
+
+@router.post("/auth/google/login")
+async def google_web3auth_login(payload: dict, db: AsyncSession = Depends(get_db_session)):
+    """Register/login a user authenticated via Web3Auth (Google). Receives Solana public address only."""
+    address = (payload.get("address") or "").strip()
+    email = (payload.get("email") or "").strip()
+    name = (payload.get("name") or "").strip()
+    if not address:
+        raise HTTPException(status_code=400, detail="address is required")
+
+    twitter_user_id = f"google_{address[:20]}"
+    handle = name or (email.split("@")[0] if email else f"google_{address[:8]}")
+
+    user_stmt = select(User).where(User.twitter_user_id == twitter_user_id)
+    user_res = await db.execute(user_stmt)
+    user = user_res.scalars().first()
+
+    if not user:
+        # Check if wallet already registered under a different user_id
+        wallet_stmt = select(Wallet).where(Wallet.address == address)
+        wallet_res = await db.execute(wallet_stmt)
+        existing_wallet = wallet_res.scalars().first()
+        if existing_wallet:
+            user_stmt2 = select(User).where(User.id == existing_wallet.user_id)
+            user = (await db.execute(user_stmt2)).scalars().first()
+
+    if not user:
+        user = User(twitter_user_id=twitter_user_id, twitter_handle=handle)
+        db.add(user)
+        await db.flush()
+
+    # Save wallet if not yet saved
+    wallet_check = (await db.execute(select(Wallet).where(Wallet.user_id == user.id))).scalars().first()
+    if not wallet_check:
+        db.add(Wallet(user_id=user.id, address=address, private_key_encrypted="web3auth_managed"))
+
+    session_id = f"google_session_{uuid.uuid4().hex}"
+    expires_at = datetime.utcnow() + timedelta(days=30)
+    db.add(WebSession(session_id=session_id, twitter_user_id=user.twitter_user_id, expires_at=expires_at))
+    await db.commit()
+
+    return {
+        "session_id": session_id,
+        "twitter_user_id": user.twitter_user_id,
+        "username": handle,
+        "address": address,
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -5,7 +5,8 @@ export interface UserInfo {
   twitter_handle: string;
   twitter_user_id: string;
   created_at: string;
-  internal_id?: number; // Optional for backward compatibility with backend
+  internal_id?: number;
+  custodial_wallet_address?: string;
 }
 
 export interface TokenBalance {

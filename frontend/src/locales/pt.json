@@ -3,7 +3,10 @@
     "campaigns": "Campanhas",
     "notifications": "Notificações",
     "dashboard": "Dashboard",
-    "user": "Usuário"
+    "user": "Usuário",
+    "logout": "Sair",
+    "logout_sub": "Encerrar sessão atual",
+    "logged_out": "Sessão encerrada."
   },
   "campaigns": {
     "title": "Campanhas",
@@ -136,7 +139,9 @@
     "disconnected_title": "Carteira Desconectada",
     "disconnected_sub": "Conecte sua Phantom Wallet e associe seu Twitter para ver suas estatísticas on-chain.",
     "total_swaps": "Total de Swaps",
-    "volume_usdc": "Volume USDC"
+    "volume_usdc": "Volume USDC",
+    "no_data": "Nenhum dado on-chain encontrado. Faça seu primeiro swap para registrar seu histórico na Solana!",
+    "connection_error": "Erro ao conectar com a Solana. Tente novamente em instantes."
   },
   "wallet": {
     "title": "Minha Carteira",
@@ -179,7 +184,12 @@
     "confirm_first": "Confirme que revisou a simulação antes de enviar.",
     "phantom_missing": "Phantom Wallet não encontrada.",
     "tx_success": "Transação enviada com sucesso na Devnet.",
-    "tx_error": "Falha ao assinar/enviar transação."
+    "tx_error": "Falha ao assinar/enviar transação.",
+    "your_address": "Seu Endereço",
+    "address_copied": "Endereço copiado!",
+    "connect_wallet": "Conectar Carteira",
+    "refresh": "Atualizar saldos",
+    "close": "Fechar"
   },
   "transacoes": {
     "title": "Histórico de Transações",

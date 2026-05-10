@@ -14,6 +14,7 @@ export interface ActionButtonProps {
 // Props para card de campanha pública
 export interface CampaignCardProps {
   campaign: Campaign;
+  userCampaigns?: UserCampaignParticipation[];
   onJoin: (campaignId: number) => void;
   onVerify: (campaignId: number) => void;
   onClaim: (campaignId: number) => void;

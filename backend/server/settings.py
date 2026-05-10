@@ -33,6 +33,7 @@ class Settings:
     )
 
     telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    telegram_bot_name: str = os.getenv("TELEGRAM_BOT_NAME", "")
     telegram_webhook_secret: str = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
     x_webhook_secret: str = os.getenv("X_WEBHOOK_SECRET", "")
     x_bearer_token: str = os.getenv("X_BEARER_TOKEN", "")

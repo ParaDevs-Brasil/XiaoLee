@@ -83,18 +83,31 @@ export default function Campaigns() {
   useEffect(() => {
     const sessionId = UserData.getOrCreateDevnetSession();
     setIsCampaignReady(!!sessionId);
-    const maybeWallet = (window as Window & { solana?: { publicKey?: { toString: () => string } } }).solana?.publicKey?.toString();
-    if (maybeWallet) {
-      setWalletAddress(maybeWallet);
-      UserData.setDevnetWalletSession(maybeWallet);
+    // Only auto-sync Phantom if no authenticated session already exists
+    const hasAuth = sessionId?.startsWith('tg_session_') || sessionId?.startsWith('google_session_');
+    if (!hasAuth) {
+      const maybeWallet = (window as Window & { solana?: { publicKey?: { toString: () => string } } }).solana?.publicKey?.toString();
+      if (maybeWallet) {
+        setWalletAddress(maybeWallet);
+        UserData.setDevnetWalletSession(maybeWallet);
+      }
     }
     refetchUserCampaigns();
   }, [refetchUserCampaigns]);
 
   const handleConnectDevnetWallet = async () => {
+    // If already authenticated via Telegram or Google, just confirm the session
+    const currentSession = UserData.getSessionId();
+    if (currentSession?.startsWith('tg_session_') || currentSession?.startsWith('google_session_')) {
+      setIsCampaignReady(true);
+      await refetchUserCampaigns();
+      toast.success('Sessão autenticada sincronizada.');
+      return;
+    }
+    // Otherwise try Phantom for on-chain operations
     const provider = (window as Window & { solana?: { isPhantom?: boolean; publicKey?: { toString: () => string }; connect?: () => Promise<{ publicKey: { toString: () => string } }> } }).solana;
-    if (!provider || !provider.isPhantom || !provider.connect) {
-      toast.info('Phantom não detectada. Continuando com sessão Devnet local.');
+    if (!provider?.connect) {
+      toast.info('Sem carteira detectada. Continuando com sessão local.');
       const fallback = UserData.getOrCreateDevnetSession();
       setIsCampaignReady(!!fallback);
       return;
@@ -106,9 +119,9 @@ export default function Campaigns() {
       setWalletAddress(pubkey);
       setIsCampaignReady(true);
       await refetchUserCampaigns();
-      toast.success('Wallet Devnet conectada para campanhas.');
+      toast.success('Wallet conectada para campanhas.');
     } catch {
-      toast.error('Não foi possível conectar a wallet Devnet.');
+      toast.error('Não foi possível conectar a wallet.');
     }
   };
 
@@ -362,6 +375,7 @@ export default function Campaigns() {
                 <CampaignCard
                   key={campaign.id}
                   campaign={campaign}
+                  userCampaigns={userCampaigns ?? []}
                   onJoin={handleJoinCampaign}
                   onVerify={handleVerifyTasks}
                   onClaim={handleClaimReward}

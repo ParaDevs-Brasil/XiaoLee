@@ -5,6 +5,8 @@ import { useModal } from "@/hooks/useModal";
 import { Connection, PublicKey, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
 import { getQuoteSummary, SWAP_TOKEN_OPTIONS, toRawAmount } from "@/utils/swap";
 import { useLanguage } from "@/contexts/LanguageContext";
+import UserData from "@/components/UserData";
+import { getWeb3AuthProvider } from "@/lib/web3authProvider";
 
 const CORE_API_URL = process.env.NEXT_PUBLIC_CORE_API_URL || "http://localhost:8000";
 
@@ -83,6 +85,9 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
   const { t } = useLanguage();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string>("");
+  const [custodialAddress, setCustodialAddress] = useState<string>("");
+  const [custodialBalance, setCustodialBalance] = useState<number | null>(null);
+  const [copiedCustodial, setCopiedCustodial] = useState(false);
   const [swapAmount, setSwapAmount] = useState<string>("1");
   const [inputMint, setInputMint] = useState<string>(SWAP_TOKEN_OPTIONS[0].mint);
   const [outputMint, setOutputMint] = useState<string>(SWAP_TOKEN_OPTIONS[1].mint);
@@ -98,26 +103,48 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
   const [isFetchingBalance, setIsFetchingBalance] = useState(false);
   const { isOpen, animateIn, closeModal } = useModal(shouldOpen, onClose);
 
-  const fetchSolBalance = async (address: string) => {
+  const fetchSolBalance = async (address: string, setter?: (v: number | null) => void) => {
     if (!address) return;
-    setIsFetchingBalance(true);
+    const s = setter ?? setSolBalance;
+    if (!setter) setIsFetchingBalance(true);
     try {
       const conn = new Connection(clusterApiUrl("devnet"), "confirmed");
       const lamports = await conn.getBalance(new PublicKey(address));
-      setSolBalance(lamports / 1_000_000_000);
-    } catch { setSolBalance(null); }
-    finally { setIsFetchingBalance(false); }
+      s(lamports / 1_000_000_000);
+    } catch { s(null); }
+    finally { if (!setter) setIsFetchingBalance(false); }
   };
+
+  // Load custodial wallet address from UserData and use it as the swap wallet
+  React.useEffect(() => {
+    const addr = UserData.getUserInfo()?.custodial_wallet_address;
+    if (addr) {
+      setCustodialAddress(addr);
+      fetchSolBalance(addr, setCustodialBalance);
+      // Pre-fill swap wallet for Google/Telegram users
+      setWalletAddress(addr);
+      fetchSolBalance(addr);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 React.useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("connected_wallet");
-      if (saved) { setWalletAddress(saved); fetchSolBalance(saved); }
+      // Only restore Phantom address if the active session is a wallet session
+      const session = UserData.getSessionId();
+      const isWalletSession = session?.startsWith("devnet_wallet_");
+      if (isWalletSession) {
+        const saved = localStorage.getItem("connected_wallet");
+        if (saved) { setWalletAddress(saved); fetchSolBalance(saved); }
+      }
     }
   }, []);
 
   React.useEffect(() => {
     if (!isOpen) return;
+    // Only auto-connect Phantom if the active session is a wallet session
+    const session = UserData.getSessionId();
+    const isWalletSession = session?.startsWith("devnet_wallet_");
+    if (!isWalletSession) return;
     const provider = getPhantomProvider();
     if (!provider) return;
     (async () => {
@@ -144,8 +171,17 @@ React.useEffect(() => {
   };
 
   const handleConnectWallet = async () => {
+    // Prefer the authenticated session's wallet (Google/Telegram custodial)
+    const custodial = UserData.getUserInfo()?.custodial_wallet_address;
+    if (custodial) {
+      setWalletAddress(custodial);
+      setFlowMessage(t('wallet.connected_msg'));
+      fetchSolBalance(custodial);
+      return;
+    }
+    // Fall back to Phantom for wallet-session users
     const provider = getPhantomProvider();
-    if (!provider) { setFlowMessage(t('wallet.phantom_not_found')); return; }
+    if (!provider) { setFlowMessage(t('wallet.phantom_missing')); return; }
     try {
       const resp = await provider.connect();
       const addr = resp.publicKey.toString();
@@ -193,13 +229,28 @@ React.useEffect(() => {
   const handleSignAndSend = async () => {
     if (!preparedSwap?.swap_transaction_base64) { setFlowMessage(t('wallet.connect_first')); return; }
     if (!userConfirmedSend) { setFlowMessage(t('wallet.confirm_first')); return; }
-    const provider = getPhantomProvider();
-    if (!provider) { setFlowMessage(t('wallet.phantom_missing')); return; }
     setIsSending(true);
     try {
       const conn = new Connection(clusterApiUrl("devnet"), "confirmed");
       const tx = VersionedTransaction.deserialize(base64ToBytes(preparedSwap.swap_transaction_base64));
-      const signed = await provider.signTransaction(tx);
+
+      const custodialWallet = UserData.getUserInfo()?.custodial_wallet_address;
+      const web3authProvider = getWeb3AuthProvider();
+
+      let signed: VersionedTransaction;
+
+      if (custodialWallet && web3authProvider) {
+        // Sign via Web3Auth provider (Google/Telegram custodial wallet)
+        const { SolanaWallet } = await import("@web3auth/solana-provider");
+        const solanaWallet = new SolanaWallet(web3authProvider);
+        signed = await solanaWallet.signTransaction(tx);
+      } else {
+        // Fall back to Phantom for wallet-session users
+        const provider = getPhantomProvider();
+        if (!provider) { setFlowMessage(t('wallet.phantom_missing')); setIsSending(false); return; }
+        signed = await provider.signTransaction(tx);
+      }
+
       const signature = await conn.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 3 });
       await conn.confirmTransaction(signature, "confirmed");
       setTxSignature(signature);
@@ -230,14 +281,14 @@ React.useEffect(() => {
                     <IconWallet />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent leading-tight">
+                    <h2 className="text-lg sm:text-2xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent leading-tight">
                       {t('wallet.title')}
                     </h2>
                     <p className="text-xs text-fuchsia-600 font-medium mt-0.5">{t('wallet.subtitle')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={handleRefresh} disabled={isRefreshing} title="Atualizar saldos"
+                  <button onClick={handleRefresh} disabled={isRefreshing} title={t('wallet.refresh')}
                     className="p-2 rounded-xl text-fuchsia-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 transition-all duration-200 disabled:opacity-40">
                     <IconRefresh spinning={isRefreshing} />
                   </button>
@@ -246,7 +297,7 @@ React.useEffect(() => {
                     className="p-2 rounded-xl text-pink-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200">
                     <IconDisconnect />
                   </button>
-                  <button onClick={closeModal} title="Fechar"
+                  <button onClick={closeModal} title={t('wallet.close')}
                     className="p-2 rounded-xl text-pink-400 hover:text-pink-600 hover:bg-pink-50 transition-all duration-200">
                     <IconClose />
                   </button>
@@ -254,25 +305,57 @@ React.useEffect(() => {
               </div>
             </div>
 
-            {/* ── Balance hero ── */}
-            <div className="mx-6 mt-5 rounded-2xl bg-gradient-to-br from-pink-500 via-fuchsia-500 to-purple-600 p-6 text-center shadow-lg shadow-pink-200 relative overflow-hidden">
-              <div className="absolute inset-0 bg-white/10 rounded-2xl" />
-              <p className="text-xs font-semibold text-white uppercase tracking-widest mb-2">{t('wallet.total_balance')}</p>
-              {isFetchingBalance ? (
-                <div className="flex justify-center"><IconRefresh spinning /></div>
-              ) : (
-                <p className="text-5xl font-black text-white drop-shadow-sm">
-                  {solBalance !== null ? `${solBalance.toFixed(4)} SOL` : formatCurrency(getMyBalance())}
-                </p>
-              )}
-              <p className="text-xs text-white/90 mt-2 font-semibold">{t('wallet.network')}</p>
-            </div>
-
             {/* ── Scrollable body ── */}
             <div className="flex-1 overflow-y-auto px-6 pb-2 min-h-0">
 
+              {/* ── Balance hero ── */}
+              <div className="mt-5 rounded-2xl bg-gradient-to-br from-pink-500 via-fuchsia-500 to-purple-600 p-4 text-center shadow-lg shadow-pink-200 relative overflow-hidden">
+                <div className="absolute inset-0 bg-white/10 rounded-2xl" />
+                <p className="text-xs font-semibold text-white uppercase tracking-widest mb-2">{t('wallet.total_balance')}</p>
+                {isFetchingBalance ? (
+                  <div className="flex justify-center"><IconRefresh spinning /></div>
+                ) : (
+                  <p className="text-3xl font-black text-white drop-shadow-sm break-all leading-tight">
+                    {solBalance !== null ? `${solBalance.toFixed(4)} SOL` : formatCurrency(getMyBalance())}
+                  </p>
+                )}
+                <p className="text-xs text-white/90 mt-2 font-semibold">{t('wallet.network')}</p>
+
+                {walletAddress && (
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <span className="text-xs text-white/70 font-mono">
+                      {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}
+                    </span>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(walletAddress).then(() => setFlowMessage(t('wallet.address_copied')))}
+                      className="text-white/70 hover:text-white transition-colors"
+                      title={t('wallet.address_copied')}
+                    >
+                      <IconCheck />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Wallet address card */}
+              {walletAddress && (
+                <div className="mt-5 mb-3 p-3 rounded-2xl bg-white border border-pink-200 shadow-sm">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{t('wallet.your_address')}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-mono text-gray-700 break-all flex-1">{walletAddress}</p>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(walletAddress).then(() => setFlowMessage(t('wallet.address_copied')))}
+                      className="shrink-0 p-1.5 rounded-lg bg-pink-50 text-pink-500 hover:bg-pink-100 transition-colors"
+                      title={t('wallet.address_copied')}
+                    >
+                      <IconCheck />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Token list */}
-              <div className="mt-5 mb-4">
+              <div className="mt-2 mb-4">
                 <h3 className="text-sm font-bold text-gray-700 uppercase tracking-widest mb-3">{t('wallet.your_tokens')}</h3>
                 <div className="space-y-2">
                   {solBalance !== null && (
@@ -325,7 +408,7 @@ React.useEffect(() => {
                         : "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-md shadow-pink-200 hover:shadow-pink-300 hover:scale-105 active:scale-95"
                     }`}>
                     <span className="flex items-center justify-center gap-1.5">
-                      {walletAddress ? <><IconCheck /> {t('wallet.connected')}</> : t('wallet.connect_phantom')}
+                      {walletAddress ? <><IconCheck /> {t('wallet.connected')}</> : t('wallet.connect_wallet')}
                     </span>
                   </button>
                   <input value={swapAmount} onChange={(e) => setSwapAmount(e.target.value)}

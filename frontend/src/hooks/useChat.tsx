@@ -10,21 +10,23 @@ export default async function sendChatMessage(
     try {        
 
         const connectedWallet = typeof window !== "undefined" ? localStorage.getItem("connected_wallet") : null;
+        // Prefer custodial/Web3Auth wallet over Phantom for authenticated users
+        const walletAddress = UserData.getUserInfo()?.custodial_wallet_address || connectedWallet || undefined;
+
         if (!UserData.hasData()) {
             console.log("🔍 Enviando como usuário anônimo (sem dados no UserData)");
             const response = await api.post("/chat", {
                 message: msg,
-                ...(connectedWallet && { wallet_address: connectedWallet })
+                ...(walletAddress && { wallet_address: walletAddress })
             });
             console.log("📬 Mensagem anônima enviada:", response.data);
             return response.data;
         } else {
-            // Se há dados de usuário, pegar o twitter_user_id e enviar
             console.log("🔍 Enviando como usuário autenticado:", UserData.getSessionId());
 
             const response = await api.post("/chat", {
                 message: msg,
-                ...(connectedWallet && { wallet_address: connectedWallet })
+                ...(walletAddress && { wallet_address: walletAddress })
             },
             {
                 headers: {

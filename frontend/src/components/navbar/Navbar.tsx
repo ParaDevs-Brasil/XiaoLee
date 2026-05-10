@@ -9,7 +9,12 @@ import Wallet from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
 import { TypeUserData } from "@/interfaces";
 import UserData from "../UserData";
+import dynamic from "next/dynamic";
+import TelegramLoginButton from "../TelegramLoginButton";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
+import { clearWeb3AuthProvider } from "@/lib/web3authProvider";
+
+const Web3AuthButton = dynamic(() => import("../Web3AuthButton"), { ssr: false });
 
 function LangToggle() {
   const { lang, setLang } = useLanguage();
@@ -19,7 +24,7 @@ function LangToggle() {
         <button
           key={l}
           onClick={() => setLang(l)}
-          className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+          className={`px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
             lang === l
               ? "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-sm"
               : "text-white/70 hover:text-white hover:bg-white/10"
@@ -37,6 +42,7 @@ export default function Navbar() {
   const [userData, setUserData] = useState<TypeUserData | null>(null);
   const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showTelegramLogin, setShowTelegramLogin] = useState(false);
   const [shouldOpenTransactions, setShouldOpenTransactions] = useState(false);
   const [shouldOpenHistory, setShouldOpenHistory] = useState(false);
   const [shouldOpenWallet, setShouldOpenWallet] = useState(false);
@@ -80,15 +86,26 @@ export default function Navbar() {
   }, [isDropdownOpen]);
  
 
-   useEffect(() => {
+  const handleLogout = () => {
+    clearWeb3AuthProvider();
+    UserData.clearData();
+    UserData.getOrCreateDevnetSession();
+    const freshData = UserData.getUserData();
+    setUserData(freshData);
+    setIsDropdownOpen(false);
+    toast.success(t('navbar.logged_out'));
+  };
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // If there's already a session (devnet guest or wallet), show the button immediately.
-    const existingSession = UserData.getSessionId();
-    if (!existingSession) {
-      // Create a guest session so the button always appears.
+    // Try to restore full session (user_info + wallet) from localStorage first
+    const restored = UserData.restoreSession();
+    if (!restored) {
+      // No saved session — create or load existing guest/wallet session
       UserData.getOrCreateDevnetSession();
     }
+
     const currentData = UserData.getUserData();
     if (currentData?.user_info?.twitter_user_id) {
       setUserData(currentData);
@@ -116,65 +133,59 @@ export default function Navbar() {
             </Link>
           </div>
           
-          <div className="flex items-center justify-end flex-1 space-x-1 md:space-x-3">
-            {/* Navigation Buttons - Responsive */}
-            <div className="flex items-center space-x-1 md:space-x-2 overflow-x-auto no-scrollbar py-1">
-              <Link 
+          <div className="flex items-center justify-end flex-1 gap-1 md:gap-3">
+            {/* Navigation Buttons */}
+            <div className="flex items-center gap-1 md:gap-2">
+              <Link
                 href="/campaigns"
-                className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
               >
-                <RocketLaunchIcon className="w-3.5 h-3.5 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <RocketLaunchIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.campaigns').slice(0,4)}</span>
                 <span className="font-semibold hidden lg:inline">{t('navbar.campaigns')}</span>
-                <span className="font-semibold lg:hidden whitespace-nowrap">{t('navbar.campaigns').slice(0,4)}</span>
               </Link>
 
-              <Link 
+              <Link
                 href="/notifications"
-                className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/notifications' ? 'ring-4 ring-cyan-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/notifications' ? 'ring-4 ring-cyan-300 scale-105' : ''}`}
               >
-                <BellIcon className="w-3.5 h-3.5 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <BellIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.notifications').slice(0,5)}</span>
                 <span className="font-semibold hidden lg:inline">{t('navbar.notifications')}</span>
-                <span className="font-semibold lg:hidden whitespace-nowrap">{t('navbar.notifications').slice(0,5)}</span>
               </Link>
 
-              <Link 
+              <Link
                 href="/dashboard"
-                className={`inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px] ${pathname === '/dashboard' ? 'ring-4 ring-purple-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/dashboard' ? 'ring-4 ring-purple-300 scale-105' : ''}`}
               >
-                <ChartBarIcon className="w-3.5 h-3.5 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <ChartBarIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
                 <span className="font-semibold hidden lg:inline">{t('navbar.dashboard')}</span>
-                <span className="font-semibold lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
               </Link>
-              
-              {/*
-              <Link 
-                href="/test"
-                className="inline-flex items-center justify-center gap-x-1 md:gap-x-2 rounded-xl md:rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm font-semibold text-white shadow-lg hover:from-orange-600 hover:via-amber-600 hover:to-yellow-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-orange-300 border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 h-[40px] md:h-[52px]"
-              >
-                <span className="font-semibold hidden sm:inline">Test</span>
-                <span className="text-sm md:text-lg">🧪</span>
-              </Link>
-              */}
             </div>
-            
+
             {/* Show user dropdown only when data is loaded */}
             {isUserDataLoaded && userData ? (
               <div className="relative" data-dropdown>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="inline-flex items-center justify-center gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-2 md:px-6 py-1.5 md:py-3 text-[10px] sm:text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm transform hover:scale-105 active:scale-95 min-w-[70px] sm:min-w-[100px] md:min-w-[140px] h-[36px] md:h-[52px]"
+                  className="inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px]"
                 >
                   <div className="w-4 h-4 md:w-5 md:h-5 bg-white/20 rounded-full flex items-center justify-center shrink-0">
                     <UserIcon className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden="true" />
                   </div>
                   <span className="hidden lg:inline">
-                    {userData.session_id?.startsWith('devnet_guest_') ? 'Guest' : 'User'}
+                    {userData.session_id?.startsWith('devnet_guest_')
+                      ? 'Guest'
+                      : userData.user_info?.twitter_handle
+                        ? `@${userData.user_info.twitter_handle.slice(0, 12)}`
+                        : 'User'}
                   </span>
-                  <ChevronDownIcon 
-                    className={`h-3 w-3 md:h-4 md:w-4 shrink-0 transition-transform duration-200 ${
+                  <ChevronDownIcon
+                    className={`hidden sm:block h-3 w-3 md:h-4 md:w-4 shrink-0 transition-transform duration-200 ${
                       isDropdownOpen ? 'rotate-180' : ''
-                    }`} 
-                    aria-hidden="true" 
+                    }`}
+                    aria-hidden="true"
                   />
                 </button>
                     
@@ -254,12 +265,55 @@ export default function Navbar() {
                       {/* Separator */}
                       <div className="border-t border-[var(--navbar-border)]/30 my-2"></div>
 
+                      {/* Login options — shown for non-Telegram and non-Google sessions */}
+                      {!userData.session_id?.startsWith('tg_session_') && !userData.session_id?.startsWith('google_session_') && (
+                        <div className="px-4 py-3 flex flex-col gap-2">
+                          {/* Telegram login */}
+                          {showTelegramLogin ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <p className="text-xs text-[var(--navbar-text-gradient-middle)]/80 text-center">
+                                Authorize in Telegram to link your account
+                              </p>
+                              <TelegramLoginButton
+                                onSuccess={() => {
+                                  setShowTelegramLogin(false);
+                                  setIsDropdownOpen(false);
+                                  toast.success("Telegram account linked!");
+                                }}
+                                onError={() => toast.error("Telegram login failed")}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setShowTelegramLogin(true)}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-semibold shadow hover:from-blue-600 hover:to-cyan-600 transition-all"
+                            >
+                              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/>
+                              </svg>
+                              Login com Telegram
+                            </button>
+                          )}
+
+                          {/* Google / Web3Auth login */}
+                          <Web3AuthButton
+                            onSuccess={() => {
+                              setIsDropdownOpen(false);
+                              toast.success("Google account linked!");
+                            }}
+                            onError={() => toast.error("Google login failed")}
+                          />
+                        </div>
+                      )}
+
+                      {/* Separator before financial actions */}
+                      <div className="border-t border-[var(--navbar-border)]/30 my-2"></div>
+
                       {/* Withdraw Button */}
                       <div
                         onClick={(e) => {
                           e.preventDefault();
-                          toast.info('🚧 Withdraw functionality under development');
-                          setIsDropdownOpen(false);
+                          handleWalletClick();
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
@@ -278,8 +332,7 @@ export default function Navbar() {
                       <div
                         onClick={(e) => {
                           e.preventDefault();
-                          toast.info('🚧 Deposit functionality under development');
-                          setIsDropdownOpen(false);
+                          handleWalletClick();
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
@@ -294,6 +347,27 @@ export default function Navbar() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Logout — only for authenticated (non-guest) sessions */}
+                    {userData.session_id && !userData.session_id.startsWith('devnet_guest_') && (
+                      <>
+                        <div className="border-t border-[var(--navbar-border)]/30 my-2" />
+                        <div
+                          onClick={handleLogout}
+                          className="group flex w-full items-center px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50/30 backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                        >
+                          <div className="mr-3 bg-red-100 dark:bg-red-900/50 text-red-500 w-8 h-8 rounded-lg flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                          </div>
+                          <div className="text-left">
+                            <div className="font-semibold">{t('navbar.logout')}</div>
+                            <div className="text-xs text-red-400/70">{t('navbar.logout_sub')}</div>
+                          </div>
+                        </div>
+                      </>
+                    )}
 
                     {/* Footer with session info */}
                     <div className="px-4 py-2 border-t border-[var(--navbar-border)]/30 backdrop-blur-sm">

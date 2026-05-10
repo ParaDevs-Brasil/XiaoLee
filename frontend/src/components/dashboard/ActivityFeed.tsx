@@ -1,13 +1,8 @@
-/**
- * ActivityFeed — Feed de atividade recente do usuário
- *
- * Exibe as últimas notificações (claims, swaps, eventos on-chain) em cards
- * com micro-animações e suporte a reconhecimento (ACK) inline.
- */
 "use client";
 
 import React from "react";
 import { useNotifications, NotificationItem } from "@/hooks/useNotifications";
+import { useUserCampaigns } from "@/hooks/useUserCampaigns";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── SVG icons ──────────────────────────────────────────────────────────────
@@ -52,17 +47,31 @@ const IconReceipt = () => (
   </svg>
 );
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function getEventMeta(notification: NotificationItem): {
+// ── Unified activity item ──────────────────────────────────────────────────
+interface ActivityItem {
+  key: string;
+  title: string;
+  body: string;
+  status: 'pending' | 'delivered';
+  related_signature?: string | null;
+  created_at?: string;
+  isPending: boolean;
+  notifId?: number;
+}
+
+function getEventMeta(title: string): {
   Icon: () => React.ReactNode;
   accent: string;
   label: string;
 } {
-  const title = notification.title.toLowerCase();
-  if (title.includes("claim"))    return { Icon: IconTrophy,  accent: "text-amber-500 bg-amber-50 border-amber-100",   label: "Reward" };
-  if (title.includes("swap"))     return { Icon: IconRefresh, accent: "text-blue-500 bg-blue-50 border-blue-100",      label: "Swap" };
-  if (title.includes("campaign")) return { Icon: IconTarget,  accent: "text-fuchsia-500 bg-fuchsia-50 border-fuchsia-100", label: "Campaign" };
-  return                                 { Icon: IconBell,    accent: "text-gray-400 bg-gray-50 border-gray-100",      label: "Info" };
+  const t = title.toLowerCase();
+  if (t.includes("claim") || t.includes("reward"))
+    return { Icon: IconTrophy,  accent: "text-amber-500 bg-amber-50 border-amber-100",       label: "Reward" };
+  if (t.includes("swap"))
+    return { Icon: IconRefresh, accent: "text-blue-500 bg-blue-50 border-blue-100",           label: "Swap" };
+  if (t.includes("campaign") || t.includes("campanha"))
+    return { Icon: IconTarget,  accent: "text-fuchsia-500 bg-fuchsia-50 border-fuchsia-100",  label: "Campaign" };
+  return   { Icon: IconBell,    accent: "text-gray-400 bg-gray-50 border-gray-100",           label: "Info" };
 }
 
 function useTimeAgo() {
@@ -86,8 +95,41 @@ interface ActivityFeedProps {
 export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
   const { t } = useLanguage();
   const timeAgo = useTimeAgo();
-  const { notifications, loading, error, ackNotification, isAckLoading, refetch } = useNotifications();
-  const recent = notifications.slice(0, maxItems);
+  const { notifications, loading: notifLoading, error, ackNotification, isAckLoading, refetch } = useNotifications();
+  const { campaigns: userCampaigns, loading: campaignsLoading } = useUserCampaigns();
+
+  const loading = notifLoading || campaignsLoading;
+
+  // Build unified activity list
+  const notifItems: ActivityItem[] = notifications.map((n: NotificationItem) => ({
+    key: `notif-${n.id}`,
+    title: n.title,
+    body: n.body,
+    status: n.status as 'pending' | 'delivered',
+    related_signature: n.related_signature,
+    created_at: n.created_at,
+    isPending: n.status === 'pending',
+    notifId: n.id,
+  }));
+
+  // Campaign claim items — deduplicate against notifications by receipt
+  const notifReceipts = new Set(
+    notifications.map((n: NotificationItem) => n.related_signature).filter(Boolean)
+  );
+  const claimItems: ActivityItem[] = (userCampaigns ?? [])
+    .filter(c => c.tasks_claimed || c.participation_status === 'paid')
+    .filter(c => !c.claim_receipt_id || !notifReceipts.has(c.claim_receipt_id))
+    .map(c => ({
+      key: `campaign-${c.id}`,
+      title: `Claim: ${c.name}`,
+      body: `+${c.reward_per_participant} ${c.reward_token}`,
+      status: 'delivered' as const,
+      related_signature: c.claim_receipt_id ?? null,
+      created_at: c.tasks_verified_at ?? undefined,
+      isPending: false,
+    }));
+
+  const allItems = [...notifItems, ...claimItems].slice(0, maxItems);
 
   // Loading skeleton
   if (loading) {
@@ -101,7 +143,7 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
   }
 
   // Error state
-  if (error) {
+  if (error && allItems.length === 0) {
     return (
       <div className="flex items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3">
         <span className="text-orange-400 shrink-0"><IconAlert /></span>
@@ -119,7 +161,7 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
   }
 
   // Empty state
-  if (recent.length === 0) {
+  if (allItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center">
         <div className="text-pink-200 mb-3"><IconInbox /></div>
@@ -133,17 +175,16 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      {recent.map((notif) => {
-        const { Icon, accent, label } = getEventMeta(notif);
-        const isPending = notif.status === "pending";
+      {allItems.map((item) => {
+        const { Icon, accent, label } = getEventMeta(item.title);
 
         return (
           <div
-            key={notif.id}
+            key={item.key}
             className={`
               relative rounded-xl border transition-colors duration-150
               hover:bg-pink-50/40
-              ${isPending ? "border-pink-100 bg-white" : "border-emerald-100 bg-emerald-50/30"}
+              ${item.isPending ? "border-pink-100 bg-white" : "border-emerald-100 bg-emerald-50/30"}
             `}
           >
             <div className="flex items-start gap-3 p-3">
@@ -159,30 +200,30 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
                     {label}
                   </span>
                   <span className="text-[10px] text-gray-300 shrink-0">
-                    {timeAgo((notif as NotificationItem & { created_at?: string }).created_at)}
+                    {timeAgo(item.created_at)}
                   </span>
                 </div>
 
-                <p className="text-xs font-semibold text-gray-700 mt-1 truncate">{notif.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{notif.body}</p>
+                <p className="text-xs font-semibold text-gray-700 mt-1 truncate">{item.title}</p>
+                <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{item.body}</p>
 
-                {/* ACK button */}
-                {isPending && (
+                {/* ACK button — only for real pending notifications */}
+                {item.isPending && item.notifId !== undefined && (
                   <button
-                    onClick={() => ackNotification(notif.id)}
-                    disabled={isAckLoading(notif.id)}
+                    onClick={() => ackNotification(item.notifId!)}
+                    disabled={isAckLoading(item.notifId!)}
                     className="mt-2 inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg font-semibold bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150"
                   >
                     <IconCheck />
-                    {isAckLoading(notif.id) ? t('activity_feed.confirming') : t('activity_feed.confirm')}
+                    {isAckLoading(item.notifId!) ? t('activity_feed.confirming') : t('activity_feed.confirm')}
                   </button>
                 )}
 
                 {/* Receipt hash */}
-                {notif.related_signature && (
+                {item.related_signature && (
                   <div className="mt-1.5 flex items-center gap-1.5">
                     <span className="text-gray-300"><IconReceipt /></span>
-                    <p className="text-[10px] text-gray-400 font-mono truncate">{notif.related_signature}</p>
+                    <p className="text-[10px] text-gray-400 font-mono truncate">{item.related_signature}</p>
                   </div>
                 )}
               </div>
@@ -191,9 +232,9 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
         );
       })}
 
-      {notifications.length > maxItems && (
+      {(notifications.length + claimItems.length) > maxItems && (
         <p className="text-center text-xs text-gray-400 pt-1">
-          {t('activity_feed.more_notifications', { count: notifications.length - maxItems })}
+          {t('activity_feed.more_notifications', { count: (notifications.length + claimItems.length) - maxItems })}
         </p>
       )}
     </div>

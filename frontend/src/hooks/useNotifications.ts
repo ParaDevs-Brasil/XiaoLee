@@ -10,6 +10,7 @@ export interface NotificationItem {
   status: string;
   related_signature?: string | null;
   metadata: Record<string, unknown>;
+  created_at?: string;
 }
 
 interface NotificationsResponse {

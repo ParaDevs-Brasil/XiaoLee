@@ -174,19 +174,24 @@ export function deriveGlobalConfigPda(): PublicKey {
 
 // ─── Hook principal ────────────────────────────────────────────────────────────
 
+export type XiaoLeeProgramErrorCode = 'not_found' | 'connection_error' | null;
+
 export function useXiaoLeeProgram(twitterId: string | null) {
   const [userState, setUserState] = useState<XiaoLeeUserState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<XiaoLeeProgramErrorCode>(null);
 
   const fetchUserState = useCallback(async () => {
     if (!twitterId) {
       setUserState(null);
+      setErrorCode(null);
       return;
     }
 
     setLoading(true);
     setError(null);
+    setErrorCode(null);
 
     try {
       const connection = new Connection(clusterApiUrl(XIAOLEE_CLUSTER), 'confirmed');
@@ -230,13 +235,12 @@ export function useXiaoLeeProgram(twitterId: string | null) {
         err instanceof Error && err.message.toLowerCase().includes('account does not exist');
 
       if (isNotFound) {
-        // Conta ainda não inicializada — estado normal para novos usuários
-        setError(
-          'Nenhum dado on-chain encontrado. Faça seu primeiro swap para registrar seu histórico na Solana!'
-        );
+        setErrorCode('not_found');
+        setError('not_found');
       } else {
         console.warn('[useXiaoLeeProgram] Erro ao buscar UserState:', err);
-        setError('Erro ao conectar com a Solana. Tente novamente em instantes.');
+        setErrorCode('connection_error');
+        setError('connection_error');
       }
       setUserState(null);
     } finally {
@@ -252,6 +256,7 @@ export function useXiaoLeeProgram(twitterId: string | null) {
     userState,
     loading,
     error,
+    errorCode,
     refetch: fetchUserState,
     /** PDA derivado para uso externo (ex: exibir explorer link) */
     userStatePda: twitterId ? deriveUserStatePda(twitterId) : null,

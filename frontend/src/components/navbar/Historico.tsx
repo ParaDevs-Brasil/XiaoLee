@@ -1,257 +1,224 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import UserData from "../UserData";
 import { ChatMessage, HistoricoProps } from "@/interfaces";
-import { formatDate, formatTime } from "@/utils/formatters";
 import { useModal } from "@/hooks/useModal";
-import { getRoleColor, getRoleIcon, filterHistory, typeOptions } from "@/utils/historyHelpers";
 
+// ── SVG Icons ─────────────────────────────────────────────────────────────────
+const IconBook = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+  </svg>
+);
+const IconRefresh = ({ spinning }: { spinning?: boolean }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${spinning ? "animate-spin" : ""}`}>
+    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+  </svg>
+);
+const IconClose = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+const IconUser = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+const IconBot = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+    <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="15" x2="8" y2="17"/><line x1="16" y1="15" x2="16" y2="17"/>
+  </svg>
+);
+const IconInbox = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+  </svg>
+);
+const IconShield = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function timeAgo(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+type FilterType = "all" | "user" | "assistant";
+
+const FILTERS: { value: FilterType; label: string; Icon: () => React.ReactNode }[] = [
+  { value: "all",       label: "All",      Icon: IconBook },
+  { value: "user",      label: "You",      Icon: IconUser },
+  { value: "assistant", label: "Xiaolee",  Icon: IconBot  },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 const Historico: React.FC<HistoricoProps> = ({ shouldOpen = false, onClose }) => {
-    const [selectedFilter, setSelectedFilter] = useState<string>("all");
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [, setRefreshTrigger] = useState(0);
-    const { isOpen, animateIn, closeModal } = useModal(shouldOpen, onClose);
-    
-    // Get chat history from raw data; the setter below forces rerenders when data changes
-    const rawChatHistory = UserData.getChatHistory();
-    
-    // Convert to ChatMessage format
-    const history: ChatMessage[] = rawChatHistory.length > 0 
-      ? rawChatHistory.flatMap(chat => [
-          {
-            content: chat.user_message.content,
-            role: "user" as const,
-            timestamp: chat.user_message.timestamp
-          },
-          {
-            content: chat.assistant_response.content,
-            role: "assistant" as const,
-            timestamp: chat.assistant_response.timestamp
-          }
-        ]).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      : []; // Return empty array if no chat history
-    
-    console.log("abrindo historico", history);
-    
-    // Listen for user data updates
-    React.useEffect(() => {
-      const handleUserDataLoaded = () => {
-        setRefreshTrigger(prev => prev + 1);
-      };
-      
-      if (typeof window !== 'undefined') {
-        window.addEventListener('userDataLoaded', handleUserDataLoaded);
-        return () => window.removeEventListener('userDataLoaded', handleUserDataLoaded);
-      }
-    }, []);
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [history, setHistory] = useState<ChatMessage[]>([]);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const { isOpen, animateIn, closeModal } = useModal(shouldOpen, onClose);
 
-    const handleRefresh = async () => {
-      setIsRefreshing(true);
-      try {
-        await UserData.fetchData();
-        // Force component re-render
-        setRefreshTrigger(prev => prev + 1);
-        return UserData.getChatHistory();
-      } catch (error) {
-        console.error("Error fetching chat history:", error);
-        return [];
-      } finally {
-        setIsRefreshing(false);
-      }
-    };
+  // Read chat history whenever modal opens or data refreshes
+  useEffect(() => {
+    if (!isOpen) return;
+    const raw = UserData.getChatHistory();
+    const msgs: ChatMessage[] = raw.flatMap(chat => [
+      { content: chat.user_message.content,        role: "user"      as const, timestamp: chat.user_message.timestamp },
+      { content: chat.assistant_response.content,  role: "assistant" as const, timestamp: chat.assistant_response.timestamp },
+    ]).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    setHistory(msgs);
+  }, [isOpen, refreshTick]);
 
-    const formatTimestamp = (timestamp: string) => {
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+  // Listen for new messages saved by ChatPanel
+  useEffect(() => {
+    const handler = () => setRefreshTick(t => t + 1);
+    window.addEventListener('userDataLoaded', handler);
+    return () => window.removeEventListener('userDataLoaded', handler);
+  }, []);
 
-      if (diffInHours < 1) {
-        return "Just now ✨";
-      } else if (diffInHours < 24) {
-        return `${Math.floor(diffInHours)} hours ago`;
-      } else {
-        return formatDate(timestamp) + " " + formatTime(timestamp);
-      }
-    };
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await UserData.fetchData();
+    } catch { /* ignore */ } finally {
+      setIsRefreshing(false);
+      setRefreshTick(t => t + 1);
+    }
+  };
 
-    const filteredHistory = filterHistory(history, selectedFilter);
-    return (
-      <>
-        {isOpen && (
+  const displayed = filter === "all" ? history : history.filter(m => m.role === filter);
+
+  return (
+    <>
+      {isOpen && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${
+            animateIn ? "bg-black/40 backdrop-blur-md" : "bg-black/0"
+          }`}
+          onClick={closeModal}
+        >
           <div
-            className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${
-              animateIn ? "bg-black/30 backdrop-blur-sm" : "bg-black/0"
+            className={`relative bg-white rounded-3xl shadow-2xl border border-pink-100 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col transition-all duration-300 transform ${
+              animateIn ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"
             }`}
-            onClick={closeModal}
+            onClick={e => e.stopPropagation()}
           >
-            <div
-              className={`bg-gradient-to-br from-[var(--modal-bg-start)] via-[var(--modal-bg-middle)] to-[var(--modal-bg-end)] rounded-3xl shadow-2xl border-2 border-[var(--modal-border)] max-w-4xl w-full max-h-[90vh] overflow-hidden transition-all duration-300 transform ${
-                animateIn
-                  ? "scale-100 opacity-100 translate-y-0"
-                  : "scale-95 opacity-0 translate-y-4"
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="absolute top-4 right-4 text-2xl animate-bounce">
-                📖
-              </div>
-              <div className="absolute top-8 left-8 text-xl sparkle-animation">
-                ✨
-              </div>
-              <div className="absolute top-1/2 left-2 text-sm float-animation delay-300">
-                🌟
-              </div>
-              <div className="absolute bottom-4 right-8 text-lg gentle-bounce delay-500">
-                ⏰
-              </div>
-              {/* Header */}
-              <div className="relative p-6 border-b border-[var(--modal-header-border)]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-gradient-to-r from-[var(--modal-header-icon-start)] to-[var(--modal-header-icon-end)] rounded-xl">
-                      <span className="text-2xl">📚</span>
-                    </div>
-                    <div>
-                      <h2 className="text-3xl font-bold bg-gradient-to-r from-[var(--modal-header-title-start)] via-[var(--modal-header-title-middle)] to-[var(--modal-header-title-end)] bg-clip-text text-transparent">
-                        Chat History
-                      </h2>
-                      <p className="text-[var(--modal-header-subtitle)] font-medium">
-                        Your conversations with Xiaolee! (◕‿◕)♡
-                      </p>
-                    </div>
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4 border-b border-pink-100/60">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-400 to-fuchsia-500 flex items-center justify-center text-white shadow-sm">
+                    <IconBook />
                   </div>
-
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={handleRefresh}
-                      disabled={isRefreshing}
-                      className="group p-2 hover:bg-[var(--modal-close-button-bg-hover)] rounded-xl transition-all duration-200 hover:scale-110 disabled:opacity-50"
-                    >
-                      <svg
-                        className={`w-5 h-5 text-blue-400 group-hover:text-blue-600 transition-all duration-200 ${
-                          isRefreshing ? 'animate-spin' : ''
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                    </button>
-
-                    <button
-                      onClick={closeModal}
-                      className="group p-2 hover:bg-[var(--modal-close-button-bg-hover)] rounded-xl transition-all duration-200 hover:scale-110"
-                    >
-                      <svg
-                        className="w-6 h-6 text-[var(--modal-close-button-icon)] group-hover:text-[var(--modal-close-button-icon-hover)]"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-800">Chat History</h2>
+                    <p className="text-sm text-gray-500">Your conversations with Xiaolee</p>
                   </div>
                 </div>
 
-                {/* Filter Tabs */}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {typeOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setSelectedFilter(option.value)}
-                      className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
-                        selectedFilter === option.value
-                          ? "bg-gradient-to-r from-[var(--modal-filter-active-bg-start)] to-[var(--modal-filter-active-bg-end)] text-[var(--modal-filter-active-text)] shadow-lg"
-                          : "bg-[var(--modal-filter-bg)] text-[var(--modal-filter-text)] hover:bg-[var(--modal-filter-hover-bg)]"
-                      }`}
-                    >
-                      <span>{option.icon}</span>
-                      <span>{option.label}</span>
-                    </button>
-                  ))}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="p-2 hover:bg-pink-50 rounded-xl transition-colors disabled:opacity-50 text-gray-400 hover:text-fuchsia-500"
+                  >
+                    <IconRefresh spinning={isRefreshing} />
+                  </button>
+                  <button
+                    onClick={closeModal}
+                    className="p-2 hover:bg-pink-50 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
+                  >
+                    <IconClose />
+                  </button>
                 </div>
-              </div>{" "}
-              {/* Content */}
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
-                {filteredHistory.length > 0 ? (
-                  <div className="space-y-4">
-                    {filteredHistory.map((message, index) => (
-                      <div
-                        key={index}
-                        className={`group p-4 rounded-2xl border transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] bg-gradient-to-r ${getRoleColor(message.role)}`}
-                      >
-                        <div className="flex items-start space-x-4">
-                          <div className="p-3 bg-white rounded-xl shadow-sm">
-                            <span className="text-2xl">
-                              {getRoleIcon(message.role)}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <h3 className="font-semibold text-[var(--text-primary)] group-hover:text-[var(--text-primary-hover)]">
-                                {message.role === "user" ? "You" : "Xiaolee"}
-                              </h3>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-[var(--modal-item-bg-user-start)] text-[var(--modal-item-bg-user-end)]">
-                                {message.role}
-                              </span>
-                            </div>
-                            <div className="bg-white/70 rounded-xl p-3 mb-2">
-                              <p className="text-gray-700 leading-relaxed">
-                                {message.content}
-                              </p>
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              {formatTimestamp(message.timestamp)}
-                            </p>
-                          </div>
-                        </div>
+              </div>
+
+              {/* Filter tabs */}
+              <div className="flex gap-2">
+                {FILTERS.map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setFilter(value)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                      filter === value
+                        ? "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-sm"
+                        : "bg-pink-50 text-gray-600 hover:bg-pink-100 border border-pink-100"
+                    }`}
+                  >
+                    <Icon />
+                    {label}
+                  </button>
+                ))}
+                <span className="ml-auto text-xs text-gray-400 self-center">
+                  {displayed.length} msg{displayed.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {displayed.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="text-pink-200 mb-4"><IconInbox /></div>
+                  <h3 className="text-base font-bold text-gray-600 mb-1">No messages yet</h3>
+                  <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+                    Start chatting with Xiaolee to see your conversation history here.
+                  </p>
+                </div>
+              ) : (
+                displayed.map((msg, i) => {
+                  const isUser = msg.role === "user";
+                  return (
+                    <div key={i} className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+                      {/* Avatar */}
+                      <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+                        isUser
+                          ? "bg-gradient-to-br from-pink-400 to-fuchsia-500 text-white"
+                          : "bg-gradient-to-br from-violet-400 to-purple-500 text-white"
+                      }`}>
+                        {isUser ? <IconUser /> : <IconBot />}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="text-8xl mb-6 animate-gentle-bounce">
-                      🐣
-                    </div>{" "}
-                    <h3 className="text-2xl font-bold text-purple-400 mb-2">
-                      No messages yet!
-                    </h3>
-                    <p className="text-purple-400/80 text-lg mb-4">
-                      Start chatting with Xiaolee to see your conversation
-                      history here! ✨
-                    </p>
-                    <div className="flex space-x-2">
-                      <span className="animate-sparkle">💫</span>
-                      <span className="animate-sparkle delay-100">🌸</span>
-                      <span className="animate-sparkle delay-200">💕</span>
+
+                      {/* Bubble */}
+                      <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-0.5`}>
+                        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                          isUser
+                            ? "bg-gradient-to-br from-pink-500 to-fuchsia-500 text-white rounded-tr-sm"
+                            : "bg-violet-50 border border-violet-100 text-gray-700 rounded-tl-sm"
+                        }`}>
+                          {msg.content}
+                        </div>
+                        <span className="text-[10px] text-gray-400 px-1">
+                          {timeAgo(msg.timestamp)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-              {/* Footer */}
-              <div className="p-4 border-t border-[var(--modal-footer-border)] bg-gradient-to-r from-[var(--modal-footer-bg-start)] to-[var(--modal-footer-bg-end)]">
-                <div className="flex items-center justify-center space-x-2 text-[var(--modal-footer-text)] text-sm">
-                  <span>Secured</span>
-                  <span>by Xiaolee</span>
-                  <span className="animate-bounce">🌸</span>
-                </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3 border-t border-pink-100/60 bg-gradient-to-r from-pink-50/60 to-fuchsia-50/60">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 font-medium">
+                <span className="text-pink-300"><IconShield /></span>
+                Secured by Xiaolee
               </div>
             </div>
           </div>
-        )}
-      </>
-    );
+        </div>
+      )}
+    </>
+  );
 };
 
 export default Historico;

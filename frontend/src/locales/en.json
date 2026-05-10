@@ -3,7 +3,10 @@
     "campaigns": "Campaigns",
     "notifications": "Notifications",
     "dashboard": "Dashboard",
-    "user": "User"
+    "user": "User",
+    "logout": "Sign Out",
+    "logout_sub": "End current session",
+    "logged_out": "Session ended."
   },
   "campaigns": {
     "title": "Campaigns",
@@ -136,7 +139,9 @@
     "disconnected_title": "Wallet Disconnected",
     "disconnected_sub": "Connect your Phantom Wallet and link your Twitter to see your on-chain stats.",
     "total_swaps": "Total Swaps",
-    "volume_usdc": "USDC Volume"
+    "volume_usdc": "USDC Volume",
+    "no_data": "No on-chain data found. Make your first swap to register your history on Solana!",
+    "connection_error": "Error connecting to Solana. Please try again in a moment."
   },
   "wallet": {
     "title": "My Wallet",
@@ -179,7 +184,12 @@
     "confirm_first": "Confirm that you reviewed the simulation before sending.",
     "phantom_missing": "Phantom Wallet not found.",
     "tx_success": "Transaction sent successfully on Devnet.",
-    "tx_error": "Failed to sign/send transaction."
+    "tx_error": "Failed to sign/send transaction.",
+    "your_address": "Your Address",
+    "address_copied": "Address copied!",
+    "connect_wallet": "Connect Wallet",
+    "refresh": "Refresh balances",
+    "close": "Close"
   },
   "transacoes": {
     "title": "Transaction History",

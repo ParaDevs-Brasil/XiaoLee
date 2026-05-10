@@ -9,6 +9,7 @@ import { TypeUserData } from "@/interfaces";
 import { ThemeProviderWrapper } from '@/providers/ThemeProvider';
 import { useUserCampaigns } from '@/hooks/useUserCampaigns';
 import { useLanguage } from '@/contexts/LanguageContext';
+import UserData from '@/components/UserData';
 
 // ── Inline SVG icons — sem emojis ──────────────────────────────────────────
 const IconTarget = () => (
@@ -108,7 +109,7 @@ function CampaignSummaryBar() {
             <Icon />
           </div>
           <div className="text-2xl font-black text-gray-800 leading-none">{value}</div>
-          <div className="text-xs text-gray-400 mt-1 font-medium">{label}</div>
+          <div className="text-sm text-gray-600 mt-1 font-semibold">{label}</div>
         </div>
       ))}
     </div>
@@ -123,13 +124,13 @@ function EconomyStat({ Icon, value, label, accent }: {
   accent: string;
 }) {
   return (
-    <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm rounded-2xl border border-pink-100 p-4 hover:shadow-sm transition-shadow duration-200">
+    <div className="flex items-center gap-3 bg-white rounded-2xl border border-pink-100 p-4 hover:shadow-sm transition-shadow duration-200">
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${accent} bg-white border border-current/10 shadow-sm`}>
         <Icon />
       </div>
       <div className="min-w-0">
         <div className="text-base font-bold text-gray-800 leading-tight">{value}</div>
-        <div className="text-xs text-gray-400 font-medium mt-0.5">{label}</div>
+        <div className="text-sm text-gray-600 font-semibold mt-0.5">{label}</div>
       </div>
     </div>
   );
@@ -141,6 +142,12 @@ export default function DashboardPage() {
   const [userData, setUserData] = useState<TypeUserData | null>(null);
 
   useEffect(() => {
+    // Navbar calls restoreSession() before this effect runs — read whatever is already set
+    const existing = UserData.getUserData();
+    if (existing?.user_info?.twitter_user_id) {
+      setUserData(existing);
+    }
+
     const handler = (e: Event) => {
       setUserData((e as CustomEvent<TypeUserData>).detail);
     };
@@ -162,7 +169,7 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
               {t('dashboard.title')}
             </h1>
-            <p className="text-sm text-gray-400 max-w-xs mx-auto leading-relaxed">
+            <p className="text-base text-gray-600 max-w-xs mx-auto leading-relaxed">
               {t('dashboard.subtitle')}
             </p>
           </div>
@@ -180,7 +187,7 @@ export default function DashboardPage() {
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-3 px-1">
               <span className="text-fuchsia-400"><IconTrendingUp /></span>
-              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">{t('dashboard.global_economy')}</h2>
+              <h2 className="text-sm font-bold text-gray-600 uppercase tracking-widest">{t('dashboard.global_economy')}</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <EconomyStat Icon={IconLock}      value="$1,240,500"  label={t('dashboard.tvl')}                  accent="text-emerald-500" />
@@ -193,12 +200,12 @@ export default function DashboardPage() {
           {/* ── Activity + Architecture ────────────────────────────────── */}
           <div className="grid grid-cols-1 gap-4">
             {/* Activity Feed */}
-            <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-pink-100 bg-white shadow-sm overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-4 border-b border-pink-100/60">
                 <span className="text-fuchsia-400"><IconActivity /></span>
                 <div>
                   <h2 className="text-sm font-bold text-gray-700">{t('dashboard.recent_activity')}</h2>
-                  <p className="text-xs text-gray-400">{t('dashboard.recent_activity_sub')}</p>
+                  <p className="text-sm text-gray-600">{t('dashboard.recent_activity_sub')}</p>
                 </div>
               </div>
               <div className="p-4">
@@ -207,12 +214,12 @@ export default function DashboardPage() {
             </div>
 
             {/* Architecture */}
-            <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm p-5">
+            <div className="rounded-2xl border border-pink-100 bg-white shadow-sm p-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-fuchsia-400"><IconCpu /></span>
                 <h2 className="text-sm font-bold text-gray-700">{t('dashboard.architecture')}</h2>
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed mb-4">
+              <p className="text-sm text-gray-600 leading-relaxed mb-4">
                 {t('dashboard.architecture_desc')}
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -228,7 +235,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-              <p className="text-center text-[10px] text-gray-300 uppercase tracking-widest mt-4 pt-3 border-t border-pink-100/60">
+              <p className="text-center text-xs text-gray-500 font-medium uppercase tracking-widest mt-4 pt-3 border-t border-pink-100/60">
                 {t('dashboard.footer')}
               </p>
             </div>

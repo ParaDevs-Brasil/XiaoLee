@@ -47,7 +47,20 @@ export default class UserData {
   
   // Get specific history sections
   static getChatHistory(): ChatHistoryItem[] {
-    return this.history.chat_history || [];
+    const inMemory = this.history?.chat_history || [];
+    if (typeof window === 'undefined') return inMemory;
+    try {
+      const stored = localStorage.getItem('xiaolee_chat_history');
+      if (!stored) return inMemory;
+      const fromStorage: ChatHistoryItem[] = JSON.parse(stored);
+      const inMemoryTs = new Set(inMemory.map(h => h.user_message.timestamp));
+      const unique = fromStorage.filter(h => !inMemoryTs.has(h.user_message.timestamp));
+      return [...unique, ...inMemory].sort(
+        (a, b) => new Date(a.user_message.timestamp).getTime() - new Date(b.user_message.timestamp).getTime()
+      );
+    } catch {
+      return inMemory;
+    }
   }
   
   static getSwapHistory(): SwapHistoryItem[] {
@@ -135,6 +148,14 @@ export default class UserData {
   static getOrCreateDevnetSession(): string {
     const existing = this.getSessionId();
     if (existing) {
+      // Ensure user_info is populated even when returning an existing session
+      if (!this.user_info || !this.user_info.twitter_user_id) {
+        this.user_info = {
+          twitter_user_id: existing,
+          twitter_handle: existing.slice(0, 20),
+          created_at: new Date().toISOString(),
+        };
+      }
       return existing;
     }
 
@@ -142,13 +163,8 @@ export default class UserData {
       return "";
     }
 
-    const phantomPublicKey = (
-      window as Window & { solana?: { publicKey?: { toString: () => string } } }
-    ).solana?.publicKey?.toString();
-
-    const token = phantomPublicKey
-      ? `devnet_wallet_${phantomPublicKey}`
-      : `devnet_guest_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    // Always create a guest session — Phantom/wallet connect must be explicit
+    const token = `devnet_guest_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
     window.localStorage.setItem('xiaolee_devnet_session', token);
     this.session_id = token;
@@ -156,8 +172,6 @@ export default class UserData {
     if (!this.twitter_user_id || this.twitter_user_id.trim() === "") {
       this.twitter_user_id = token;
     }
-
-    this.devnet_wallet_public_key = phantomPublicKey || this.devnet_wallet_public_key;
 
     if (!this.user_info || !this.user_info.twitter_user_id) {
       this.user_info = {
@@ -262,6 +276,11 @@ export default class UserData {
       transactions_count: this.history?.transactions?.length || 0
     });
     
+    // Persist user_info to localStorage so it survives page refresh
+    if (typeof window !== 'undefined' && this.user_info?.twitter_user_id) {
+      window.localStorage.setItem('xiaolee_user_info', JSON.stringify(this.user_info));
+    }
+
     // Dispatch custom event when data is loaded (only on client side)
     console.log("🎉 User data loaded, dispatching event");
     if (typeof window !== 'undefined') {
@@ -301,30 +320,48 @@ export default class UserData {
   // Method to add a local chat message to history
   static addLocalChatMessage(userMessage: string, assistantResponse: string): void {
     const timestamp = new Date().toISOString();
-    
     const newChatItem = {
-      user_message: {
-        content: userMessage,
-        timestamp: timestamp
-      },
-      assistant_response: {
-        content: assistantResponse,
-        timestamp: new Date(Date.now() + 1000).toISOString() // Assistant response 1 second later
-      }
+      user_message: { content: userMessage, timestamp },
+      assistant_response: { content: assistantResponse, timestamp: new Date(Date.now() + 1000).toISOString() }
     };
-    
-    // Initialize history if undefined
-    if (!this.history) {
-      this.history = { chat_history: [], swaps: [], transactions: [] };
-    }
-    if (!this.history.chat_history) {
-      this.history.chat_history = [];
-    }
-    
-    // Add to chat history
+
+    if (!this.history) this.history = { chat_history: [], swaps: [], transactions: [] };
+    if (!this.history.chat_history) this.history.chat_history = [];
     this.history.chat_history.push(newChatItem);
-    
-    console.log("💬 Local chat message added to history:", newChatItem);
+
+    // Persist to localStorage so fetchData() overwrites don't erase local messages
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('xiaolee_chat_history');
+        const existing: ChatHistoryItem[] = stored ? JSON.parse(stored) : [];
+        existing.push(newChatItem);
+        localStorage.setItem('xiaolee_chat_history', JSON.stringify(existing.slice(-200)));
+      } catch { /* ignore */ }
+    }
+  }
+
+  // Restore session + user_info from localStorage on page load (works for all auth types)
+  static restoreSession(): boolean {
+    if (typeof window === 'undefined') return false;
+
+    const sessionId = window.localStorage.getItem('xiaolee_devnet_session');
+    if (!sessionId) return false;
+
+    this.session_id = sessionId;
+
+    const cached = window.localStorage.getItem('xiaolee_user_info');
+    if (cached) {
+      try {
+        const info = JSON.parse(cached);
+        if (info?.twitter_user_id) {
+          this.twitter_user_id = info.twitter_user_id;
+          this.user_info = info;
+          return true;
+        }
+      } catch { /* ignore */ }
+    }
+
+    return false;
   }
 
   // Method to clear all data (useful for logout)
@@ -346,6 +383,14 @@ export default class UserData {
     this.rawChatHistory = [];
     this.rawTransactionData = [];
     
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('xiaolee_devnet_session');
+      window.localStorage.removeItem('xiaolee_user_info');
+      window.localStorage.removeItem('connected_wallet');
+      window.localStorage.removeItem('xiaolee_google_user');
+      window.localStorage.removeItem('xiaolee_chat_history');
+    }
+
     console.log("🧹 User data cleared");
   }
   

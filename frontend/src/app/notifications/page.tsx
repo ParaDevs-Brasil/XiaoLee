@@ -37,7 +37,7 @@ export default function NotificationsPage() {
             <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
               {t('notifications.title')}
             </h1>
-            <p className="text-sm text-gray-400 max-w-sm mx-auto leading-relaxed">
+            <p className="text-base text-gray-600 max-w-sm mx-auto leading-relaxed">
               {t('notifications.subtitle')}
             </p>
           </div>
@@ -45,50 +45,50 @@ export default function NotificationsPage() {
           {/* ── Stats Row ── */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: t('notifications.total'),     value: notifications.length, color: 'from-pink-500 to-fuchsia-500', bg: 'from-pink-50 to-fuchsia-50', border: 'border-pink-100' },
-              { label: t('notifications.delivered'), value: deliveredCount, color: 'text-emerald-500', solid: true, bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-100' },
-              { label: t('notifications.pending'),   value: pendingCount, color: 'text-amber-500', solid: true, bg: 'from-amber-50 to-orange-50', border: 'border-amber-100' },
+              { label: t('notifications.total'),     value: notifications.length, color: 'from-pink-500 to-fuchsia-500', bg: 'from-pink-50 to-fuchsia-50', border: 'border-pink-200' },
+              { label: t('notifications.delivered'), value: deliveredCount, color: 'text-emerald-600', solid: true, bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200' },
+              { label: t('notifications.pending'),   value: pendingCount, color: 'text-amber-600', solid: true, bg: 'from-amber-50 to-orange-50', border: 'border-amber-200' },
             ].map(({ label, value, color, solid, bg, border }) => (
               <div
                 key={label}
                 className={`rounded-2xl bg-gradient-to-br ${bg} border ${border} p-4 text-center shadow-sm`}
               >
-                <div className={`text-2xl font-black leading-none ${solid ? color : `bg-gradient-to-r ${color} bg-clip-text text-transparent`}`}>
+                <div className={`text-3xl font-black leading-none ${solid ? color : `bg-gradient-to-r ${color} bg-clip-text text-transparent`}`}>
                   {value}
                 </div>
-                <div className="text-xs text-gray-400 mt-1 font-medium">{label}</div>
+                <div className="text-sm text-gray-600 mt-1 font-semibold">{label}</div>
               </div>
             ))}
           </div>
 
           {/* ── Session Context ── */}
-          <div className="rounded-2xl border border-pink-100 bg-white/60 backdrop-blur-sm p-4 mb-6 shadow-sm">
-            <div className="text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
+          <div className="rounded-2xl border border-pink-200 bg-white p-4 mb-6 shadow-sm">
+            <div className="text-xs font-bold uppercase tracking-widest text-fuchsia-500 mb-3">
               {t('notifications.devnet_context')}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-gray-400 shrink-0">{t('notifications.session')}</span>
-                <span className="text-xs font-mono text-gray-600 bg-pink-50 border border-pink-100 rounded-lg px-2 py-1 truncate max-w-[200px]" title={sessionId || ''}>
-                  {sessionId ? truncate(sessionId, 12) : <span className="text-gray-300 italic">{t('notifications.not_initialized')}</span>}
+                <span className="text-sm text-gray-600 font-semibold shrink-0">{t('notifications.session')}</span>
+                <span className="text-xs font-mono text-gray-700 bg-pink-50 border border-pink-200 rounded-lg px-2 py-1 truncate max-w-[200px]" title={sessionId || ''}>
+                  {sessionId ? truncate(sessionId, 12) : <span className="text-gray-400 italic">{t('notifications.not_initialized')}</span>}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-gray-400 shrink-0">{t('notifications.wallet')}</span>
-                <span className="text-xs font-mono text-gray-600 bg-purple-50 border border-purple-100 rounded-lg px-2 py-1 truncate max-w-[200px]" title={walletPublicKey || ''}>
-                  {walletPublicKey ? truncate(walletPublicKey, 12) : <span className="text-gray-300 italic">{t('notifications.phantom_not_connected')}</span>}
+                <span className="text-sm text-gray-600 font-semibold shrink-0">{t('notifications.wallet')}</span>
+                <span className="text-xs font-mono text-gray-700 bg-purple-50 border border-purple-200 rounded-lg px-2 py-1 truncate max-w-[200px]" title={walletPublicKey || ''}>
+                  {walletPublicKey ? truncate(walletPublicKey, 12) : <span className="text-gray-400 italic">{t('notifications.phantom_not_connected')}</span>}
                 </span>
               </div>
             </div>
           </div>
 
           {/* ── List Section ── */}
-          <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-lg overflow-hidden">
+          <div className="rounded-2xl border border-pink-200 bg-white shadow-lg overflow-hidden">
             {/* List Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100/60">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100">
               <div>
-                <h2 className="text-base font-bold text-gray-700">{t('notifications.receipts_title')}</h2>
-                <p className="text-xs text-gray-400">{t('notifications.receipts_sub')}</p>
+                <h2 className="text-lg font-bold text-gray-800">{t('notifications.receipts_title')}</h2>
+                <p className="text-sm text-gray-600">{t('notifications.receipts_sub')}</p>
               </div>
               <button
                 onClick={refetch}
@@ -119,8 +119,8 @@ export default function NotificationsPage() {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-100 to-fuchsia-100 flex items-center justify-center mb-5 shadow-inner">
                   <span className="text-3xl">🔕</span>
                 </div>
-                <h3 className="text-base font-bold text-gray-600 mb-1">{t('notifications.empty_title')}</h3>
-                <p className="text-xs text-gray-400 max-w-xs mb-6 leading-relaxed">
+                <h3 className="text-lg font-bold text-gray-800 mb-1">{t('notifications.empty_title')}</h3>
+                <p className="text-base text-gray-600 max-w-xs mb-6 leading-relaxed">
                   {t('notifications.empty_sub')}
                 </p>
                 <Link
@@ -151,7 +151,7 @@ export default function NotificationsPage() {
                       <div className="flex-1 min-w-0">
                         {/* Title + badge */}
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="text-sm font-bold text-gray-800 leading-tight">
+                          <h3 className="text-base font-bold text-gray-800 leading-tight">
                             {notification.title}
                           </h3>
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -164,7 +164,7 @@ export default function NotificationsPage() {
                         </div>
 
                         {/* Body */}
-                        <p className="text-xs text-gray-500 leading-relaxed mb-2">
+                        <p className="text-sm text-gray-700 leading-relaxed mb-2">
                           {notification.body}
                         </p>
 
@@ -215,7 +215,7 @@ export default function NotificationsPage() {
           </div>
 
           {/* ── Footer note ── */}
-          <p className="text-center text-xs text-gray-300 mt-6">
+          <p className="text-center text-xs text-gray-500 mt-6">
             {t('notifications.footer')}
           </p>
 
