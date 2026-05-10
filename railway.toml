@@ -3,7 +3,8 @@ builder = "DOCKERFILE"
 dockerfilePath = "backend/Dockerfile"
 
 [deploy]
-startCommand = "alembic upgrade head && uvicorn server.app:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --loop uvloop --http h11"
+preDeployCommand = "alembic upgrade head"
+startCommand = "uvicorn server.app:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --loop uvloop --http h11"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"

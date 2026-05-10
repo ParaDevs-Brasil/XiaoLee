@@ -85,14 +85,27 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Executa migrações em modo async (asyncpg/aiosqlite)."""
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,  # sem pool para migrações
-    )
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-    await connectable.dispose()
+    import sys
+    import traceback
+
+    db_url = config.get_main_option("sqlalchemy.url") or "NOT SET"
+    safe_url = db_url.split("@")[-1] if "@" in db_url else db_url[:40]
+    print(f"[alembic] Connecting to: {safe_url}", flush=True)
+
+    try:
+        connectable = async_engine_from_config(
+            config.get_section(config.config_ini_section, {}),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_run_migrations)
+        await connectable.dispose()
+        print("[alembic] Migrations completed successfully", flush=True)
+    except Exception as exc:
+        print(f"[alembic] Migration FAILED: {exc}", file=sys.stderr, flush=True)
+        traceback.print_exc(file=sys.stderr)
+        raise
 
 
 def run_migrations_online() -> None:
