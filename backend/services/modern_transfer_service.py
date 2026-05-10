@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 
-from database.models import User, PendingTransfer, TransactionHistory
+import re
+from database.models import User, Wallet, PendingTransfer, TransactionHistory
 from .twitter_api_service import TwitterAPIService, UserHandleService
 from swaps.balance_manager import BalanceManager
 
@@ -86,57 +87,78 @@ class ModernTransferService:
                 {"balance": max(0.0, new_balance), "id": existing[0], "updated_at": datetime.now()}  # Prevent negative balances
             )
     
+    @staticmethod
+    def _is_solana_address(value: str) -> bool:
+        """Returns True if value looks like a Solana base58 wallet address."""
+        return bool(re.fullmatch(r'[1-9A-HJ-NP-Za-km-z]{32,44}', value))
+
     async def _resolve_recipient_with_enhanced_logic(self, session: AsyncSession, recipient_identifier: str) -> Optional[str]:
-        """Enhanced recipient resolution - checks local database first, then Twitter API"""
-        
+        """Resolve any identifier to a twitter_user_id.
+
+        Priority order:
+        1. Solana wallet address → look up Wallet table
+        2. Local DB by twitter_handle or telegram_chat_id
+        3. Numeric ID (Twitter user ID)
+        4. Twitter API fallback
+        """
         logger.info(f"🔍 Enhanced resolution for: {recipient_identifier}")
-        
-        # Clean and normalize the identifier (case-insensitive)
-        clean_identifier = recipient_identifier.strip().replace('@', '').lower()
-        
-        # 1. Check local database for exact handle match
+
+        clean = recipient_identifier.strip().replace('@', '')
+
+        # 1. Solana wallet address
+        if self._is_solana_address(clean):
+            logger.info(f"🔍 Looks like a Solana wallet address: {clean}")
+            try:
+                result = await session.execute(
+                    select(User).join(Wallet, Wallet.user_id == User.id).where(Wallet.address == clean)
+                )
+                user = result.scalar_one_or_none()
+                if user:
+                    logger.info(f"✅ Wallet address resolved to user: {user.twitter_user_id}")
+                    return user.twitter_user_id
+                # No registered user for this wallet — return the address itself so a
+                # pending transfer is created tagged to the wallet address.
+                logger.info(f"ℹ️ Wallet {clean} not registered — will create pending transfer")
+                return f"wallet:{clean}"
+            except Exception as e:
+                logger.error(f"❌ Wallet lookup error: {e}")
+
+        # 2. Local DB — twitter_handle or telegram_chat_id
+        clean_lower = clean.lower()
+        handle_variations = [f"@{clean_lower}", clean_lower]
         try:
-            # Create handle variations (all lowercase for case-insensitive search)
-            handle_variations = [
-                f"@{clean_identifier}",           # @nickname
-                clean_identifier,                 # nickname
-            ]
-            
-            logger.info(f"🔍 Checking local database for handle variations: {handle_variations}")
-            
-            # Search using LOWER() for case-insensitive comparison
-            for handle_variant in handle_variations:
-                # Search with case-insensitive comparison using func.lower()
-                from sqlalchemy import func
+            from sqlalchemy import func
+            for variant in handle_variations:
                 result = await session.execute(
                     select(User).where(
-                        func.lower(User.twitter_handle) == handle_variant.lower()
+                        or_(
+                            func.lower(User.twitter_handle) == variant,
+                            func.lower(User.telegram_chat_id) == variant,
+                        )
                     )
                 )
                 user = result.scalar_one_or_none()
-                
                 if user:
-                    logger.info(f"✅ Found user in local database: {user.twitter_handle} (ID: {user.twitter_user_id})")
+                    logger.info(f"✅ DB resolved {variant} → {user.twitter_user_id}")
                     return user.twitter_user_id
-                    
-            # 2. Check if identifier is already a Twitter user ID (numeric)
-            if clean_identifier.isdigit():
-                logger.info(f"🔍 Identifier appears to be a Twitter user ID: {clean_identifier}")
-                return clean_identifier
-                
         except Exception as e:
-            logger.error(f"❌ Error checking local database: {e}")
-        
-        # 3. Fall back to Twitter API resolution
-        logger.info(f"🔍 Attempting Twitter API resolution for: {recipient_identifier}")
+            logger.error(f"❌ DB handle lookup error: {e}")
+
+        # 3. Numeric Twitter user ID
+        if clean.isdigit():
+            logger.info(f"🔍 Numeric ID: {clean}")
+            return clean
+
+        # 4. Twitter API fallback
+        logger.info(f"🔍 Twitter API fallback for: {recipient_identifier}")
         try:
             resolved_id = await self.handle_service.resolve_recipient_id(recipient_identifier)
             if resolved_id:
-                logger.info(f"✅ Twitter API resolved: {recipient_identifier} → {resolved_id}")
+                logger.info(f"✅ Twitter API: {recipient_identifier} → {resolved_id}")
                 return resolved_id
         except Exception as e:
             logger.error(f"❌ Twitter API resolution failed: {e}")
-        
+
         logger.warning(f"❌ Could not resolve recipient: {recipient_identifier}")
         return None
 
@@ -186,13 +208,18 @@ class ModernTransferService:
             # Attempt to resolve recipient identifier to Twitter user ID using enhanced logic
             recipient_twitter_id = await self._resolve_recipient_with_enhanced_logic(session, recipient_identifier)
             
+            # wallet: prefix means address exists on-chain but not registered — pending transfer
+            if recipient_twitter_id and recipient_twitter_id.startswith("wallet:"):
+                recipient_twitter_id = None
+
             if not recipient_twitter_id:
-                # If we can't resolve the recipient, create a pending transfer
-                # This handles case 3: User doesn't exist in system → Pending transfer
+                # Recipient not in system → create pending transfer claimable when they join
                 logger.info(f"Could not resolve recipient '{recipient_identifier}', creating pending transfer")
-                
-                # Use the identifier as-is for pending transfer
-                clean_handle = recipient_identifier.lstrip('@')
+
+                # Preserve wallet addresses as-is; strip @ from handles
+                clean_handle = recipient_identifier.strip()
+                if not self._is_solana_address(clean_handle.replace('@', '')):
+                    clean_handle = clean_handle.lstrip('@')
                 
                 # Create pending transfer
                 pending_transfer = PendingTransfer(

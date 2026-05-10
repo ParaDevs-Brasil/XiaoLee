@@ -170,13 +170,13 @@ MCP_TOOLS_SCHEMAS = [{
     "type": "function",
     "function": {
         "name": "transfer_token",
-        "description": "Send tokens to another user, identified by their Twitter handle. The amount must be a positive number. If the user provides a negative number or zero, you must reject the operation and explain why.",
+        "description": "Send tokens to another user identified by their @handle (Twitter, Telegram, or any platform username). Use this tool whenever a user says things like 'send X tokens to @someone', 'manda X XLEE pra @alguem', 'transfer X SOL to @handle', 'enviar tokens para @usuario'. The amount must be a positive number. If the user provides a negative number or zero, reject the operation.",
         "parameters": {
             "type": "object",
             "properties": {
                 "recipient_twitter_handle": {
                     "type": "string",
-                    "description": "The Twitter @handle of the recipient."
+                    "description": "The recipient identifier: a @handle (Twitter or Telegram username) OR a Solana wallet address (base58 string). Examples: 'brazilliancare', 'EZKVUN9RnUt5vpHH5w1c8mD28JmgeTPY4tCcgFSo5LCg'. Strip the @ prefix from handles before passing."
                 },
                 "token_symbol": {
                     "type": "string",
