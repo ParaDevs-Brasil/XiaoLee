@@ -9,7 +9,7 @@
 
 | Chat | Dashboard | Campanhas | Notificações |
 |---|---|---|---|
-| ![Tela do chat XiaoLee](XiaoleeChat.png) | ![Dashboard XiaoLee](Dashboard.png) | ![Tela de campanhas XiaoLee](Campaigns.png) | ![Notificações XiaoLee](Notifications.png) |
+| ![Tela do chat XiaoLee](chat.png) | ![Dashboard XiaoLee](dashboard.png) | ![Tela de campanhas XiaoLee](campaings.png) | ![Notificações XiaoLee](notifications.png) |
 
 > Screenshots do design premium com paleta pink/fuchsia/purple unificada. Toggle EN/PT disponível na Navbar.
 
