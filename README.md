@@ -228,22 +228,22 @@ sequenceDiagram
 ```mermaid
 graph LR
     LS["localStorage<br>xiaolee_lang"] -->|hidratação| LP["LanguageProvider<br>(React Context)"]
-    LP -->|t(key)| C1["Navbar"]
-    LP -->|t(key)| C2["Campaigns"]
-    LP -->|t(key)| C3["Wallet Modal"]
-    LP -->|t(key)| C4["Transações Modal"]
-    LP -->|t(key)| C5["Dashboard"]
-    LP -->|t(key)| C6["Notifications"]
+    LP -->|"t(key)"| C1["Navbar"]
+    LP -->|"t(key)"| C2["Campaigns"]
+    LP -->|"t(key)"| C3["Wallet Modal"]
+    LP -->|"t(key)"| C4["Transações Modal"]
+    LP -->|"t(key)"| C5["Dashboard"]
+    LP -->|"t(key)"| C6["Notifications"]
 
     subgraph LOCALES["src/locales/"]
         EN["en.json"]
         PT["pt.json"]
     end
 
-    LP -->|lang === 'en'| EN
-    LP -->|lang === 'pt'| PT
+    LP -->|"lang === en"| EN
+    LP -->|"lang === pt"| PT
 
-    TOGGLE["LangToggle<br>(EN / PT pill)"] -->|setLang()| LP
+    TOGGLE["LangToggle<br>EN / PT pill"] -->|"setLang()"| LP
 ```
 
 ---
