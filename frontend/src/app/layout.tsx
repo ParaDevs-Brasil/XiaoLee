@@ -47,6 +47,10 @@ export default function RootLayout({
     return (
         <html lang="pt-BR" suppressHydrationWarning>
             <head>
+                <link rel="icon" href="/favicon.ico" sizes="any" />
+                <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+                <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+                <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
                 <link rel="preload" as="video" href="/xiaolee_standby.mov" />
             </head>
                 <body className={quicksand.className}>
