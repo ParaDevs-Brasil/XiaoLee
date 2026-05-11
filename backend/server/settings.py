@@ -35,6 +35,9 @@ class Settings:
     telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     telegram_bot_name: str = os.getenv("TELEGRAM_BOT_NAME", "")
     telegram_webhook_secret: str = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+    # Set TELEGRAM_POLLER_ENABLED=false on Railway to disable long-polling there
+    # and let only the local Docker instance own the bot session.
+    telegram_poller_enabled: bool = os.getenv("TELEGRAM_POLLER_ENABLED", "true").lower() not in ("false", "0", "no")
     x_webhook_secret: str = os.getenv("X_WEBHOOK_SECRET", "")
     x_bearer_token: str = os.getenv("X_BEARER_TOKEN", "")
     x_dm_api_base_url: str = os.getenv("X_DM_API_BASE_URL", "https://api.x.com")

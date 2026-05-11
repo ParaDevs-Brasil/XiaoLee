@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
     await get_rate_limiter(redis_url=settings.redis_url or None)
 
     telegram_task: asyncio.Task | None = None
-    if settings.telegram_bot_token:
+    if settings.telegram_bot_token and settings.telegram_poller_enabled:
         telegram_poller = TelegramPoller(
             bot_token=settings.telegram_bot_token,
             telegram_client=telegram_client,
@@ -53,6 +53,8 @@ async def lifespan(app: FastAPI):
         )
         telegram_task = asyncio.create_task(telegram_poller.start())
         logger.info("Telegram poller scheduled")
+    elif settings.telegram_bot_token and not settings.telegram_poller_enabled:
+        logger.info("Telegram poller DISABLED via TELEGRAM_POLLER_ENABLED=false")
 
     x_task: asyncio.Task | None = None
     x_poller = XPoller(orchestrator=orchestrator)
