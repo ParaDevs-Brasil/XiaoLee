@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['neriah-neumic-ontically.ngrok-free.dev'],
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Prevent SSR bundling of browser-only Web3Auth deps
       config.resolve.alias = {
         ...config.resolve.alias,
         "@web3auth/modal": false,
@@ -15,7 +14,6 @@ const nextConfig: NextConfig = {
         "@web3auth/base": false,
       };
     }
-    // Silence missing optional native deps from MetaMask SDK / permissionless
     config.resolve.fallback = {
       ...config.resolve.fallback,
       "@react-native-async-storage/async-storage": false,

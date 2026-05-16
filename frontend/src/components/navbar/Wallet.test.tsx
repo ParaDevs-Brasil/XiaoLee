@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { cleanup, render, within } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
+import { within } from "@testing-library/dom";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
