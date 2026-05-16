@@ -43,6 +43,7 @@ class Settings:
     x_dm_api_base_url: str = os.getenv("X_DM_API_BASE_URL", "https://api.x.com")
     inbound_rate_limit_per_minute: int = int(os.getenv("INBOUND_RATE_LIMIT_PER_MINUTE", "60"))
     cors_allowed_origins: list[str] = None
+    cors_allowed_origin_regex: str = ""
     
     helius_api_key: str = os.getenv("HELIUS_API_KEY", "")
     helius_webhook_secret: str = os.getenv("HELIUS_WEBHOOK_SECRET", "")
@@ -75,6 +76,10 @@ class Settings:
             "cors_allowed_origins",
             _parse_csv_env("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
         )
+        cors_origin_regex = os.getenv("CORS_ALLOWED_ORIGIN_REGEX", "")
+        if not cors_origin_regex and self.environment == "dev":
+            cors_origin_regex = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+        object.__setattr__(self, "cors_allowed_origin_regex", cors_origin_regex)
         # Headers CORS: em producao, restringir a lista minima necessaria.
         # Por padrao aceita os headers padrao REST + Authorization.
         cors_headers_default = "Content-Type,Authorization,Accept,X-Requested-With,X-Payment,X-Payment-Required"

@@ -81,6 +81,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allowed_origins,
+    allow_origin_regex=settings.cors_allowed_origin_regex or None,
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     # Headers restritos: configurados via CORS_ALLOWED_HEADERS (env).
