@@ -26,6 +26,10 @@ redis[asyncio]==7.4.0      # Rate limiting persistente
 # ─── Integração Solana ─────────────────────────────────────────────────────────
 solders==0.26.0            # Derivação de PDA, instrução Anchor, keypair
 
+# ─── Integração Stellar ────────────────────────────────────────────────────────
+stellar-sdk>=10.0.0        # Stellar Python SDK — Horizon, Soroban, SEP-10
+PyJWT>=2.8.0               # JWT para tokens SEP-10
+
 # ─── HTTP / Networking ────────────────────────────────────────────────────────
 aiohttp==3.13.5            # HTTP async para integrações externas
 

@@ -55,6 +55,17 @@ class Settings:
     # Producao: redis://user:pass@host:6379/0  ou  rediss:// para TLS
     redis_url: str = os.getenv("REDIS_URL", "")
 
+    # ── Stellar ──────────────────────────────────────────────────────────────────
+    stellar_network: str = os.getenv("STELLAR_NETWORK", "testnet")
+    stellar_horizon_url: str = os.getenv("STELLAR_HORIZON_URL", "")
+    # Keypair do servidor para challenges SEP-10 (nunca usado para fundos)
+    stellar_server_secret: str = os.getenv("STELLAR_SERVER_SECRET", "")
+    stellar_home_domain: str = os.getenv("STELLAR_HOME_DOMAIN", "xiaolee.io")
+    # Carteira que recebe micropagamentos x402
+    stellar_x402_wallet: str = os.getenv("STELLAR_X402_WALLET", "")
+    stellar_x402_price_xlm: float = float(os.getenv("STELLAR_X402_PRICE_XLM", "0.5"))
+    stellar_x402_enabled: bool = os.getenv("STELLAR_X402_ENABLED", "true").lower() == "true"
+
     # Headers CORS permitidos.
     cors_allowed_headers: list[str] = None
 
@@ -66,7 +77,7 @@ class Settings:
         )
         # Headers CORS: em producao, restringir a lista minima necessaria.
         # Por padrao aceita os headers padrao REST + Authorization.
-        cors_headers_default = "Content-Type,Authorization,Accept,X-Requested-With"
+        cors_headers_default = "Content-Type,Authorization,Accept,X-Requested-With,X-Payment,X-Payment-Required"
         object.__setattr__(
             self,
             "cors_allowed_headers",

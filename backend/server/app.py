@@ -23,6 +23,7 @@ from fastapi import Depends
 
 from server.integrations.gemini_client import GeminiClient
 from server.integrations.solana_client import SolanaClient
+from server.integrations.stellar_adapter import StellarAdapter
 from server.integrations.telegram_client import TelegramClient
 from server.integrations.telegram_adapter import TelegramAdapter
 from server.integrations.telegram_poller import TelegramPoller
@@ -36,6 +37,9 @@ from server.rate_limiter import get_rate_limiter, reset_rate_limiter
 from server.webhooks.helius_routes import router as helius_router
 from server.campaigns_routes import router as campaigns_router
 from server.notifications_routes import router as notifications_router
+from server.routes.stellar_auth_routes import router as stellar_auth_router
+from server.routes.stellar_routes import router as stellar_router
+from server.routes.x402_routes import router as x402_router
 
 
 @asynccontextmanager
@@ -83,11 +87,15 @@ app.add_middleware(
     # Padrao: Content-Type, Authorization, Accept, X-Requested-With.
     # '*' apenas em dev local, nunca em producao.
     allow_headers=settings.cors_allowed_headers,
+    expose_headers=["X-Payment-Required"],
 )
 
 app.include_router(helius_router)
 app.include_router(campaigns_router)
 app.include_router(notifications_router)
+app.include_router(stellar_auth_router)
+app.include_router(stellar_router)
+app.include_router(x402_router)
 
 request_hits: Dict[str, Deque[datetime]] = defaultdict(deque)
 
@@ -160,7 +168,11 @@ solana_client = SolanaClient(
     jupiter_quote_url=settings.jupiter_quote_url,
     jupiter_swap_url=settings.jupiter_swap_url,
 )
-orchestrator = OrchestrationService(gemini=gemini_client, solana=solana_client)
+stellar_client = StellarAdapter(
+    network=settings.stellar_network,
+    horizon_url=settings.stellar_horizon_url,
+)
+orchestrator = OrchestrationService(gemini=gemini_client, solana=solana_client, stellar=stellar_client)
 telegram_adapter = TelegramAdapter()
 x_adapter = XAdapter()
 telegram_client = TelegramClient(bot_token=settings.telegram_bot_token)
@@ -241,6 +253,21 @@ async def health_detailed(db: AsyncSession = Depends(get_db_session)):
         results["jupiter"] = {"status": "timeout", "detail": "Jupiter did not respond within 5s"}
     except Exception as exc:
         results["jupiter"] = {"status": "error", "detail": str(exc)}
+
+    # 5. Stellar Horizon
+    try:
+        t0 = perf_counter()
+        stellar_health = await asyncio.wait_for(stellar_client.get_health(), timeout=8.0)
+        results["stellar_horizon"] = {
+            "status": stellar_health.get("status", "ok"),
+            "latency_ms": round((perf_counter() - t0) * 1000, 2),
+            "network": stellar_health.get("network"),
+            "latest_ledger": stellar_health.get("history_latest_ledger"),
+        }
+    except asyncio.TimeoutError:
+        results["stellar_horizon"] = {"status": "timeout", "detail": "Horizon did not respond within 8s"}
+    except Exception as exc:
+        results["stellar_horizon"] = {"status": "error", "detail": str(exc)}
 
     overall = "ok" if all(v.get("status") in {"ok", "enabled", "disabled"} for v in results.values()) else "degraded"
     return {

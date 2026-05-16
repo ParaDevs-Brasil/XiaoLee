@@ -17,10 +17,11 @@ from .base import Base
 
 class User(Base):
     __tablename__ = 'users'
-    
+
     twitter_handle: Mapped[str] = mapped_column(String(255), unique=True)
     twitter_user_id: Mapped[str] = mapped_column(unique=True)
     telegram_chat_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True, unique=True)
+    stellar_wallet: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
 
 
 class Wallet(Base):
@@ -51,7 +52,7 @@ class TokenPrice(Base):
 
 class SwapHistory(Base):
     __tablename__ = 'swaphistorys'
-    
+
     user_id: Mapped[str] = mapped_column(String(255))
     from_token: Mapped[str] = mapped_column(String(255))
     to_token: Mapped[str] = mapped_column(String(255))
@@ -60,6 +61,9 @@ class SwapHistory(Base):
     exchange_rate: Mapped[float] = mapped_column(Numeric(20, 8))
     value_usd: Mapped[Optional[float]] = mapped_column(Numeric(20, 8), nullable=True)
     status: Mapped[str] = mapped_column(default="completed")
+    # ADR-006: suporte multi-chain
+    chain: Mapped[str] = mapped_column(String(16), default='stellar', server_default='stellar')
+    tx_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
 class TransactionHistory(Base):
@@ -154,6 +158,9 @@ class CampaignParticipant(Base):
     has_quoted: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
     tasks_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     claim_receipt_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # ADR-006: suporte multi-chain
+    chain: Mapped[str] = mapped_column(String(16), default='stellar', server_default='stellar')
+    stellar_wallet: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
 
 class WebSession(Base):
