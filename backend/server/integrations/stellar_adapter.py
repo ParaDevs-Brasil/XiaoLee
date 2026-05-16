@@ -299,7 +299,7 @@ class StellarAdapter:
             if tx.get("successful") is not True:
                 LOG.warning("[x402] verify_payment: tx NOT successful | tx=%s", tx_hash)
                 return False
-            ops_url = tx.get("_links", {}).get("operations", {}).get("href", "")
+            ops_url = tx.get("_links", {}).get("operations", {}).get("href", "").split("{")[0]
             if not ops_url:
                 LOG.warning("[x402] verify_payment: no operations link | tx=%s", tx_hash)
                 return False
