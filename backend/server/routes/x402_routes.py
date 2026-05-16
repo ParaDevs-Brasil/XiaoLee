@@ -210,6 +210,21 @@ async def payment_info():
     return _build_payment_info()
 
 
+@router.get("/query/verify-tx")
+async def verify_tx(tx_hash: str = Query(...)):
+    """Debug: verifica manualmente se um tx_hash passa pela validação x402."""
+    stellar = StellarAdapter(network=_stellar_network())
+    pay_to = _x402_wallet()
+    min_amount = _x402_price_xlm()
+    result = await stellar.verify_payment(tx_hash, pay_to, min_amount)
+    return {
+        "tx_hash": tx_hash,
+        "expected_destination": pay_to,
+        "min_amount_xlm": min_amount,
+        "verified": result,
+    }
+
+
 @router.get("/query/payment-tx")
 async def get_payment_tx(account: str = Query(..., description="Stellar public key G...")):
     """

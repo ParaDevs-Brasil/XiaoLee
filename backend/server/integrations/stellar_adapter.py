@@ -297,9 +297,11 @@ class StellarAdapter:
         try:
             tx = await self.get_transaction(tx_hash)
             if tx.get("successful") is not True:
+                LOG.warning("[x402] verify_payment: tx NOT successful | tx=%s", tx_hash)
                 return False
             ops_url = tx.get("_links", {}).get("operations", {}).get("href", "")
             if not ops_url:
+                LOG.warning("[x402] verify_payment: no operations link | tx=%s", tx_hash)
                 return False
             async with httpx.AsyncClient(timeout=12) as client:
                 ops_resp = await client.get(ops_url)
@@ -311,8 +313,16 @@ class StellarAdapter:
                 dest = op.get("to", "") or op.get("destination", "")
                 asset_type = op.get("asset_type", "")
                 raw_amount = float(op.get("amount", 0))
+                LOG.info(
+                    "[x402] verify_payment op | tx=%s | dest=%s | expected=%s | asset=%s | amount=%.7f | min=%.7f",
+                    tx_hash, dest, expected_destination, asset_type, raw_amount, min_amount_xlm,
+                )
                 if dest == expected_destination and asset_type == "native" and raw_amount >= min_amount_xlm:
                     return True
+            LOG.warning(
+                "[x402] verify_payment: no matching op | tx=%s | expected_dest=%s",
+                tx_hash, expected_destination,
+            )
             return False
         except Exception as exc:
             LOG.warning("[StellarAdapter] verify_payment failed | tx=%s | %s", tx_hash, exc)
