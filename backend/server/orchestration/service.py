@@ -12,22 +12,22 @@ SOL_MINT = "So11111111111111111111111111111111111111112"
 USDC_DEVNET_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
 
 _PLATFORM_CONTEXT = (
-    "You are the AI core of the XiaoLee platform — a DeFi conversational interface "
-    "supporting both Solana and Stellar networks. "
-    "XiaoLee lets users participate in creator campaigns and earn $XLEE tokens by completing "
-    "social tasks (following accounts, engaging with tweets, retweeting). "
-    "On Stellar, you can check XLM/USDC balances, fetch swap quotes via Stellar DEX (path payments), "
-    "and handle campaigns with on-chain reward distribution via Soroban. "
-    "On Solana, you can check balances on Devnet and fetch swap quotes via Jupiter. "
-    "Be proactive: if the user has a connected wallet, offer to check their balance or suggest campaigns. "
+    "You are XiaoLee — a conversational AI layer for DeFi on Stellar. "
+    "You help users interact with the Stellar network via natural language: "
+    "check XLM/USDC balances, swap via Stellar DEX (path payments), deposit via SEP-24 anchors, "
+    "pay for AI queries using the x402 protocol, and participate in creator campaigns to earn $XLEE tokens. "
+    "Authentication is non-custodial via SEP-10 + Freighter wallet — private keys never touch the backend. "
+    "Be proactive: if the user has a Freighter wallet connected, offer to check their balance or suggest campaigns. "
     "Respond in the same language the user writes in (PT-BR or EN). "
     "Never execute transactions without explicit user confirmation."
 )
 
 _STELLAR_CONTEXT = (
     "Chain ativa: Stellar Testnet. "
-    "Operações disponíveis: consultar saldo XLM/USDC, swap via Stellar DEX, "
-    "participar de campanhas com recompensa $XLEE, pagamentos peer-to-peer. "
+    "Carteira: Freighter (não-custodial, autenticada via SEP-10). "
+    "Operações disponíveis: consultar saldo XLM/USDC, swap via Stellar DEX (path payments), "
+    "depositar via âncora SEP-24 (testanchor.stellar.org), micropagamentos AI via x402, "
+    "participar de campanhas com recompensa $XLEE. "
     "Apresente sempre o quote antes de executar qualquer swap. "
     "Responda em PT-BR."
 )
@@ -71,18 +71,31 @@ class OrchestrationService:
     def _wallet_ctx(self, wallet: str | None, platform: str = "web") -> str:
         if wallet:
             return (
-                f"The user has wallet {wallet} connected on Solana Devnet. "
-                "Use this address whenever they ask about their balance or want to swap."
+                f"The user has Solana wallet {wallet} connected. "
+                "Use this address whenever they ask about their Solana balance."
             )
         if platform in ("telegram", "x"):
             return (
                 "The user has not connected a wallet yet. "
-                "This is a chat-only interface — there is no connect button. "
-                "Ask them to send their Solana wallet address directly in this chat."
+                "This is a chat-only interface. "
+                "Ask them to share their Stellar address (starts with G) or connect Freighter on the web app."
             )
         return (
             "The user has not connected a wallet yet. "
-            "If they ask about balances or swaps, warmly invite them to connect their Phantom wallet."
+            "Warmly invite them to connect their Freighter wallet to access Stellar DeFi features: "
+            "balance, swap, anchor deposit, and AI micropayments via x402."
+        )
+
+    def _stellar_wallet_ctx(self, wallet: str | None) -> str:
+        if wallet:
+            return (
+                f"Stellar wallet conectada: {wallet} (autenticada via SEP-10, Freighter). "
+                "Use este endereço para consultas de saldo, swaps e operações Stellar."
+            )
+        return (
+            "Nenhuma Stellar wallet conectada ainda. "
+            "Convide o usuário a conectar o Freighter para acessar: saldo XLM/USDC, "
+            "swap via Stellar DEX, depósito via âncora SEP-24 e AI queries via x402."
         )
 
     def _extract_wallet(self, text: str) -> str | None:
@@ -223,10 +236,11 @@ class OrchestrationService:
                 return {"intent": intent, "reply_text": reply, "execution": {"status": "stellar_rpc_error"}}
 
         # --- stellar_swap ---
-        if intent.action in ("swap_quote", "stellar_swap") and use_stellar:
+        if intent.action in ("swap_quote", "stellar_swap", "swap_execute", "swap") and use_stellar:
             amount = float(intent.entities.get("amount", 10.0))
-            from_asset = intent.entities.get("from", "XLM")
-            to_asset = intent.entities.get("to", "USDC")
+            e = intent.entities
+            from_asset = (e.get("from") or e.get("from_asset") or e.get("from_token") or e.get("source_asset", "XLM"))
+            to_asset = (e.get("to") or e.get("to_asset") or e.get("to_token") or e.get("destination_asset", "USDC"))
             wallet = stellar_wallet or ""
             swap_xdr: Optional[str] = None
             try:
@@ -290,79 +304,34 @@ class OrchestrationService:
                 },
             }
 
-        # --- check_balance ---
+        # --- check_balance (sem contexto Stellar → orienta Freighter) ---
         if intent.action == "check_balance":
-            wallet = intent.entities.get("wallet") or wallet_address or self._extract_wallet(clean_text)
-            if not wallet and user_id.startswith("devnet_wallet_"):
-                wallet = user_id.replace("devnet_wallet_", "")
-            elif not wallet and len(user_id) >= 32 and user_id.replace("-", "").isalnum():
-                wallet = user_id
-
-            if not wallet:
-                instruction = (
-                    f"{_PLATFORM_CONTEXT} "
-                    f"{wallet_ctx} "
-                    "The user asked for their balance but no wallet is connected. "
-                    "Ask them to connect their Phantom wallet first."
-                )
-                reply = await self.gemini.generate_reply(
-                    instruction=instruction, user_text=clean_text, history=history
-                )
-                return {"intent": intent, "reply_text": reply, "execution": {"status": "missing_wallet"}}
-
-            try:
-                balance = await self.solana.get_balance(wallet)
-                sol_amount = balance.get("sol", 0)
-                instruction = (
-                    f"{_PLATFORM_CONTEXT} "
-                    f"The user just checked their wallet balance. "
-                    f"Wallet: {wallet} — Balance: {sol_amount:.6f} SOL. "
-                    "Present this clearly and cheerfully. If the balance is low, "
-                    "suggest they could earn $XLEE tokens through campaigns."
-                )
-                reply = await self.gemini.generate_reply(
-                    instruction=instruction, user_text=clean_text, history=history
-                )
-                return {"intent": intent, "reply_text": reply, "execution": balance}
-            except Exception as e:
-                instruction = (
-                    f"{_PLATFORM_CONTEXT} {wallet_ctx} "
-                    f"There was an error fetching the balance for wallet {wallet}: {e}. "
-                    "Apologize warmly and ask them to try again."
-                )
-                reply = await self.gemini.generate_reply(
-                    instruction=instruction, user_text=clean_text, history=history
-                )
-                return {"intent": intent, "reply_text": reply, "execution": {"status": "rpc_error"}}
-
-        # --- swap_quote ---
-        if intent.action == "swap_quote":
-            amount = float(intent.entities.get("amount", 1.0))
-            amount_raw = int(amount * 1_000_000)
-            try:
-                quote = await self.solana.get_swap_quote(
-                    input_mint=USDC_DEVNET_MINT,
-                    output_mint=SOL_MINT,
-                    amount_raw=amount_raw,
-                )
-                out_raw = int(quote.get("outAmount", 0))
-                out_sol = out_raw / 1_000_000_000
-                instruction = (
-                    f"{_PLATFORM_CONTEXT} {wallet_ctx} "
-                    f"Jupiter quote: {amount} USDC → {out_sol:.6f} SOL. "
-                    "Present this in a fun way and ask if they want to proceed with the swap."
-                )
-            except Exception:
-                quote = {}
-                instruction = (
-                    f"{_PLATFORM_CONTEXT} {wallet_ctx} "
-                    "Jupiter swap API is temporarily unavailable. "
-                    "Apologize and suggest trying again in a moment."
-                )
+            stellar_ctx = self._stellar_wallet_ctx(None)
+            instruction = (
+                f"{_PLATFORM_CONTEXT} {stellar_ctx} "
+                "O usuário perguntou sobre saldo mas não há carteira Stellar conectada no contexto. "
+                "Oriente a conectar o Freighter na Stellar Wallet para consultar XLM/USDC. "
+                "Mencione brevemente que também é possível fazer swap e depósito via âncora."
+            )
             reply = await self.gemini.generate_reply(
                 instruction=instruction, user_text=clean_text, history=history
             )
-            return {"intent": intent, "reply_text": reply, "execution": quote}
+            return {"intent": intent, "reply_text": reply, "execution": {"status": "missing_stellar_wallet"}}
+
+        # --- swap_quote (sem contexto Stellar → orienta Stellar DEX) ---
+        if intent.action == "swap_quote":
+            stellar_ctx = self._stellar_wallet_ctx(None)
+            instruction = (
+                f"{_PLATFORM_CONTEXT} {stellar_ctx} "
+                "O usuário quer fazer um swap. "
+                "Explique que na XiaoLee os swaps são via Stellar DEX (path payments, sem gas alto). "
+                "Oriente a conectar o Freighter e usar a seção 'Swap · Stellar DEX' na Stellar Wallet. "
+                "Mencione que XLM ↔ USDC está disponível diretamente."
+            )
+            reply = await self.gemini.generate_reply(
+                instruction=instruction, user_text=clean_text, history=history
+            )
+            return {"intent": intent, "reply_text": reply, "execution": {"status": "redirect_stellar_dex"}}
 
         # --- campaign_info ---
         if intent.action == "campaign_info":
@@ -380,17 +349,18 @@ class OrchestrationService:
 
         # --- greeting ---
         if intent.action == "greeting":
-            wallet_greeting = (
-                f"The user has wallet {wallet_address} connected."
-                if wallet_address
-                else "The user hasn't connected a wallet yet."
+            stellar_greeting = (
+                f"O usuário tem a Stellar wallet {stellar_wallet} conectada via Freighter."
+                if stellar_wallet
+                else "O usuário ainda não conectou a carteira Freighter."
             )
             instruction = (
                 f"{_PLATFORM_CONTEXT} "
-                f"{wallet_greeting} "
-                "The user is greeting you. Welcome them warmly with your full XiaoLee personality. "
-                "Briefly mention 1-2 things you can help with (balance, swap quotes, campaigns). "
-                "Keep it short and inviting — 2 to 3 sentences max."
+                f"{stellar_greeting} "
+                "O usuário está te cumprimentando. Dê as boas-vindas com a personalidade completa da XiaoLee. "
+                "Mencione brevemente 1-2 coisas que você pode fazer: saldo Stellar, swap via DEX, "
+                "depósito via âncora SEP-24, ou ganhar $XLEE em campanhas. "
+                "Seja calorosa, concisa — máximo 2 a 3 frases."
             )
             reply = await self.gemini.generate_reply(
                 instruction=instruction, user_text=clean_text, history=history
@@ -398,11 +368,13 @@ class OrchestrationService:
             return {"intent": intent, "reply_text": reply, "execution": {"status": "greeting"}}
 
         # --- help / general fallback ---
+        stellar_ctx = self._stellar_wallet_ctx(stellar_wallet)
         instruction = (
-            f"{_PLATFORM_CONTEXT} {wallet_ctx} "
-            "Answer the user's question naturally. If it's about Solana, DeFi, XiaoLee, "
-            "campaigns, or crypto in general — be helpful and accurate. "
-            "If it's completely off-topic, gently redirect to what you can help with."
+            f"{_PLATFORM_CONTEXT} {stellar_ctx} "
+            "Responda a pergunta do usuário de forma natural. "
+            "Se for sobre Stellar, DeFi, XiaoLee, campanhas, Freighter, SEP-10, SEP-24, x402 ou crypto em geral "
+            "— seja precisa e útil. "
+            "Se for completamente fora do tema, redirecione gentilmente para o que você pode ajudar."
         )
         reply = await self.gemini.generate_reply(
             instruction=instruction, user_text=clean_text, history=history

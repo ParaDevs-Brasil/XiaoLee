@@ -277,7 +277,7 @@ export default function Navbar() {
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Stellar Wallet</div>
-                          <div className="text-xs text-[var(--navbar-text-gradient-middle)]/70">Freighter · SEP-10 · x402</div>
+                          <div className="text-xs text-[var(--navbar-text-gradient-middle)]/70">Freighter · SEP-10 · SEP-24 · x402</div>
                         </div>
                       </div>
 

@@ -10,6 +10,7 @@ export default async function sendChatMessage(
     try {        
 
         const connectedWallet = typeof window !== "undefined" ? localStorage.getItem("connected_wallet") : null;
+        const stellarAccount = typeof window !== "undefined" ? localStorage.getItem("stellar_account") : null;
         // Prefer custodial/Web3Auth wallet over Phantom for authenticated users
         const walletAddress = UserData.getUserInfo()?.custodial_wallet_address || connectedWallet || undefined;
 
@@ -17,7 +18,8 @@ export default async function sendChatMessage(
             console.log("🔍 Enviando como usuário anônimo (sem dados no UserData)");
             const response = await api.post("/chat", {
                 message: msg,
-                ...(walletAddress && { wallet_address: walletAddress })
+                ...(walletAddress && { wallet_address: walletAddress }),
+                ...(stellarAccount && { stellar_wallet: stellarAccount }),
             });
             console.log("📬 Mensagem anônima enviada:", response.data);
             return response.data;
@@ -26,7 +28,8 @@ export default async function sendChatMessage(
 
             const response = await api.post("/chat", {
                 message: msg,
-                ...(walletAddress && { wallet_address: walletAddress })
+                ...(walletAddress && { wallet_address: walletAddress }),
+                ...(stellarAccount && { stellar_wallet: stellarAccount }),
             },
             {
                 headers: {

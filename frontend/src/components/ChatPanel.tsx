@@ -3,12 +3,27 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import Video from "./Video";
 import UserData from "./UserData";
 import handleAuth, { AuthStatus } from "@/hooks/useAuth";
+import { signTransactionXdr, submitToHorizon } from "@/utils/stellar";
+
+type SwapExecution = {
+  chain?: string;
+  swap_xdr?: string | null;
+  network_passphrase?: string;
+  swap_quote?: {
+    from: string;
+    to: string;
+    source_amount: number;
+    destination_amount: number;
+  };
+  [key: string]: unknown;
+};
 
 type MessageType = {
   sent: string;
   response: string;
   hasCode?: boolean;
   code?: string;
+  execution?: SwapExecution;
 };
 const actions = {
   Cheer: "xiaolee_cheer.mov",
@@ -30,6 +45,8 @@ export default function ChatPanel() {
   const [loading, setLoading] = useState(false);
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
   const [authLoading, setAuthLoading] = useState<{[key: number]: boolean}>({});
+  const [swapSigning, setSwapSigning] = useState<{[key: number]: boolean}>({});
+  const [swapTxHash, setSwapTxHash] = useState<{[key: number]: string}>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -116,9 +133,27 @@ export default function ChatPanel() {
     }
   };
 
+  const handleSignSwap = async (messageIndex: number, xdr: string, networkPassphrase?: string) => {
+    setSwapSigning(prev => ({ ...prev, [messageIndex]: true }));
+    try {
+      const signedXdr = await signTransactionXdr(xdr, networkPassphrase ?? "Test SDF Network ; September 2015");
+      const hash = await submitToHorizon(signedXdr, "testnet");
+      setSwapTxHash(prev => ({ ...prev, [messageIndex]: hash }));
+      setMsgs(prev => {
+        const updated = [...prev];
+        updated[messageIndex] = { ...updated[messageIndex], execution: { ...updated[messageIndex].execution, swap_xdr: null } };
+        return updated;
+      });
+    } catch (err) {
+      alert(`Erro ao assinar swap: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setSwapSigning(prev => ({ ...prev, [messageIndex]: false }));
+    }
+  };
+
   useEffect(() => {
     fetchData();
-    
+
     // Also check authentication status when userData changes
     const userData = UserData.getUserData();
     if (userData?.user_info?.twitter_user_id && (!authStatus || authStatus.status !== "active")) {
@@ -159,9 +194,10 @@ export default function ChatPanel() {
 
       if (response && response.response[0].content) {
         const content = response.response[0].content;
+        const execution = response.execution as SwapExecution | undefined;
         setMsgs(prev => {
           const updated = [...prev];
-          updated[updated.length - 1] = { sent: message, response: content, hasCode: messageHasCode, code: messageCode };
+          updated[updated.length - 1] = { sent: message, response: content, hasCode: messageHasCode, code: messageCode, execution };
           return updated;
         });
         UserData.addLocalChatMessage(message, content);
@@ -277,6 +313,40 @@ export default function ChatPanel() {
                           {msg.response}
                         </p>
                         )}
+                        {/* Swap signing button — appears when AI returned a swap_xdr */}
+                        {msg.execution?.swap_xdr && msg.response !== TYPING_SENTINEL && (
+                          <div className="mt-3 space-y-2">
+                            {msg.execution.swap_quote && (
+                              <p className="text-xs text-sky-600 font-mono">
+                                {msg.execution.swap_quote.source_amount} {msg.execution.swap_quote.from} → ~{msg.execution.swap_quote.destination_amount.toFixed(4)} {msg.execution.swap_quote.to}
+                              </p>
+                            )}
+                            <button
+                              onClick={() => handleSignSwap(index, msg.execution!.swap_xdr as string, msg.execution?.network_passphrase)}
+                              disabled={swapSigning[index]}
+                              className="px-4 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:opacity-90 disabled:opacity-50 transition-all"
+                            >
+                              {swapSigning[index] ? "Assinando..." : "✦ Assinar no Freighter"}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Tx hash after successful swap */}
+                        {swapTxHash[index] && (
+                          <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1">
+                            <p className="font-semibold text-emerald-700">✓ Swap executado na Stellar Testnet</p>
+                            <p className="font-mono text-emerald-600 break-all">{swapTxHash[index]}</p>
+                            <a
+                              href={`https://stellar.expert/explorer/testnet/tx/${swapTxHash[index]}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block mt-1 text-blue-600 hover:underline font-medium"
+                            >
+                              ↗ Ver no Stellar Expert
+                            </a>
+                          </div>
+                        )}
+
                         {/* Verify Button with Status - Only if THIS message has code AND user is not authenticated */}
                         {msg.hasCode && msg.code && authStatus?.status !== "active" && (
                           <div className="mt-2 md:mt-3 flex items-center space-x-1 md:space-x-2 flex-wrap gap-1 md:gap-2">

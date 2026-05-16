@@ -1,7 +1,10 @@
 """
 stellar_routes.py — Endpoints diretos de operações Stellar (sem AI intermediária).
 
-GET /stellar/swap/quote — quote + XDR assinável para pathPaymentStrictSend
+GET  /stellar/swap/quote          — quote + XDR assinável para pathPaymentStrictSend
+GET  /stellar/anchor/info         — assets e endpoints da âncora testanchor.stellar.org
+GET  /stellar/anchor/challenge    — challenge SEP-10 da âncora (proxy)
+POST /stellar/anchor/deposit      — inicia depósito SEP-24 interativo via testanchor
 """
 
 from __future__ import annotations
@@ -9,9 +12,16 @@ from __future__ import annotations
 import logging
 import os
 
+import httpx
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from server.integrations.stellar_adapter import StellarAdapter
+
+# testanchor.stellar.org — âncora oficial SDF no testnet, sem cadastro
+TESTANCHOR_DOMAIN = "testanchor.stellar.org"
+TESTANCHOR_AUTH = f"https://{TESTANCHOR_DOMAIN}/auth"
+TESTANCHOR_SEP24 = f"https://{TESTANCHOR_DOMAIN}/sep24"
 
 LOG = logging.getLogger(__name__)
 
@@ -77,4 +87,122 @@ async def get_swap_quote(
         "xdr": xdr,
         "network_passphrase": network_passphrase,
         "has_liquidity": quote.destination_amount > 0,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Anchor SEP-24 — testanchor.stellar.org (âncora oficial SDF no testnet)
+# ---------------------------------------------------------------------------
+
+@router.get("/anchor/info")
+async def get_anchor_info():
+    """
+    Retorna assets suportados e endpoints da âncora testanchor.stellar.org.
+    Não requer autenticação.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{TESTANCHOR_SEP24}/info")
+            resp.raise_for_status()
+            info = resp.json()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"testanchor indisponível: {exc}") from exc
+
+    return {
+        "anchor": TESTANCHOR_DOMAIN,
+        "network": "testnet",
+        "auth_endpoint": TESTANCHOR_AUTH,
+        "sep24_endpoint": TESTANCHOR_SEP24,
+        "deposit": info.get("deposit", {}),
+        "withdraw": info.get("withdraw", {}),
+    }
+
+
+@router.get("/anchor/challenge")
+async def get_anchor_challenge(
+    account: str = Query(..., description="Endereço Stellar G... do usuário"),
+):
+    """
+    Obtém o challenge SEP-10 da âncora testanchor para o account informado.
+    O frontend assina o XDR retornado com Freighter e envia para /anchor/deposit.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(TESTANCHOR_AUTH, params={"account": account})
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Erro ao obter challenge: {exc}") from exc
+
+
+class AnchorDepositRequest(BaseModel):
+    account: str
+    signed_xdr: str
+    asset_code: str = "SRT"  # testanchor supports: SRT, native, USDC
+
+
+@router.post("/anchor/deposit")
+async def initiate_anchor_deposit(body: AnchorDepositRequest):
+    """
+    Fluxo SEP-24 completo:
+      1. Troca o XDR assinado (SEP-10) por JWT da âncora testanchor
+      2. Inicia depósito interativo com o JWT — retorna URL da UI da âncora
+    O frontend abre a URL para o usuário completar o depósito.
+    """
+    async with httpx.AsyncClient(timeout=15) as client:
+        # Step 1 — SEP-10: exchange signed XDR for anchor JWT
+        try:
+            token_resp = await client.post(
+                TESTANCHOR_AUTH,
+                json={"transaction": body.signed_xdr},
+            )
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=502, detail=f"SEP-10 conexão falhou: {exc}") from exc
+
+        if not token_resp.is_success:
+            err_body = token_resp.text
+            LOG.error("[anchor/deposit] SEP-10 failed %d: %s", token_resp.status_code, err_body)
+            raise HTTPException(
+                status_code=502,
+                detail=f"SEP-10 falhou ({token_resp.status_code}): {err_body}",
+            )
+
+        token_data = token_resp.json()
+        anchor_jwt = token_data.get("token")
+        if not anchor_jwt:
+            raise HTTPException(status_code=502, detail=f"testanchor não retornou JWT: {token_data}")
+
+        # Step 2 — SEP-24 interactive deposit
+        # testanchor requires multipart/form-data (not x-www-form-urlencoded)
+        # amount=5 fits testanchor's min_amount=1, max_amount=10
+        deposit_files = {
+            "asset_code": (None, body.asset_code),
+            "amount": (None, "5"),
+        }
+
+        try:
+            deposit_resp = await client.post(
+                f"{TESTANCHOR_SEP24}/transactions/deposit/interactive",
+                headers={"Authorization": f"Bearer {anchor_jwt}"},
+                files=deposit_files,
+            )
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=502, detail=f"SEP-24 conexão falhou: {exc}") from exc
+
+        if not deposit_resp.is_success:
+            err_body = deposit_resp.text
+            LOG.error("[anchor/deposit] SEP-24 failed %d: %s", deposit_resp.status_code, err_body)
+            raise HTTPException(
+                status_code=502,
+                detail=f"testanchor SEP-24 ({deposit_resp.status_code}): {err_body}",
+            )
+
+        result = deposit_resp.json()
+
+    return {
+        "url": result.get("url"),
+        "id": result.get("id"),
+        "type": result.get("type"),
+        "anchor": TESTANCHOR_DOMAIN,
+        "asset_code": body.asset_code,
     }

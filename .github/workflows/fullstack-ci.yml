@@ -63,6 +63,10 @@ jobs:
 
       - name: Build
         working-directory: frontend
+        run: npm test
+
+      - name: Build frontend
+        working-directory: frontend
         env:
-          NEXT_PUBLIC_CORE_API_URL: "http://localhost:8000"
+          NEXT_PUBLIC_CORE_API_URL: ${{ secrets.NEXT_PUBLIC_CORE_API_URL || 'http://localhost:8000' }}
         run: npm run build

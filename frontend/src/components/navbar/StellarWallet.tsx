@@ -5,13 +5,16 @@ import { useModal } from "@/hooks/useModal";
 import {
   autoPayX402,
   connectFreighter,
+  getAnchorChallenge,
   getStellarBalance,
   getStellarSwapQuote,
+  initiateAnchorDeposit,
   isFreighterInstalled,
   signTransactionXdr,
   stellarSEP10Auth,
   submitToHorizon,
   x402AiQuery,
+  type AnchorDepositResult,
   type StellarBalance,
   type SwapQuoteResult,
   type X402PaymentInfo,
@@ -58,9 +61,16 @@ const StellarWallet: React.FC<StellarWalletProps> = ({ shouldOpen = false, onClo
   const [isLoadingQuote, setIsLoadingQuote] = useState(false);
   const [swapMsg, setSwapMsg] = useState<string>("");
 
+  // Anchor SEP-24 state
+  const [anchorAsset, setAnchorAsset] = useState<"SRT" | "native">("SRT");
+  const [anchorLoading, setAnchorLoading] = useState(false);
+  const [anchorMsg, setAnchorMsg] = useState("");
+  const [anchorResult, setAnchorResult] = useState<AnchorDepositResult | null>(null);
+
   // x402 state
   const [x402PaymentInfo, setX402PaymentInfo] = useState<X402PaymentInfo | null>(null);
   const [x402TxHash, setX402TxHash] = useState<string>("");
+  const [x402SwapTxHash, setX402SwapTxHash] = useState<string>("");
   const [x402Query, setX402Query] = useState<string>("");
   const [x402Reply, setX402Reply] = useState<string>("");
   const [x402Step, setX402Step] = useState<string>("");
@@ -172,6 +182,27 @@ const StellarWallet: React.FC<StellarWalletProps> = ({ shouldOpen = false, onClo
     }
   };
 
+  const handleAnchorDeposit = async () => {
+    if (!account) { setAnchorMsg("Conecte a carteira Freighter primeiro."); return; }
+    setAnchorLoading(true);
+    setAnchorMsg("Obtendo challenge SEP-10 da âncora testanchor.stellar.org...");
+    setAnchorResult(null);
+    try {
+      const { transaction: challengeXdr, network_passphrase } = await getAnchorChallenge(account);
+      setAnchorMsg("Assine o challenge da âncora no Freighter...");
+      const signedXdr = await signTransactionXdr(challengeXdr, network_passphrase);
+      setAnchorMsg(`Iniciando depósito SEP-24 (${anchorAsset})...`);
+      const result = await initiateAnchorDeposit(account, signedXdr, anchorAsset);
+      setAnchorResult(result);
+      setAnchorMsg(`Depósito iniciado! ID: ${result.id.slice(0, 16)}...`);
+      window.open(result.url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setAnchorMsg(`Erro: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setAnchorLoading(false);
+    }
+  };
+
   const handleX402Query = async () => {
     if (!x402Query.trim()) { setStatusMsg("Digite uma pergunta para a AI."); return; }
     if (!account) { setStatusMsg("Conecte a carteira Freighter primeiro."); return; }
@@ -221,7 +252,8 @@ const StellarWallet: React.FC<StellarWalletProps> = ({ shouldOpen = false, onClo
       setStatusMsg("Enviando swap ao Horizon Testnet...");
       const txHash = await submitToHorizon(signed, "testnet");
       setX402SwapXdr(null);
-      setStatusMsg(`✓ Swap executado! tx: ${txHash.slice(0, 16)}...`);
+      setX402SwapTxHash(txHash);
+      setStatusMsg("✓ Swap executado!");
       await loadBalance(account);
     } catch (err) {
       setStatusMsg(`Erro no swap: ${err instanceof Error ? err.message : String(err)}`);
@@ -256,7 +288,7 @@ const StellarWallet: React.FC<StellarWalletProps> = ({ shouldOpen = false, onClo
               <h2 className="text-2xl font-bold bg-gradient-to-r from-[var(--modal-header-title-start)] via-[var(--modal-header-title-middle)] to-[var(--modal-header-title-end)] bg-clip-text text-transparent">
                 ✦ Stellar Wallet
               </h2>
-              <p className="text-sm text-[var(--modal-header-subtitle)]">Testnet · Freighter · SEP-10</p>
+              <p className="text-sm text-[var(--modal-header-subtitle)]">Testnet · Freighter · SEP-10 · SEP-24</p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -521,6 +553,76 @@ const StellarWallet: React.FC<StellarWalletProps> = ({ shouldOpen = false, onClo
                   {isSigningX402Swap ? "Aguardando Freighter..." : "✦ Assinar e Executar Swap no Freighter"}
                 </button>
               )}
+
+              {x402SwapTxHash && (
+                <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1">
+                  <p className="font-semibold text-emerald-700">✓ Swap executado na Stellar Testnet</p>
+                  <p className="font-mono text-emerald-600 break-all">{x402SwapTxHash}</p>
+                  <a
+                    href={`https://stellar.expert/explorer/testnet/tx/${x402SwapTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-1 text-blue-600 hover:underline font-medium"
+                  >
+                    ↗ Ver no Stellar Expert
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Anchor Deposit SEP-24 ────────────────────────────── */}
+          {isAuthenticated && (
+            <div className="bg-gradient-to-r from-[var(--token-card-bg-start)] to-[var(--token-card-bg-end)] border border-[var(--token-card-border)] rounded-2xl p-5">
+              <h3 className="text-base font-semibold text-[var(--modal-section-title)] mb-1">
+                Âncora · Depósito SEP-24
+              </h3>
+              <p className="text-xs text-[var(--modal-header-subtitle)] mb-3">
+                Depósito interativo via{" "}
+                <span className="font-mono font-semibold">testanchor.stellar.org</span>{" "}
+                — âncora oficial SDF no testnet
+              </p>
+
+              <div className="mb-3">
+                <label className="text-xs text-[var(--token-info-label)]">Asset</label>
+                <select
+                  value={anchorAsset}
+                  onChange={(e) => setAnchorAsset(e.target.value as "SRT" | "native")}
+                  className="mt-1 w-full px-2 py-1.5 rounded-lg border border-[var(--token-card-border)] bg-white/70 text-sm text-[var(--token-card-title)]"
+                >
+                  <option value="SRT">SRT — Stellar Reference Token</option>
+                  <option value="native">XLM — Stellar Lumens</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleAnchorDeposit}
+                disabled={anchorLoading}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 text-white font-semibold text-sm disabled:opacity-50 transition-all"
+              >
+                {anchorLoading ? "Aguardando Freighter..." : "Depositar via Âncora (SEP-24)"}
+              </button>
+
+              {anchorMsg && (
+                <div className={`mt-3 p-3 rounded-xl text-xs break-words ${
+                  anchorMsg.startsWith("Erro")
+                    ? "bg-red-50 border border-red-200 text-red-700"
+                    : "bg-blue-50 border border-blue-200 text-blue-700"
+                }`}>
+                  {anchorMsg}
+                </div>
+              )}
+
+              {anchorResult?.url && (
+                <a
+                  href={anchorResult.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-center font-semibold text-sm transition-all"
+                >
+                  ↗ Abrir UI da Âncora
+                </a>
+              )}
             </div>
           )}
 
@@ -539,7 +641,7 @@ const StellarWallet: React.FC<StellarWalletProps> = ({ shouldOpen = false, onClo
         {/* ── Footer ─────────────────────────────────────────────────── */}
         <div className="px-6 py-3 border-t border-[var(--modal-footer-border)] bg-gradient-to-r from-[var(--modal-footer-bg-start)] to-[var(--modal-footer-bg-end)]">
           <p className="text-center text-sm text-[var(--modal-footer-text)]">
-            Secured by XiaoLee · Stellar Testnet · SEP-10 · x402
+            Secured by XiaoLee · Stellar Testnet · SEP-10 · SEP-24 · x402
           </p>
         </div>
       </div>

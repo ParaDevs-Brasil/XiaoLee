@@ -262,3 +262,42 @@ export async function x402AiQuery(
   const data = await resp.json();
   return { status: 200, data: data as X402QueryResult };
 }
+
+// ---------------------------------------------------------------------------
+// Anchor SEP-24 — testanchor.stellar.org (âncora oficial SDF no testnet)
+// ---------------------------------------------------------------------------
+
+export interface AnchorDepositResult {
+  url: string;
+  id: string;
+  type: string;
+  anchor: string;
+  asset_code: string;
+}
+
+export async function getAnchorChallenge(
+  account: string
+): Promise<{ transaction: string; network_passphrase: string }> {
+  const resp = await fetch(
+    `${CORE_API_URL}/stellar/anchor/challenge?account=${encodeURIComponent(account)}`
+  );
+  if (!resp.ok) throw new Error(`Anchor challenge falhou: HTTP ${resp.status}`);
+  return resp.json();
+}
+
+export async function initiateAnchorDeposit(
+  account: string,
+  signedXdr: string,
+  assetCode: string = "USDC"
+): Promise<AnchorDepositResult> {
+  const resp = await fetch(`${CORE_API_URL}/stellar/anchor/deposit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ account, signed_xdr: signedXdr, asset_code: assetCode }),
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Anchor deposit falhou: ${err}`);
+  }
+  return resp.json();
+}

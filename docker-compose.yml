@@ -98,10 +98,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_CORE_API_URL=http://localhost:8000
     container_name: xiaolee-frontend
     ports:
       - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_CORE_API_URL=http://localhost:8000
     depends_on:
       - xiaolee-core

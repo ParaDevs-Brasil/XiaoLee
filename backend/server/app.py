@@ -346,6 +346,10 @@ async def chat_compat(
     if wallet_address:
         text = f"[System Note: User connected wallet is {wallet_address}] {text}"
 
+    stellar_wallet = payload.get("stellar_wallet")
+    if stellar_wallet:
+        text = f"[System Note: Stellar wallet {stellar_wallet}] {text}"
+
     session_token = ""
     if authorization and authorization.startswith("Bearer "):
         session_token = authorization.removeprefix("Bearer ").strip()
