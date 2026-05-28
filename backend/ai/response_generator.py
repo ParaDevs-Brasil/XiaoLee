@@ -8,6 +8,7 @@ from decimal import Decimal, InvalidOperation
 from ai.llm_client import LLMClient
 from ai.mcp_tools import MCPToolsManager, get_mcp_tools, get_animation_tools, get_authenticated_tools
 from ai.prompts import XiaoLeePrompts
+from ai.agents.cmo_architect import CMOArchitect
 import logging
 from user_management.authentication_service import AuthenticationService
 from user_management.user_service import model_to_dict
@@ -1108,6 +1109,11 @@ class XiaoLeeResponseGenerator:
             
         logger.debug(f"Normalized message: '{normalized_message}' (type: {type(normalized_message)})")
 
+        # CMO Architect: route @cmo / slash-command messages before any other logic
+        is_cmo, cmo_command = CMOArchitect.detect(message)
+        if is_cmo:
+            return await self._handle_cmo_request(message, cmo_command, package_response)
+
         # 1. Handle Authentication using LLM-based decision making
         user_id = dossier.get('user_info', {}).get('twitter_user_id') if dossier else None
         user_handle = dossier.get('user_info', {}).get('twitter_handle') if dossier else None
@@ -1491,6 +1497,38 @@ class XiaoLeeResponseGenerator:
             return self.package_response(
                 "Something went wrong! Please try again. 💫",
                 animation_name="Ouch"
+            )
+
+    async def _handle_cmo_request(self, message: str, command: Optional[str], package_response) -> Dict[str, Any]:
+        """Route a message to the CMO Architect agent and return a packaged response."""
+        try:
+            # Special case: user asked for help listing commands
+            if re.search(r"\b(help|commands?|ajuda)\b", message, re.IGNORECASE) and not command:
+                return package_response(CMOArchitect.help_text(), animation_name="Salute")
+
+            system_prompt = CMOArchitect.build_system_prompt(command)
+            user_prompt = CMOArchitect.build_user_prompt(message, command)
+
+            logger.info(f"[CMO] Routing to CMO Architect — command={command!r}")
+
+            response = await self.client.client.chat.completions.create(
+                model=self.client.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_prompt},
+                ],
+                temperature=0.7,
+                max_tokens=2000,
+            )
+
+            text = response.choices[0].message.content.strip()
+            return package_response(text, animation_name="Think Low")
+
+        except Exception as exc:
+            logger.error(f"[CMO] Error generating CMO response: {exc}", exc_info=True)
+            return package_response(
+                "📣 The CMO Architect hit a snag — please try again in a moment.",
+                animation_name="Ouch",
             )
 
     def _build_dynamic_system_prompt(self, dossier: Dict, pending_confirmations: Dict) -> str:
