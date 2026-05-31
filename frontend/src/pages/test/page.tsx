@@ -2,7 +2,7 @@
 import React from 'react';
 import { ThemeProviderWrapper } from '../../providers/ThemeProvider';
 import Navbar from '../../components/navbar/Navbar';
-import TestComponents from '../TestComponents';
+import TestComponents from '../../views/TestComponents';
 
 export default function TestPage() {
   return (
