@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme-context'
 import { SunIcon, MoonIcon } from '@heroicons/react/24/solid'
 
 export const ThemeToggle = () => {

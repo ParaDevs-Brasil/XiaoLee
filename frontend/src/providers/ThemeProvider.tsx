@@ -1,6 +1,6 @@
 'use client'
 
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider } from '@/providers/theme-context'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -10,7 +10,7 @@ interface ThemeProviderProps {
 
 export function ThemeProviderWrapper({ children }: ThemeProviderProps) {
   return (
-    <ThemeProvider attribute="class">
+    <ThemeProvider>
       {children}
       <ToastContainer
         position="top-right"
