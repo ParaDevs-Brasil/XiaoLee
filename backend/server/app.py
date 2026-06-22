@@ -70,17 +70,19 @@ async def lifespan(app: FastAPI):
     # (i.e. the process crashed before Arc could confirm) as 'failed' so they
     # can be retried.  Durable intent log guarantees idempotency on retry.
     try:
-        async with get_db_session() as _session:
-            from database.repository import DatabaseRepository as _Repo
-            _repo = _Repo(_session)
-            _stale = await _repo.list_stale_pending_intents()
-            if _stale:
-                logger.warning(
-                    "[startup] found %d stale pending payment_intents — marking as failed",
-                    len(_stale),
-                )
-                for _intent in _stale:
-                    await _repo.update_payment_intent(_intent.intent_id, status="failed")
+        import database.database as _db_mod
+        from database.repository import DatabaseRepository as _Repo
+        if _db_mod.SessionLocal is not None:
+            async with _db_mod.SessionLocal() as _session:
+                _repo = _Repo(_session)
+                _stale = await _repo.list_stale_pending_intents()
+                if _stale:
+                    logger.warning(
+                        "[startup] found %d stale pending payment_intents — marking as failed",
+                        len(_stale),
+                    )
+                    for _intent in _stale:
+                        await _repo.update_payment_intent(_intent.intent_id, status="failed")
     except Exception as _exc:
         logger.warning("[startup] could not check stale intents: %s", _exc)
 
