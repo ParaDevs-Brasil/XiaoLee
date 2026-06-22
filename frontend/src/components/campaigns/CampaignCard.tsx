@@ -1,6 +1,7 @@
 import React from 'react';
 import UserData from '@/components/UserData';
 import ActionButton from '@/components/ActionButton';
+import AgentStatus from './AgentStatus';
 import { CampaignCardProps } from '@/interfaces/campaignComponents';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -23,7 +24,7 @@ const IconAlert = () => (
 );
 
 export const CampaignCard: React.FC<CampaignCardProps> = ({
-  campaign, userCampaigns, onJoin, onVerify, onClaim, isJoining, isVerifying, isClaiming
+  campaign, userCampaigns, onJoin, onVerify, onClaim, isJoining, isVerifying, isClaiming, isCreator = false
 }) => {
   const { t } = useLanguage();
   const hasCampaignIdentity = UserData.hasCampaignIdentity();
@@ -206,6 +207,18 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
            t('campaign_card.btn_claim')}
         </ActionButton>
       </div>
+
+      {/* Agent panel — only visible to the campaign creator */}
+      {isCreator && (
+        <div className="px-5 pb-3">
+          <AgentStatus
+            campaignId={campaign.id}
+            campaignBudget={campaign.reward_pool}
+            rewardPerCreator={campaign.reward_per_participant}
+            isCreator={isCreator}
+          />
+        </div>
+      )}
 
       {/* Footer meta */}
       <div className="px-5 pb-4 pt-0">

@@ -66,6 +66,24 @@ async def lifespan(app: FastAPI):
     x_task = asyncio.create_task(x_poller.start())
     logger.info("X poller scheduled")
 
+    # Restart resilience: mark any payment_intents that were left as 'pending'
+    # (i.e. the process crashed before Arc could confirm) as 'failed' so they
+    # can be retried.  Durable intent log guarantees idempotency on retry.
+    try:
+        async with get_db_session() as _session:
+            from database.repository import DatabaseRepository as _Repo
+            _repo = _Repo(_session)
+            _stale = await _repo.list_stale_pending_intents()
+            if _stale:
+                logger.warning(
+                    "[startup] found %d stale pending payment_intents — marking as failed",
+                    len(_stale),
+                )
+                for _intent in _stale:
+                    await _repo.update_payment_intent(_intent.intent_id, status="failed")
+    except Exception as _exc:
+        logger.warning("[startup] could not check stale intents: %s", _exc)
+
     yield
 
     for task in (telegram_task, x_task):

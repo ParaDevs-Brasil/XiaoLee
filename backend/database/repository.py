@@ -187,3 +187,9 @@ class DatabaseRepository:
         stmt = select(PaymentIntent).where(PaymentIntent.campaign_id == campaign_id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    async def list_stale_pending_intents(self) -> list[PaymentIntent]:
+        """Retorna intents presos em 'pending' (criados mas nunca enviados para a chain)."""
+        stmt = select(PaymentIntent).where(PaymentIntent.status == "pending")
+        result = await self.session.execute(stmt)
+        return result.scalars().all()

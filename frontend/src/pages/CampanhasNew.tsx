@@ -75,6 +75,7 @@ export default function Campaigns() {
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const currentUserId = UserData.getSessionId();
 
   useEffect(() => {
     if (userCampaigns) UserData.updateCampaigns(userCampaigns);
@@ -382,6 +383,7 @@ export default function Campaigns() {
                   isJoining={isJoinLoading}
                   isVerifying={isVerifyLoading}
                   isClaiming={isClaimLoading}
+                  isCreator={!!currentUserId && currentUserId === campaign.creator_twitter_user_id}
                 />
               ))}
             </div>

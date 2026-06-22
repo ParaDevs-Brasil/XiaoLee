@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Campaign, UserCampaignParticipation } from './campaign';
 
 // Props para botões de ação
@@ -6,7 +7,7 @@ export interface ActionButtonProps {
   disabled: boolean;
   loading: boolean;
   loadingText: string;
-  children: React.ReactNode;
+  children: ReactNode;
   variant: 'primary' | 'secondary' | 'success';
   isLocked?: boolean;
 }
@@ -21,6 +22,7 @@ export interface CampaignCardProps {
   isJoining: (campaignId: number) => boolean;
   isVerifying: (campaignId: number) => boolean;
   isClaiming: (campaignId: number) => boolean;
+  isCreator?: boolean;
 }
 
 // Props para card de campanha do usuário
