@@ -15,12 +15,20 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai.agents.creator_pay_tools import CREATOR_PAY_TOOLS, make_tool_executors
-from claude_agent import AgentResult, ClaudeAgentEngine
 from database.database import get_db_session
 from database.repository import DatabaseRepository
 from server.integrations.arc_client import ArcClient
 from server.settings import settings
+
+# Imports pesados em lazy para não quebrar testes unitários que importam este módulo
+# via cadeia server/__init__ → app.py → agent_routes.py → ai/__init__ → mcp_tools → web3
+def _lazy_tools():
+    from ai.agents.creator_pay_tools import CREATOR_PAY_TOOLS, make_tool_executors  # noqa
+    return CREATOR_PAY_TOOLS, make_tool_executors
+
+def _lazy_engine():
+    from claude_agent import ClaudeAgentEngine  # noqa
+    return ClaudeAgentEngine
 
 LOG = logging.getLogger(__name__)
 
@@ -91,6 +99,9 @@ async def _run_agent_task(
                 sandbox=settings.arc_sandbox,
             )
 
+            CREATOR_PAY_TOOLS, make_tool_executors = _lazy_tools()
+            ClaudeAgentEngine = _lazy_engine()
+
             executors = make_tool_executors(
                 repo=repo,
                 arc_client=arc,
@@ -124,7 +135,7 @@ async def _run_agent_task(
                 "- After processing all creators, summarize: how many paid, total USDC spent."
             )
 
-            result: AgentResult = await engine.run(system_prompt, context={"campaign_id": campaign_id})
+            result = await engine.run(system_prompt, context={"campaign_id": campaign_id})
 
         _RUNS[run_id].update(
             {

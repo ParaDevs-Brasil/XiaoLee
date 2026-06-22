@@ -38,7 +38,8 @@ google-generativeai>=0.8.0  # Gemini AI
 python-telegram-bot>=21.0   # Telegram
 
 # ─── AI / Agent Engine (Sprint Lepton) ───────────────────────────────────────
-anthropic>=0.111.0         # Anthropic SDK — ClaudeAgentEngine (loop agêntico)
+anthropic>=0.111.0
+openai>=1.0.0         # Anthropic SDK — ClaudeAgentEngine (loop agêntico)
 
 # ─── Utilitários ──────────────────────────────────────────────────────────────
 python-dotenv==1.1.0       # Variáveis de ambiente (.env)

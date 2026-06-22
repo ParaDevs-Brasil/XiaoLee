@@ -33,5 +33,9 @@ httpx==0.27.0
 google-generativeai>=0.8.0
 python-telegram-bot>=21.0
 
+# ─── AI / Agent Engine (Sprint Lepton) ───────────────────────────────────────
+anthropic>=0.111.0
+openai>=1.0.0
+
 # ─── Utilitários ──────────────────────────────────────────────────────────────
 python-dotenv==1.1.0
