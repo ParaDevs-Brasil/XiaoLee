@@ -107,10 +107,34 @@ class OrchestrationService:
         return match.group(0) if match else None
 
     def _extract_amount(self, text: str) -> float | None:
-        match = re.search(r"(\d+(?:[\.,]\d+)?)", text)
-        if not match:
-            return None
-        return float(match.group(1).replace(",", "."))
+        # Prefer monetary patterns: "100 USDC", "$50", "5 SOL", "10.5 XLM"
+        monetary = re.search(
+            r"(\d+(?:[.,]\d+)?)\s*(?:usdc|sol|xlm|usd|\$|reais|brl)",
+            text, re.IGNORECASE
+        )
+        if monetary:
+            return float(monetary.group(1).replace(",", "."))
+        # Fallback: first standalone number (not preceded by # - /)
+        plain = re.search(r"(?<![\#\/\-])\b(\d{1,10}(?:[.,]\d{1,8})?)\b(?![\-\/\#])", text)
+        if plain:
+            return float(plain.group(1).replace(",", "."))
+        return None
+
+    _NEGATION_RE = re.compile(
+        r"\b(não|nao|no|not|nunca|never|cancel|cancelar|cancela|sem|without)\b",
+        re.IGNORECASE,
+    )
+    _SWAP_QUESTION_RE = re.compile(
+        r"\b(o que é|what is|como funciona|how does|me explica|explain|o que sao|what are)\b",
+        re.IGNORECASE,
+    )
+    _SWAP_ACTION_RE = re.compile(
+        r"\b(quero|queria|faz|faça|make|execute|converter|convert|trocar|troca|swap now)\b",
+        re.IGNORECASE,
+    )
+
+    def _has_negation(self, text: str) -> bool:
+        return bool(self._NEGATION_RE.search(text))
 
     # ------------------------------------------------------------------
     # Intent detection
@@ -152,8 +176,14 @@ class OrchestrationService:
             return IntentResponse(action="check_balance", confidence=0.75, entities={"wallet": wallet})
 
         if any(w in lowered for w in ("quote", "cotação", "cotacao", "swap", "trocar", "exchange")):
-            amount = self._extract_amount(clean) or 1.0
-            return IntentResponse(action="swap_quote", confidence=0.75, entities={"amount": amount, "from": "USDC", "to": "SOL"})
+            # #14 — não disparar swap se for pergunta educacional ("o que é swap")
+            # #15 — não disparar swap se houver negação ("não quero swap")
+            is_question = bool(self._SWAP_QUESTION_RE.search(clean))
+            has_action = bool(self._SWAP_ACTION_RE.search(clean))
+            if not is_question or has_action:
+                if not self._has_negation(clean):
+                    amount = self._extract_amount(clean) or 1.0
+                    return IntentResponse(action="swap_quote", confidence=0.75, entities={"amount": amount, "from": "USDC", "to": "SOL"})
 
         if any(w in lowered for w in ("campaign", "campanha", "xlee", "$xlee", "reward", "recompensa", "tarefa")):
             return IntentResponse(action="campaign_info", confidence=0.70, entities={})
