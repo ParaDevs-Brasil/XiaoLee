@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Dict, Optional
 
@@ -7,6 +8,8 @@ from server.integrations.gemini_client import GeminiClient
 from server.integrations.solana_client import SolanaClient
 from server.integrations.stellar_adapter import StellarAdapter
 from server.schemas import IntentResponse
+
+logger = logging.getLogger(__name__)
 
 SOL_MINT = "So11111111111111111111111111111111111111112"
 USDC_DEVNET_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
@@ -158,6 +161,49 @@ class OrchestrationService:
         if any(w in lowered for w in ("oi", "olá", "hello", "hi", "hey", "ola", "bom dia", "boa tarde", "boa noite")):
             return IntentResponse(action="greeting", confidence=0.75, entities={})
 
+        # --- intents do agente Arc (sprint Lepton) ---
+        _arc_run_kw = (
+            "run campaign", "executar campanha", "disparar agente",
+            "start campaign", "iniciar campanha", "rodar agente",
+        )
+        _arc_pay_kw = (
+            "pay creator", "pagar creator", "nanopayment",
+            "usdc creator", "pagar usdc",
+        )
+        _arc_discover_kw = (
+            "discover creators", "buscar creators", "find creators",
+            "encontrar creators", "listar creators",
+        )
+        _arc_budget_kw = (
+            "check budget", "verificar budget", "saldo usdc",
+            "quanto tenho usdc", "arc balance",
+        )
+
+        if any(w in lowered for w in _arc_run_kw):
+            campaign_id = self._extract_amount(clean)
+            return IntentResponse(
+                action="run_campaign_agent",
+                confidence=0.85,
+                entities={"campaign_id": int(campaign_id) if campaign_id else None},
+            )
+
+        if any(w in lowered for w in _arc_pay_kw):
+            return IntentResponse(action="pay_creator", confidence=0.80, entities={})
+
+        if any(w in lowered for w in _arc_discover_kw):
+            return IntentResponse(action="discover_creators", confidence=0.80, entities={})
+
+        if any(w in lowered for w in _arc_budget_kw):
+            return IntentResponse(action="check_budget", confidence=0.80, entities={})
+
+        # --- intent miss logging (#17) ---
+        logger.warning(
+            "intent_miss user=%s confidence=%.2f gemini_action=%s text_preview=%s",
+            user_id,
+            ai_intent.get("confidence", 0.0),
+            ai_intent.get("action", "none"),
+            clean[:80],
+        )
         return IntentResponse(action="help", confidence=0.5, entities={})
 
     # ------------------------------------------------------------------
@@ -332,6 +378,35 @@ class OrchestrationService:
                 instruction=instruction, user_text=clean_text, history=history
             )
             return {"intent": intent, "reply_text": reply, "execution": {"status": "redirect_stellar_dex"}}
+
+        # --- run_campaign_agent / discover_creators / pay_creator ---
+        if intent.action in ("run_campaign_agent", "discover_creators", "pay_creator", "check_budget"):
+            campaign_id = intent.entities.get("campaign_id")
+            if intent.action == "run_campaign_agent" and campaign_id:
+                instruction = (
+                    f"{_PLATFORM_CONTEXT} "
+                    f"O usuário quer disparar o agente de campanha para a campanha #{campaign_id}. "
+                    "Informe que o agente autônomo XiaoLee vai descobrir creators elegíveis, avaliá-los "
+                    "e pagar os melhores em USDC via Arc/Circle. "
+                    "Diga que pode fazer isso via API: POST /v1/agent/run-campaign. "
+                    "Seja animada e direta — máximo 2 frases."
+                )
+            else:
+                instruction = (
+                    f"{_PLATFORM_CONTEXT} "
+                    "O usuário está interagindo com o sistema de agente Arc. "
+                    f"Ação solicitada: {intent.action}. "
+                    "Explique brevemente as capacidades do agente: descoberta de creators, avaliação e pagamento USDC. "
+                    "Oriente a usar a API /v1/agent/run-campaign para disparar o loop autônomo."
+                )
+            reply = await self.gemini.generate_reply(
+                instruction=instruction, user_text=clean_text, history=history
+            )
+            return {
+                "intent": intent,
+                "reply_text": reply,
+                "execution": {"status": "arc_agent", "campaign_id": campaign_id},
+            }
 
         # --- campaign_info ---
         if intent.action == "campaign_info":
