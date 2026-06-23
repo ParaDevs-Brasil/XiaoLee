@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import Navbar from "../../components/navbar/Navbar";
 import { ThemeProviderWrapper } from "@/providers/ThemeProvider";
 
@@ -20,6 +21,7 @@ interface TractionSnapshot {
   total_usdc: number;
   total_payments: number;
   active_creators: number;
+  registered_creators: number;
   avg_latency_ms: number;
   p95_latency_ms: number;
   feed: PaymentEvent[];
@@ -29,6 +31,7 @@ const EMPTY: TractionSnapshot = {
   total_usdc: 0,
   total_payments: 0,
   active_creators: 0,
+  registered_creators: 0,
   avg_latency_ms: 0,
   p95_latency_ms: 0,
   feed: [],
@@ -63,6 +66,11 @@ const IconCheck = () => (
 const IconInbox = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
     <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+  </svg>
+);
+const IconUserPlus = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
   </svg>
 );
 
@@ -260,7 +268,7 @@ export default function TractionPage() {
           </div>
 
           {/* ── Stats grid ──────────────────────────────────────────── */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <StatCard
               Icon={IconDollar}
               value={`$${formatUSDC(snap.total_usdc)}`}
@@ -279,14 +287,25 @@ export default function TractionPage() {
               border="border-violet-100"
               sub="Nanopayments"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
             <StatCard
               Icon={IconUsers}
               value={String(snap.active_creators)}
-              label="Creators"
+              label="Paid creators"
               accent="text-fuchsia-600"
               bg="bg-fuchsia-50"
               border="border-fuchsia-100"
-              sub="Active"
+              sub="Received USDC"
+            />
+            <StatCard
+              Icon={IconUserPlus}
+              value={String(snap.registered_creators)}
+              label="Registered"
+              accent="text-pink-600"
+              bg="bg-pink-50"
+              border="border-pink-100"
+              sub="Eligible creators"
             />
           </div>
 
@@ -294,6 +313,28 @@ export default function TractionPage() {
           <div className="mb-4">
             <LatencyBar avg={snap.avg_latency_ms} p95={snap.p95_latency_ms} />
           </div>
+
+          {/* ── Creator CTA ─────────────────────────────────────────── */}
+          <Link
+            href="/onboarding"
+            className="flex items-center justify-between px-5 py-4 rounded-2xl border border-fuchsia-100 bg-gradient-to-r from-fuchsia-50 to-pink-50 hover:from-fuchsia-100 hover:to-pink-100 transition-all duration-200 group mb-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-fuchsia-100 text-fuchsia-500 flex items-center justify-center shrink-0">
+                <IconUserPlus />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-700">Are you a creator?</p>
+                <p className="text-xs text-gray-500">Register once — receive USDC automatically</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-bold text-fuchsia-500 group-hover:translate-x-1 transition-transform">
+              Join
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                <path d="M5 12h14m-7-7 7 7-7 7"/>
+              </svg>
+            </div>
+          </Link>
 
           {/* ── Live feed ───────────────────────────────────────────── */}
           <div className="rounded-2xl border border-pink-100 bg-white shadow-sm overflow-hidden">
