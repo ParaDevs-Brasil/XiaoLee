@@ -380,8 +380,20 @@ class OrchestrationService:
                 },
             }
 
-        # --- check_balance (sem contexto Stellar → orienta Freighter) ---
+        # --- check_balance — tenta Solana se wallet detectada, senão orienta Stellar ---
         if intent.action == "check_balance":
+            wallet = wallet_address or intent.entities.get("wallet")
+            if wallet and self.solana:
+                try:
+                    bal = await self.solana.get_balance(wallet)
+                    sol = bal.get("sol", 0.0)
+                    return {
+                        "intent": intent,
+                        "reply_text": f"Saldo da carteira {wallet}: {sol:.6f} SOL",
+                        "execution": {"chain": "solana", "wallet": wallet, "sol": sol},
+                    }
+                except Exception:
+                    pass
             stellar_ctx = self._stellar_wallet_ctx(None)
             instruction = (
                 f"{_PLATFORM_CONTEXT} {stellar_ctx} "
@@ -394,8 +406,24 @@ class OrchestrationService:
             )
             return {"intent": intent, "reply_text": reply, "execution": {"status": "missing_stellar_wallet"}}
 
-        # --- swap_quote (sem contexto Stellar → orienta Stellar DEX) ---
+        # --- swap_quote — tenta Jupiter/Solana se disponível, senão orienta Stellar DEX ---
         if intent.action == "swap_quote":
+            amount = float(intent.entities.get("amount", 1.0))
+            if self.solana:
+                try:
+                    quote = await self.solana.get_swap_quote(
+                        input_mint=USDC_DEVNET_MINT,
+                        output_mint=SOL_MINT,
+                        amount_raw=int(amount * 1_000_000),
+                    )
+                    out_sol = int(quote.get("outAmount", 0)) / 1e9
+                    return {
+                        "intent": intent,
+                        "reply_text": f"Cotacao Jupiter: {amount} USDC → {out_sol:.6f} SOL",
+                        "execution": quote,
+                    }
+                except Exception:
+                    pass
             stellar_ctx = self._stellar_wallet_ctx(None)
             instruction = (
                 f"{_PLATFORM_CONTEXT} {stellar_ctx} "

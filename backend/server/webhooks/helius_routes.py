@@ -42,7 +42,8 @@ async def helius_webhook(
     raw_body = await request.body()
     
     # Helius passes the webhook secret in the Authorization header
-    if helius_client.webhook_secret and authorization != helius_client.webhook_secret:
+    _expected_secret = settings.helius_webhook_secret
+    if _expected_secret and authorization != _expected_secret:
         raise HTTPException(status_code=401, detail="Invalid Helius Webhook Secret")
 
     try:

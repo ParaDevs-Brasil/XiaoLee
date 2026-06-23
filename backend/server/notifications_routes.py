@@ -47,7 +47,7 @@ async def _list_user_notifications(db: AsyncSession, twitter_user_id: str):
     user_res = await db.execute(user_stmt)
     user = user_res.scalars().first()
     if not user:
-        return {"success": True, "notifications": []}
+        raise HTTPException(status_code=404, detail="User not found")
 
     stmt = select(NotificationEvent).where(NotificationEvent.user_id == user.id).order_by(NotificationEvent.id.desc())
     result = await db.execute(stmt)
