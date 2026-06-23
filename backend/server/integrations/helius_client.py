@@ -10,7 +10,7 @@ class HeliusClient:
     def verify_webhook_signature(self, signature: str, payload: bytes) -> bool:
         """Verify the authenticity of a Helius webhook payload."""
         if not self.webhook_secret:
-            return True # Stub for development
+            return False  # fail-closed: no secret = no authenticated requests
             
         # Helius uses HMAC SHA256
         # Note: Depending on Helius setup, signature verification might differ.

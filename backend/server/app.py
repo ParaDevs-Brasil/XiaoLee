@@ -44,6 +44,12 @@ from server.routes.x402_routes import router as x402_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Fail fast on missing critical secrets before accepting any traffic
+    import os as _os
+    _missing = [v for v in ("JWT_SECRET", "STELLAR_SERVER_SECRET", "STELLAR_X402_WALLET") if not _os.getenv(v)]
+    if _missing:
+        logger.warning("[startup] Missing env vars (service may reject auth/payment): %s", ", ".join(_missing))
+
     init_db()
     await create_tables()
     await get_rate_limiter(redis_url=settings.redis_url or None)

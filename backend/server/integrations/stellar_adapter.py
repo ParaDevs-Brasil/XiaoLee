@@ -24,9 +24,20 @@ LOG = logging.getLogger(__name__)
 HORIZON_TESTNET = "https://horizon-testnet.stellar.org"
 HORIZON_MAINNET = "https://horizon.stellar.org"
 
-# Asset IDs conhecidos no testnet
+# Asset IDs conhecidos por rede
 USDC_TESTNET_ISSUER = "GAAXKLIMFWX7XLKVXGUVJI7X533OOZH2YS2RLMQVY3TP5QLXRRWXHDI5"
+# USDC mainnet emitido pela Circle (asset oficial na Public Network)
+USDC_MAINNET_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"
 USDC_TESTNET = f"USDC:{USDC_TESTNET_ISSUER}"
+
+
+def _is_testnet(network: str) -> bool:
+    return (network or "testnet").lower() == "testnet"
+
+
+def usdc_issuer_for(network: str) -> str:
+    """Retorna o issuer USDC correto para a rede (mainnet usa o issuer da Circle)."""
+    return USDC_TESTNET_ISSUER if _is_testnet(network) else USDC_MAINNET_ISSUER
 
 
 @dataclass
@@ -65,8 +76,10 @@ class StellarAdapter:
     def __init__(self, network: str = "testnet", horizon_url: str = ""):
         self.network = network
         self.horizon_url = horizon_url or (
-            HORIZON_TESTNET if network == "testnet" else HORIZON_MAINNET
+            HORIZON_TESTNET if _is_testnet(network) else HORIZON_MAINNET
         )
+        # Issuer USDC correto para a rede ativa (mainnet = Circle)
+        self.usdc_issuer = usdc_issuer_for(network)
 
     # ------------------------------------------------------------------
     # Account / Balance
@@ -152,7 +165,7 @@ class StellarAdapter:
                 if asset.upper() == "XLM":
                     return "XLM"
                 if asset.upper() == "USDC" and ":" not in asset:
-                    return USDC_TESTNET
+                    return f"USDC:{self.usdc_issuer}"
                 return asset
 
             src_asset_param  = _resolve(from_asset)
@@ -238,8 +251,8 @@ class StellarAdapter:
         def _asset(code: str) -> Asset:
             if code.upper() == "XLM":
                 return Asset.native()
-            # USDC testnet
-            return Asset("USDC", USDC_TESTNET_ISSUER)
+            # USDC na rede ativa (testnet ou mainnet/Circle)
+            return Asset("USDC", self.usdc_issuer)
 
         min_dest = max(min_dest_amount, 0.0000001)
         dst_asset = _asset(to_asset)

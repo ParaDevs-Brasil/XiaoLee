@@ -2,8 +2,14 @@
 ## Documento Vivo — ADR + Decisões de Produto + Arquitetura
 
 > Atualizado em: **2026-05-08** | Sprint 1 — Stellar (37 Graus em andamento)
-> Progresso Stellar: [#.........] 10% — Fase 1 iniciada.
 > Classificação: **AI Ops Layer sobre Stellar — MVP em construção, base técnica sólida.**
+>
+> **Progresso Stellar (reconciliado 2026-05-30):**
+> - Off-chain (backend): [########..] ~80% — `stellar_adapter`, SEP-10 (`stellar_auth_routes`),
+>   x402 (`x402_routes`), migração multi-chain e wallet Freighter no frontend **existem e foram
+>   auditados** (`../AUDIT.md`). A integração com o contrato real ainda é stub.
+> - On-chain (Soroban): [..........] 0% — o contrato `xiaolee_core` da seção 10 **não foi
+>   escrito**. É o P0 que destrava a track Stellar. Ver `MAINNET_READINESS.md` Gate 1B.
 
 ---
 
@@ -22,7 +28,8 @@
 11. [XiaoLee como AI Ops Layer — OrchestrationService](#11-xiaolee-como-ai-ops-layer--orchestrationservice)
 12. [Roadmap por Fases (37 Graus)](#12-roadmap-por-fases-37-graus)
 13. [GTM Plan](#13-gtm-plan)
-14. [Métricas de Sucesso](#14-métricas-de-sucesso)
+14. [GTM Vertical Adulto & Dating](#13-a-gtm-vertical-adulto--dating--estratégia-completa)
+15. [Métricas de Sucesso](#14-métricas-de-sucesso)
 15. [Riscos e Mitigações](#15-riscos-e-mitigações)
 16. [Pendências e Decisões em Aberto](#16-pendências-e-decisões-em-aberto)
 17. [Histórico de Atualizações](#17-histórico-de-atualizações)
@@ -697,6 +704,324 @@ O programa 37 Graus exige crescimento de usuários paralelo ao desenvolvimento d
 
 ---
 
+## 13-A. GTM Vertical Adulto & Dating — Estratégia Completa
+
+> **Por que este vertical é prioritário:** criadores adultos são o segmento com maior dor de pagamento do mercado. Processadoras de cartão (Visa, Mastercard) bloqueiam ou chargebackam criadores adultos com frequência — OnlyFans, Fansly e cams sofrem isso semanalmente. XiaoLee resolve o problema estrutural: pagamento direto, sem intermediário, sem possibilidade de chargeback, pseudônimo. Além disso, o ticket médio de fã adulto (ARPU) é 5–10x maior do que criador mainstream.
+
+---
+
+### 13-A.1 Por Que o Vertical Adulto é o Fit Perfeito para XiaoLee
+
+| Dor do Criador Adulto | Solução XiaoLee |
+|---|---|
+| Processadoras bloqueiam conta sem aviso | Stellar + XLM/USDC: sem intermediário financeiro, impossível de bloquear |
+| Chargebacks destroem margem (até 3% do volume) | Blockchain é irreversível — zero chargeback |
+| Plataformas tomam 20–30% (OnlyFans 20%, Chaturbate 50%) | XiaoLee cobra 0.5% de fee de campanha — 40x menor |
+| Privacidade: fã não quer que cobrança apareça no extrato | Wallet pseudônima + Pix com nome neutro na cobrança |
+| Fãs BR sem cartão internacional não conseguem pagar | Pix nativo via EtherFuse — qualquer pessoa com celular e CPF |
+| Não tem ferramenta para recompensar fãs engajados | Engine de campanhas: "siga, comente, reposte → ganhe $XLEE" |
+
+---
+
+### 13-A.2 Ecossistema de Plataformas Adultas — Onde Estão os Criadores
+
+> XiaoLee não compete com essas plataformas — oferece a camada de pagamento e engajamento que elas não têm.
+
+#### Plataformas de Conteúdo (onde criadores já operam)
+
+| Plataforma | Tamanho | Região Forte | Oportunidade XiaoLee |
+|---|---|---|---|
+| **OnlyFans** | 3M+ criadores, 220M usuários | Global/BR | Substituir ou complementar pagamentos; campanhas de growth para fãs |
+| **Fansly** | 500k+ criadores | Global | Alternativa ao OF, mesma dor de pagamento |
+| **LoyalFans** | 100k+ criadores | América do Norte | Criadores em busca de alternativas a OF |
+| **Fanvue** | Crescimento acelerado 2025 | Global/UK/BR | Mais abertos a Web3 do que OF |
+| **Chaturbate** | 5M visitantes/dia | Global | Cam models — renda baseada em tokens/tips |
+| **Stripchat** | 3M+ usuários diários | LatAm forte | Português disponível, base BR significativa |
+| **LiveJasmin** | Top 50 global | Global/BR | Premium, alta receita por modelo |
+| **BongaCams** | 2M+ usuários | BR/LatAm/EU | Forte no Brasil |
+| **NightOwl** | Nicho | NA | Criadores que priorizam anonimato |
+| **Reddit (NSFW)** | Bilhões de pageviews | Global | r/OnlyFansAdvice (450k), r/sexworkers, r/SFWNextDoor |
+| **Twitter/X (adulto)** | Único grande que permite conteúdo adulto | Global | Já no plano principal — dobrar aposta |
+
+#### Pitch Direto para Criadores Adultos (60 segundos)
+
+> "Você recebe 80% do que cobra no OnlyFans — e 99.5% do que a XiaoLee processa. Seus fãs BR pagam por Pix sem precisar de cartão. Você lança campanhas: 'segue meu perfil e ganha 10 $XLEE' — seus fãs se engajam, você cria audiência fora da plataforma que pode ser removida. Tudo auditável, nada bloqueável, sem chargeback. Leva 10 minutos pra configurar."
+
+---
+
+### 13-A.3 Redes de Anúncio Adultas — Onde Anunciar
+
+> Redes adultas têm um dos melhores CTRs de internet (público altamente engajado, intenção clara). Custo de CPC adulto é frequentemente menor do que mainstream para nichos específicos.
+
+#### Tier 1 — Redes Principais
+
+| Rede | Alcance | Formatos Disponíveis | CPM Estimado | Fit XiaoLee |
+|---|---|---|---|---|
+| **TrafficJunky** | 1B+ impressões/dia (Pornhub, RedTube, YouPorn, MindGeek portfolio) | Display, Native, Video pre-roll | $0.10–2.00 (GEO-dep.) | Alto — segmentação por país (BR), device, categoria |
+| **ExoClick** | 12B impressões/dia — maior rede adulta independente | Banner, Native, Push, Interstitial, In-Video | CPC $0.01–0.15 | Altíssimo — segmentação por interesse (cams, dating, cripto) |
+| **JuicyAds** | 350M+ impressões/dia | Banner, Pop, Native | $0.05–0.80 | Alto — focada em criadores e publishers adultos |
+| **TrafficStars** | 3B impressões/dia | Display, Video, Native, Push | $0.05–1.50 | Alto — inclui desktop e mobile, segmentação por OS/device |
+| **EroAdvertising** | 500M impressões/dia | Banner, Pop, Native | $0.10–1.00 | Médio-alto |
+| **PlugRush** | 1B+ impressões/dia | Banner, In-stream, Push | CPC $0.01–0.10 | Alto — aceita cripto como pagamento (alinhado) |
+| **AdXpansion** | 300M impressões/dia | Display, Pop | $0.05–0.50 | Médio |
+| **Crakrevenue** | Afiliados/CPA — maior rede afiliados adulto | CPA, Revenue share | $2–15 por lead | Altíssimo — modelo CPA: paga por conversão, não por impressão |
+
+#### Tier 2 — Redes Nicho com Alta Conversão
+
+| Rede | Foco | Relevância |
+|---|---|---|
+| **69ads** | Pequenas publishers, alto CTR mobile BR | Bom para testes de criativo com budget baixo |
+| **PussyCash / NU-Group** | Rede de afiliados especializada em cam sites | Modelo CPA, paga por criador cadastrado |
+| **FHG Consortium** | Publishers de imagens e tubes | Brand awareness para top-of-funnel |
+
+#### Estratégia de Criativos para Redes Adultas
+
+**Criativos que convertem neste vertical:**
+
+1. **Criador falando diretamente** ("Recebo pagamentos em crypto — sem chargeback, sem bloqueio. Pix aceito.")
+2. **Prova social numérica** ("500+ criadores brasileiros já usam a XiaoLee")
+3. **Medo de perda** ("Quantas vezes sua conta foi bloqueada esse mês?")
+4. **Demo da interface** (gif mostrando chat → campanha criada → $XLEE enviado)
+5. **Privacy angle** ("Seus fãs pagam sem que apareça nada no extrato deles")
+
+**Formatos prioritários por objetivo:**
+
+| Objetivo | Formato | Rede Recomendada |
+|---|---|---|
+| Aquisição criador | Native ads | ExoClick, TrafficJunky |
+| Aquisição fã | Display banner 300x250 | TrafficJunky, TrafficStars |
+| Retargeting criador interessado | Push notification | ExoClick, PlugRush |
+| Escala volume fã BR | Pop-under mobile | JuicyAds |
+| Conversão alta intenção | Interstitial | EroAdvertising |
+| Custo por lead otimizado | CPA afiliados | Crakrevenue, PussyCash |
+
+---
+
+### 13-A.4 Dating Apps — Canal de Aquisição e Parceria
+
+> Dating apps têm o perfil demográfico perfeito para XiaoLee: 18–35 anos, mobile-first, dispostos a pagar por experiências premium, acostumados com sistemas de moedas virtuais (Tinder Boost, Super Likes). O ângulo de entrada é duplo: **anúncio in-app** e **integração de campanha nativa**.
+
+#### Mapa de Plataformas Dating
+
+| App | MAU Global | BR | Perfil Usuário | Oportunidade |
+|---|---|---|---|---|
+| **Tinder** | 75M MAU | #1 no BR, 10M+ usuários | 18–35, todos os gêneros, altamente engajados | Meta Audience Network para segmentação precisa; Tinder Ads (imagem + CTA) |
+| **Pure** | Nicho premium | Crescendo no BR | 21–35, aberto, foco em privacidade | Fit altíssimo — usuário valoriza privacidade, pseudonimidade. Parceria direta viável. |
+| **Feeld** | 2M+ | São Paulo/Rio forte | 25–40, polyamory, kink-positivo | Comunidade tech-friendly, aberta a crypto, ticket alto |
+| **Grindr** | 13M DAU | BR top-3 país | 18–40 LGBTQ+ | Alta receptividade a crypto, comunidade muito ativa online |
+| **Badoo** | 350M global | Forte no BR | 18–40, tier-2 cidades | Volume alto, CPC mais barato que Tinder |
+| **Hinge** | 23M MAU | Crescendo SP/RJ | 23–35, urban | Alta intenção de pagamento, integração com Instagram |
+| **Bumble** | 50M MAU | Forte BR | 22–35 mulheres | Criadores de conteúdo feminino — ângulo de empoderamento financeiro |
+| **OkCupid** | 10M MAU | Nicho | 20–35, progressivo | Aberto a novas tecnologias |
+| **MeetMe / Tagged** | 100M global | LatAm forte | 18–30 | Volume em tier-2/3 cidades BR |
+
+#### Táticas por App
+
+**Tinder**
+- **Tinder Ads (via Meta Audience Network):** campanha de reconhecimento com CTA "Monetize seu perfil"
+- **Tinder Gold/Platinum audience:** usuários dispostos a pagar são o público ideal para XiaoLee
+- **Criativo recomendado:** "Seu próximo match pode virar fã. XiaoLee — ganhe $XLEE com seu engajamento."
+- **Segmentação:** BR, 20–35, interesses em cripto/DeFi/finanças/criadores de conteúdo
+
+**Pure**
+- **Ângulo:** Pure é o único dating app que prioriza privacidade acima de tudo (fotos somem, sem histórico permanente). Alinhamento natural com XiaoLee (pseudonimidade, wallet, sem custódia).
+- **Tática:** Abordagem de **parceria direta** com o time de produto do Pure — propor campanha nativa "Complete tarefas no Pure → ganhe $XLEE". Pure ganha engajamento; XiaoLee ganha usuários.
+- **Alternativa:** Display ads dentro do Pure app via ExoClick (Pure tem parceria com redes adultas).
+
+**Feeld**
+- **Ângulo:** Comunidade altamente educada, tech-friendly, aberta a crypto. Muitos usuários já têm carteira.
+- **Tática:** Campanha de influenciador dentro da comunidade Feeld + Discord da comunidade. "Criadores do Feeld — monetize fora da plataforma com privacidade total."
+
+**Grindr**
+- **Tática:** Grindr Ads (programa de advertising próprio). Segmentação por localização (SP, RJ, BH). CTA: "Criadores LGBTQ+ — sem chargeback, sem bloqueio."
+- **Budget recomendado:** R$ 2.000/mês para teste. CPM histórico do Grindr: $2–5 (premium).
+
+**Badoo / MeetMe**
+- **Tática:** Volume play — CPCs mais baratos, volume alto no Brasil tier-2/3 (interior SP, MG, RS). Ideal para aquisição de fãs (lado demanda das campanhas), não criadores.
+
+---
+
+### 13-A.5 Playbook Completo por Canal — Fases e Budget
+
+#### Fase 2 — Ativação do Vertical (Paralela ao Sprint 2)
+
+**Objetivo:** 200 criadores adultos cadastrados + 1.000 fãs via Pix
+
+| Ação | Budget (R$) | Meta | Responsável |
+|---|---|---|---|
+| Campanha ExoClick: native ads BR, criadores adultos | R$ 1.500/mês | 50 criadores | Marketing |
+| Campanha TrafficJunky: display BR, mobile | R$ 1.000/mês | 500 fãs | Marketing |
+| Parceria CPA via Crakrevenue: afiliados de criadores | R$ 0 upfront + R$ 5/criador | 50 criadores | Marketing |
+| Tinder Ads (via Meta): awareness BR | R$ 800/mês | 300 fãs | Marketing |
+| DM outreach: top 20 criadores adultos BR no Twitter/X | R$ 0 | 10 criadores beta | Founders |
+| Comunidades Reddit NSFW BR (r/onlyfansbrasil, etc.) | R$ 0 | 100 usuários | Community |
+| Discord: servidores de criadores adultos | R$ 0 | 50 usuários | Community |
+
+**Budget total Fase 2:** ~R$ 3.300/mês (~$650 USD)
+
+#### Fase 3 — Escala
+
+**Objetivo:** 1.000 criadores + 10.000 fãs + R$ 50k em Pix processado
+
+| Ação | Budget (R$) | Meta |
+|---|---|---|
+| TrafficJunky escala: 3 GEOs (BR, MX, CO) | R$ 5.000/mês | 2.000 fãs |
+| ExoClick + JuicyAds: rotação de criativos | R$ 3.000/mês | 300 criadores |
+| Afiliados (Crakrevenue + PlugRush): CPA modelo | R$ 0 upfront | 500 criadores |
+| Pure: campanha nativa (negociação direta) | R$ 2.000/mês | 200 usuários premium |
+| Grindr Ads: SP + RJ | R$ 2.000/mês | 500 usuários |
+| Influenciador adulto BR (1 macro + 3 micro) | R$ 8.000 (one-time) | 3.000 conversões |
+
+**Budget total Fase 3:** ~R$ 12.000/mês + R$ 8.000 influenciador (~$4.000 USD/mês)
+
+---
+
+### 13-A.6 Personas Detalhadas do Vertical Adulto
+
+#### Persona 1 — Fernanda, 26, Criadora OnlyFans/Fansly
+
+- **Situação:** 2.000 subscribers no OnlyFans, R$ 8.000/mês bruto. Perde 20% para a plataforma + 3% de chargebacks.
+- **Dor:** Já teve conta bloqueada uma vez. Não consegue aceitar de fãs BR sem cartão internacional. Quer diversificar.
+- **Como XiaoLee resolve:** Cria campanha "siga meu Twitter → ganhe 5 $XLEE". Recebe via Stellar direto. Aceita Pix de fã BR via EtherFuse. Zero chargeback.
+- **Canal de aquisição:** Twitter/X + ExoClick native ads + DM outreach
+
+#### Persona 2 — Lucas, 23, Cam Model no Chaturbate/Stripchat
+
+- **Situação:** Ganha em tokens (plataforma paga 5 cents/token vs. R$ 0.50 que fã paga). Quer renda fora da plataforma.
+- **Dor:** 50% de taxa da plataforma, sem canal direto com fã, sem Pix.
+- **Como XiaoLee resolve:** Cria campanha no XiaoLee linkada do perfil Chaturbate ("off-platform tips em $XLEE"). Fã BR paga por Pix e recebe $XLEE de volta como cashback.
+- **Canal de aquisição:** JuicyAds in-cam-site + comunidades Telegram de cam models
+
+#### Persona 3 — Carlos, 30, Fã Ativo no Tinder/Pure
+
+- **Situação:** Usuário Premium do Tinder, já interagiu com criadores no Twitter. Tem Pix, nunca usou cripto.
+- **Dor:** Quer apoiar criadores que gosta, mas não sabe como comprar cripto.
+- **Como XiaoLee resolve:** Vê anúncio no Tinder → clica → deposita R$ 50 via Pix → recebe USDC/XLM → participa de campanha de criador que segue no Twitter.
+- **Canal de aquisição:** Tinder Ads + TrafficJunky display
+
+#### Persona 4 — Diego, 28, Usuário Feeld/Grindr Cripto-aware
+
+- **Situação:** Já tem MetaMask, interessado em SocialFi, ativo em comunidades LGBTQ+ e crypto.
+- **Dor:** Nenhuma plataforma combina privacidade sexual + ferramentas financeiras crypto + experiência BR.
+- **Como XiaoLee resolve:** Interface conversacional em PT-BR, Freighter, campanhas de criadores que ele já segue no Twitter.
+- **Canal de aquisição:** Grindr Ads + Feeld community + Discord
+
+---
+
+### 13-A.7 Estratégia de Conteúdo e Comunidade para o Vertical
+
+#### Reddit (Comunidades Específicas)
+
+| Subreddit | Membros | Tática |
+|---|---|---|
+| r/onlyfansbrasil | 180k+ | Post educativo: "Como aceitar Pix para seu conteúdo premium" — sem spam, valor real |
+| r/sexworkersonly | 45k | Thread: "Melhores alternativas para receber sem chargeback em 2026" |
+| r/swersfw / r/CamGirlProblems | 30k+ | Engajamento orgânico, responder dúvidas de pagamento com XiaoLee como solução |
+| r/CryptoCurrency | 7M | Post: "XiaoLee — como a economia de criadores adultos está adotando Stellar" |
+
+**Regra de ouro no Reddit:** valor primeiro, produto depois. Nunca link direto sem contexto.
+
+#### Telegram — Grupos de Criadores
+
+| Grupo | Tipo | Tática |
+|---|---|---|
+| Grupos de modelos Chaturbate BR | Privado | Entrar como membro, ajudar com dúvidas de pagamento, menção natural |
+| OnlyFans Brasil Creators | 5k–20k membros | Parceria com admin para post patrocinado |
+| Criadores Fansly PT | Nicho | Post educativo sobre alternativas de recebimento |
+
+#### Discord — Servers Relevantes
+
+- Servers de criadores de conteúdo adulto (invite-only via referência)
+- Stellar Official Discord — canal #showcase (awareness técnico)
+- Web3 creators BR (crossover com o GTM principal)
+
+---
+
+### 13-A.8 Parcerias Estratégicas com Plataformas Adultas
+
+> Abordagem de longo prazo, Fase 3+. Não requer API/integração técnica imediata — começa com marketing conjunto.
+
+| Plataforma | Tipo de Parceria | Proposta de Valor para Eles | Fase |
+|---|---|---|---|
+| **Pure** | Campanha nativa co-branded | XiaoLee gera engajamento de fãs no Pure; Pure ganha DAU | 2–3 |
+| **Fanvue** | Integração de pagamento opcional | Criadores Fanvue podem receber $XLEE/XLM diretamente | 3–4 |
+| **Stripchat** | Afiliado de criadores | XiaoLee paga CPA por criador indicado que ativa campanha | 3 |
+| **Crakrevenue** | Rede de afiliados CPA | Publisher da Crakrevenue promove XiaoLee para sua base de criadores | 2 |
+| **JuicyAds** | Publisher direto | JuicyAds aceita XiaoLee como anunciante — já aceitam cripto como pagamento | 2 |
+
+---
+
+### 13-A.9 Compliance e Gestão de Risco no Vertical Adulto
+
+| Risco | Mitigação |
+|---|---|
+| XiaoLee ser associada a conteúdo explícito | XiaoLee é plataforma de **pagamento e engajamento** — não hospeda conteúdo. Disclaimer claro: "XiaoLee não armazena, transmite ou verifica conteúdo adulto." |
+| Regulação de processamento de pagamento adulto | Stellar + EtherFuse não são processadoras de cartão — não há regras Visa/Mastercard aplicáveis. Pix é regulado pelo BCB, não proíbe conteúdo adulto. |
+| Menores de idade | KYC mínimo via EtherFuse (CPF para Pix) garante que quem deposita tem 18+. Campanhas de criadores adultos exigem flag de conteúdo adulto no sistema. |
+| Chargeback via Pix | Pix tem mecanismo de devolução (D+1), não chargeback. XiaoLee registra todas as operações on-chain — evidência imutável para disputas. |
+| LGPD e dados de usuário | XiaoLee armazena apenas Twitter ID + wallet address. Sem CPF, sem endereço, sem dados sensíveis no backend. EtherFuse faz o KYC de sua responsabilidade. |
+
+---
+
+### 13-A.10 Métricas de Sucesso do Vertical Adulto
+
+| Métrica | Fase 2 | Fase 3 | Pitch |
+|---|---|---|---|
+| Criadores adultos cadastrados | 50 | 300 | 1.000 |
+| Fãs via Pix (vertical adulto/dating) | 200 | 2.000 | 8.000 |
+| Volume Pix processado (R$) | R$ 5.000 | R$ 50.000 | R$ 200.000 |
+| CTR médio ExoClick/TrafficJunky | > 0.3% | > 0.5% | — |
+| CPA criador (custo por criador cadastrado) | < R$ 30 | < R$ 15 | < R$ 10 |
+| CPA fã (custo por fã com 1 Pix) | < R$ 12 | < R$ 6 | < R$ 4 |
+| Campanhas ativas de criadores adultos | 5 | 50 | 200 |
+| Completions de campanha adulto on-chain | 100 | 5.000 | 20.000 |
+
+---
+
+### 13-A.11 Roadmap de Execução GTM Adulto — Linha do Tempo
+
+```
+Fase 1 (atual — até ~11/05)
+├── Setup de contas nas redes de anúncio (ExoClick, TrafficJunky, JuicyAds)
+├── Criação de 3 criativos A/B para teste (criador, fã, privacy angle)
+└── DM outreach para 20 criadores adultos BR no Twitter/X
+
+Fase 2 (~11/05 – ~18/05)
+├── Lançar campanha ExoClick: R$ 1.500 (native ads, criadores BR)
+├── Lançar campanha TrafficJunky: R$ 1.000 (display mobile BR)
+├── Ativar CPA via Crakrevenue: afiliados sem custo upfront
+├── Tinder Ads via Meta: R$ 800 (awareness, fãs BR)
+├── Engajamento orgânico Reddit/Telegram/Discord
+└── 1ª parceria com criador adulto macro (campanha beta)
+
+Fase 3 (~18/05 – ~25/05)
+├── Escalar redes adultas: R$ 8.000/mês (3 redes simultâneas)
+├── Lançar campanha Grindr Ads SP+RJ
+├── Negociar parceria nativa com Pure
+├── Ativar influenciador adulto macro BR (1 campanha paga)
+└── Lançar programa de referência: criador indica criador → R$ 20 de $XLEE
+
+Fase 4 (GTM + Pitch)
+├── Case study publicado: "Criador X faturou R$ XX via XiaoLee em 30 dias"
+├── Thread Twitter/X com dados reais do vertical adulto
+└── Incluir no deck de pitch: TAM adulto + dating ($97B global)
+```
+
+---
+
+### 13-A.12 Narrativa para Investidor — Vertical Adulto
+
+> **O mercado adulto online movimenta $97B/ano globalmente (2025). 90% dos pagamentos ainda passam por processadoras de cartão que bloqueiam criadores. XiaoLee é a primeira plataforma DeFi conversacional com Pix nativo posicionada para capturar esse mercado no Brasil e LatAm — onde 150M pessoas usam Pix mas não têm cartão internacional. O TAM endereçável só no Brasil é de R$ 2B/ano em transações de conteúdo adulto. XiaoLee não compete com OnlyFans — é a camada de pagamento e engajamento que todo criador adulto precisa independente da plataforma que usa.**
+
+**Números para o pitch:**
+- 3M+ criadores adultos ativos globalmente — crescendo 40% ao ano
+- 150M usuários Pix no Brasil — zero solução crypto para eles hoje
+- $97B TAM global, R$ 2B endereçável BR apenas
+- Custo de chargeback para criadores adultos: 3–8% do faturamento — XiaoLee elimina
+- Take rate XiaoLee (0.5%) vs. OnlyFans (20%) = proposta de valor irrecusável para o criador
+
+---
+
 ## 14. Métricas de Sucesso
 
 ### Produto (KPIs por fase)
@@ -758,6 +1083,7 @@ O programa 37 Graus exige crescimento de usuários paralelo ao desenvolvimento d
 | Data | Versão | Mudanças |
 |---|---|---|
 | 2026-05-08 | 1.0 | Documento inicial — PDRs, ADRs, stack, arquitetura, fluxos, roadmap 37 Graus, GTM |
+| 2026-05-26 | 1.1 | Seção 13-A adicionada: GTM Vertical Adulto & Dating — redes de anúncio adultas (ExoClick, TrafficJunky, JuicyAds, TrafficStars, EroAdvertising, PlugRush, Crakrevenue), plataformas de criadores (OnlyFans, Fansly, Chaturbate, Stripchat, Fanvue), dating apps (Tinder, Pure, Feeld, Grindr, Badoo, Bumble), playbook de budget por fase, personas, compliance, métricas e narrativa de pitch |
 
 ---
 

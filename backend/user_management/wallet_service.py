@@ -3,7 +3,7 @@ import time
 from typing import Dict, Optional, Any, List
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from solders.keypair import Keypair
+import nacl.signing
 
 from database.models import User, Wallet, TokenBalance
 from config import ENCRYPTION_KEY
@@ -13,6 +13,23 @@ from database.database import init_db
 
 logger = logging.getLogger(__name__)
 
+_B58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+
+def _b58encode(data: bytes) -> str:
+    n = int.from_bytes(data, 'big')
+    result = []
+    while n:
+        n, r = divmod(n, 58)
+        result.append(_B58_ALPHABET[r:r + 1])
+    for byte in data:
+        if byte == 0:
+            result.append(b'1')
+        else:
+            break
+    return b''.join(reversed(result)).decode()
+
+
 class WalletService:
     def __init__(self, db_session_factory: async_sessionmaker[AsyncSession]):
         self.db_session_factory = db_session_factory
@@ -20,12 +37,13 @@ class WalletService:
         self.balance_manager = BalanceManager(self.db_session_factory)
 
     def _create_solana_keypair(self) -> Dict[str, str]:
-        """Create a Solana-compatible wallet using solders."""
-        keypair = Keypair()
-        secret_bytes = bytes(keypair)
+        signing_key = nacl.signing.SigningKey.generate()
+        private_bytes = bytes(signing_key)           # 32-byte seed
+        public_bytes = bytes(signing_key.verify_key)  # 32-byte Ed25519 pubkey
+        secret_64 = private_bytes + public_bytes      # Solana 64-byte wire format
         return {
-            "address": str(keypair.pubkey()),
-            "private_key": secret_bytes.hex(),
+            "address": _b58encode(public_bytes),
+            "private_key": secret_64.hex(),
         }
     
     async def create_wallet_for_user(self, user_id: int) -> Dict[str, Any]:

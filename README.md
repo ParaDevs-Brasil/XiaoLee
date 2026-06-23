@@ -1,7 +1,25 @@
 # XiaoLee Protocol
 
-> Assistente de IA conversacional para Solana — swap wallet-first, campanhas DeFi on-chain, transfer universal por @handle, notificações in-app e interface bilíngue (EN/PT).
-> **Atualizado: 2026-05-10 | Sprint 11 concluída | Deploy Railway ativo, transfer universal por @handle/carteira**
+> Assistente de IA conversacional **multi-chain (Solana + Stellar)** — swap wallet-first, campanhas DeFi on-chain, transfer universal por @handle, notificações in-app e interface bilíngue (EN/PT).
+> **Atualizado: 2026-05-30 | Arquitetura híbrida Solana + Stellar reconciliada**
+
+---
+
+## Status de chain (reconciliado 2026-05-30)
+
+A XiaoLee opera em **duas tracks on-chain em paralelo**, com backend, frontend e infra compartilhados (coluna `chain` no DB):
+
+| Track | Estado real | Contrato |
+|---|---|---|
+| **Solana (Anchor)** | Devnet operacional, pré-auditoria | `solana-program/xiaolee_core` (existe) |
+| **Stellar (Soroban)** | Direção estratégica (37 Graus); off-chain pronto | Contrato Soroban **ainda não escrito** — só spec no RT |
+
+- Camada Stellar off-chain (SEP-10, x402, Horizon adapter) está implementada e **auditada internamente** (`AUDIT.md`).
+- O contrato Soroban on-chain está especificado em [`docs/RT_XIAOLEE_STELLAR.md`](docs/RT_XIAOLEE_STELLAR.md) seção 10, mas **não tem código**.
+- Readiness mainnet (multi-chain) e gates: [`docs/MAINNET_READINESS.md`](docs/MAINNET_READINESS.md).
+- Runbook de deploy (multi-chain): [`ops/DEPLOY_MAINNET.md`](ops/DEPLOY_MAINNET.md).
+
+> Nota: as seções abaixo deste banner ainda refletem o enquadramento Solana original e estão em processo de reconciliação para multi-chain. Em caso de divergência, este banner e os docs linkados acima prevalecem.
 
 ---
 
@@ -41,7 +59,7 @@ Progresso: [##########] 99% — Código, UI e deploy completos. Sprint 11 encerr
 | i18n EN/PT | [##########] 100% | `LanguageContext`, toggle na Navbar, todos os componentes traduzidos; Xiaolee responde no idioma do usuário |
 | Auth (Web3Auth + Phantom) | [##########] 100% | Google OAuth via Web3Auth, carteira custodial, Phantom devnet, sessão persistida — fallback por `twitter_user_id` |
 | Chat History | [##########] 100% | Historico modal com filtros All/You/Xiaolee; persistência dual (in-memory + localStorage); sobrevive fetchData() |
-| QA backend | [##########] 100% | **65 testes passando**, CI GitHub verde |
+| QA backend | [########..] 80% | **~128 testes coletados** (1 erro de coleta em `scripts/db/test_mcp_migration.py` a corrigir); auditoria interna em `AUDIT.md` |
 | Deploy público (Railway) | [##########] 100% | Frontend + backend em produção no Railway; ARG/ENV corretos no Dockerfile |
 | Auditoria externa | [..........] 0% -- BLOQUEADOR MAINNET | Não iniciada — P0 para mainnet (não bloqueia demo) |
 

@@ -23,7 +23,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-from solders.pubkey import Pubkey
 
 from database.database import get_db_session
 import logging
@@ -34,6 +33,22 @@ from fastapi import Depends
 from server.metrics import record_campaign_event
 
 router = APIRouter(tags=["campaigns"])
+
+_B58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+
+def _b58decode_pubkey(s: str) -> bytes:
+    """Decode a base58-encoded Solana public key to 32 raw bytes."""
+    n = 0
+    for char in s.encode():
+        digit = _B58_ALPHABET.find(char)
+        if digit < 0:
+            raise ValueError(f"Invalid base58 character: {chr(char)}")
+        n = n * 58 + digit
+    try:
+        return n.to_bytes(32, 'big')
+    except OverflowError:
+        raise ValueError("Base58 value too large to be a 32-byte Solana public key")
 
 DEFAULT_CAMPAIGNS = [
     {
@@ -235,8 +250,7 @@ def _verify_claim_proof(payload: CampaignActionRequest, campaign_id: int, sessio
         return
 
     try:
-        wallet_pubkey = Pubkey.from_string(public_key)
-        public_key_bytes = bytes(wallet_pubkey)
+        public_key_bytes = _b58decode_pubkey(public_key)
         signature_bytes = base64.b64decode(signature)
         message_bytes = message.encode("utf-8")
     except (ValueError, binascii.Error) as exc:
@@ -472,9 +486,18 @@ async def telegram_widget_login(payload: dict, db: AsyncSession = Depends(get_db
 # ---------------------------------------------------------------------------
 
 @router.get("/user/{user_id}", response_model=UserResponse)
-async def get_user(user_id: str, db: AsyncSession = Depends(get_db_session)):
+async def get_user(
+    user_id: str,
+    authorization: Optional[str] = Header(default=None),
+    db: AsyncSession = Depends(get_db_session),
+):
     if not user_id or user_id.strip() == "":
         raise HTTPException(status_code=400, detail="user_id is required")
+
+    # SEC-003: require auth and enforce that caller can only access their own profile
+    authed_user = await _resolve_user(db, authorization)
+    if authed_user.twitter_user_id != user_id:
+        raise HTTPException(status_code=403, detail="Access to this user profile is not allowed")
 
     await _seed_default_campaigns(db)
 
@@ -770,7 +793,7 @@ async def verify_tasks(
     await _seed_default_campaigns(db)
     user = await _resolve_user(db, authorization)
     campaign_id = int(payload.campaign_identifier)
-    await _get_campaign_or_404(db, campaign_id)
+    campaign = await _get_campaign_or_404(db, campaign_id)
 
     participant_stmt = select(CampaignParticipant).where(
         CampaignParticipant.campaign_id == campaign_id,
@@ -783,6 +806,35 @@ async def verify_tasks(
 
     if participant.status in {"tasks_verified", "paid"}:
         return {"success": True, "message": "Tasks already verified! You can now claim your reward.", "all_tasks_completed": True}
+
+    # SEC-006: real task verification per campaign type
+    from server.integrations.campaign_verifier import verify_social, verify_trading, verify_referral
+    from server.settings import settings
+
+    campaign_type = campaign.campaign_type
+
+    if campaign_type == "social":
+        ok, reason = await verify_social(
+            twitter_user_id=user.twitter_user_id,
+            profile_to_follow=campaign.profile_to_follow,
+            tweet_id_to_engage=campaign.tweet_id_to_engage,
+            bearer_token=settings.x_bearer_token,
+        )
+    elif campaign_type == "trading":
+        wallet_res = await db.execute(select(Wallet).where(Wallet.user_id == user.id))
+        wallet = wallet_res.scalars().first()
+        ok, reason = await verify_trading(
+            wallet_address=wallet.address if wallet else None,
+            helius_api_key=settings.helius_api_key,
+        )
+    elif campaign_type == "referral":
+        ok, reason = await verify_referral(user.id, db, campaign_id)
+    else:
+        logger.warning("[campaigns/verify] Unknown campaign type %r for campaign %d — accepting", campaign_type, campaign_id)
+        ok, reason = True, f"Campaign type accepted"
+
+    if not ok:
+        return {"success": False, "message": reason, "all_tasks_completed": False}
 
     participant.status = "tasks_verified"
     participant.tasks_verified_at = datetime.now(timezone.utc)

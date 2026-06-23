@@ -24,7 +24,8 @@ alembic==1.18.4            # Migrações de schema
 redis[asyncio]==7.4.0      # Rate limiting persistente
 
 # ─── Integração Solana ─────────────────────────────────────────────────────────
-solders==0.26.0            # Derivação de PDA, instrução Anchor, keypair
+solders==0.26.0            # PDA derivation + Anchor instruction encoding (anchor_client.py only)
+PyNaCl==1.6.2              # Ed25519 keypair generation for custodial Solana wallets
 
 # ─── Integração Stellar ────────────────────────────────────────────────────────
 stellar-sdk>=10.0.0        # Stellar Python SDK — Horizon, Soroban, SEP-10
@@ -33,8 +34,10 @@ PyJWT>=2.8.0               # JWT para tokens SEP-10
 # ─── HTTP / Networking ────────────────────────────────────────────────────────
 aiohttp==3.13.5            # HTTP async para integrações externas
 
+# ─── IA / LLM ─────────────────────────────────────────────────────────────────
+anthropic>=0.69.0          # Claude (Messages API) — engine agêntica (LLM_PROVIDER=anthropic)
+
 # ─── Integrações ──────────────────────────────────────────────────────────────
-google-generativeai>=0.8.0  # Gemini AI
 python-telegram-bot>=21.0   # Telegram
 
 # ─── Utilitários ──────────────────────────────────────────────────────────────

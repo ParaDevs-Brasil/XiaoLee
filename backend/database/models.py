@@ -177,6 +177,16 @@ class ProcessedDM(Base):
     twitter_message_id: Mapped[str] = mapped_column(String(255), unique=True) 
 
 
+class UsedPayment(Base):
+    __tablename__ = 'used_payments'
+
+    tx_hash: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    user_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    amount_xlm: Mapped[Optional[float]] = mapped_column(Numeric(20, 8), nullable=True)
+    network: Mapped[str] = mapped_column(String(16), default='testnet')
+    verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
 class OnchainEvent(Base):
     __tablename__ = 'onchain_events'
 

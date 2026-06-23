@@ -82,6 +82,15 @@ class XiaoLeeResponseGenerator:
         self.mcp_manager = MCPToolsManager(db_session_factory)
         self.prompts = XiaoLeePrompts()
         self.tools = get_mcp_tools()
+
+        # Agentic engine — active only when LLM_PROVIDER=anthropic. When set, the
+        # main flow runs Claude's multi-step tool-use loop instead of the legacy
+        # single-shot path (see _generate_agentic_response).
+        self.claude_engine = None
+        if getattr(self.client, "provider", None) == "anthropic":
+            from claude_agent import ClaudeAgentEngine
+            self.claude_engine = ClaudeAgentEngine(self.client.client, self.client.model)
+            logger.info(f"🤖 [AGENTIC] Claude agent engine enabled — model={self.client.model}")
         self.mapped_responses = {
             # Campaign Success
             "CAMPAIGN_JOIN_SUCCESS",
@@ -291,23 +300,40 @@ class XiaoLeeResponseGenerator:
         return prompts.get(
             next_step, "Your campaign has been updated. What's the next step?")
 
-    async def _generate_text_from_prompt(self, prompt: str) -> str:
-        """Helper to generate text from a given prompt using the LLM."""
+    async def _complete_text(self, *, system: str, user: Optional[str] = None,
+                             max_tokens: int = 250, temperature: float = 0.7) -> str:
+        """Single-shot text completion that works across providers (Claude + OpenAI-style).
+
+        Anthropic uses the native Messages API (system + a user turn); every other
+        provider uses the OpenAI-style chat.completions surface.
+        """
+        if getattr(self.client, "provider", None) == "anthropic":
+            response = await self.client.client.messages.create(
+                model=self.client.model,
+                max_tokens=max_tokens,
+                system=system,
+                messages=[{"role": "user", "content": user or "Respond now."}],
+            )
+            return "".join(b.text for b in response.content if b.type == "text").strip()
+
+        messages = [{"role": "system", "content": system}]
+        if user is not None:
+            messages.append({"role": "user", "content": user})
         response = await self.client.client.chat.completions.create(
             model=self.client.model,
-            messages=[{
-                "role":
-                "system",
-                "content":
-                "You are Xiao Lee, a cheerful crypto assistant. Your responses should be friendly, concise, and use emojis. NEVER use markdown."
-            }, {
-                "role": "user",
-                "content": prompt,
-                
-            }],
-            temperature=0.7,
-            max_tokens=250)
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
         return response.choices[0].message.content.strip()
+
+    async def _generate_text_from_prompt(self, prompt: str) -> str:
+        """Helper to generate text from a given prompt using the LLM."""
+        return await self._complete_text(
+            system="You are Xiao Lee, a cheerful crypto assistant. Your responses should be friendly, concise, and use emojis. NEVER use markdown.",
+            user=prompt,
+            max_tokens=250,
+        )
 
     async def _generate_swap_success_response(
             self, context: Dict) -> Tuple[str, str]:
@@ -1242,13 +1268,9 @@ class XiaoLeeResponseGenerator:
                 """
                 
                 try:
-                    token_response = await self.client.client.chat.completions.create(
-                        model=self.client.model,
-                        messages=[{"role": "system", "content": token_check_prompt}],
-                        temperature=0.0,
-                        max_tokens=20
-                    )
-                    intent = token_response.choices[0].message.content.strip().upper()
+                    intent = (await self._complete_text(
+                        system=token_check_prompt, max_tokens=20, temperature=0.0
+                    )).upper()
                     logger.info(f"LLM token intent for '{message}': {intent}")
                     
                     if "REQUEST_AUTH" in intent:
@@ -1339,13 +1361,9 @@ class XiaoLeeResponseGenerator:
                 """
                 
                 try:
-                    confirmation_response = await self.client.client.chat.completions.create(
-                        model=self.client.model,
-                        messages=[{"role": "system", "content": confirmation_prompt}],
-                        temperature=0.0,
-                        max_tokens=10
-                    )
-                    intent = confirmation_response.choices[0].message.content.strip().upper()
+                    intent = (await self._complete_text(
+                        system=confirmation_prompt, max_tokens=10, temperature=0.0
+                    )).upper()
                     logger.info(f"LLM confirmation intent for '{message}': {intent}")
                     
                     if "CONFIRM" in intent:
@@ -1465,7 +1483,21 @@ class XiaoLeeResponseGenerator:
             available_tools = get_animation_tools()  # Animations available to everyone
             if user_id:  # Add authenticated tools if user is logged in
                 available_tools.extend(get_authenticated_tools())
-            
+
+            # 🤖 AGENTIC PATH: when Claude is the provider, run the multi-step
+            # tool-use loop so Xiao can chain operations and narrate real results
+            # in her own voice. Falls through to the legacy single-shot path below
+            # for every other provider.
+            if self.claude_engine is not None:
+                return await self._generate_agentic_response(
+                    message=message,
+                    system_prompt=system_prompt,
+                    available_tools=available_tools,
+                    user_id=user_id,
+                    dossier=dossier,
+                    pending_confirmations=pending_confirmations,
+                )
+
             llm_response = await self.client.generate_response_with_tools(
                 message=message,
                 user_id=user_id,  # Can be None for simple conversations
@@ -1511,17 +1543,27 @@ class XiaoLeeResponseGenerator:
 
             logger.info(f"[CMO] Routing to CMO Architect — command={command!r}")
 
-            response = await self.client.client.chat.completions.create(
-                model=self.client.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user",   "content": user_prompt},
-                ],
-                temperature=0.7,
-                max_tokens=2000,
-            )
+            if getattr(self.client, "provider", None) == "anthropic":
+                # Native Anthropic Messages API (no OpenAI-style chat.completions).
+                response = await self.client.client.messages.create(
+                    model=self.client.model,
+                    max_tokens=2000,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": user_prompt}],
+                )
+                text = "".join(b.text for b in response.content if b.type == "text").strip()
+            else:
+                response = await self.client.client.chat.completions.create(
+                    model=self.client.model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user",   "content": user_prompt},
+                    ],
+                    temperature=0.7,
+                    max_tokens=2000,
+                )
+                text = response.choices[0].message.content.strip()
 
-            text = response.choices[0].message.content.strip()
             return package_response(text, animation_name="Think Low")
 
         except Exception as exc:
@@ -1658,6 +1700,85 @@ Be cheerful, helpful, and use emojis! Keep responses concise but informative."""
         except Exception as e:
             logger.error(f"Error executing tool {tool_name}: {e}", exc_info=True)
             return self.package_response("Something went wrong with that operation. Please try again! 💫", animation_name="Ouch")
+
+    async def _generate_agentic_response(
+        self,
+        *,
+        message: str,
+        system_prompt: str,
+        available_tools: List[Dict],
+        user_id: Optional[str],
+        dossier: Dict,
+        pending_confirmations: Dict,
+    ) -> Dict[str, Any]:
+        """Run the Claude agentic tool-use loop and package the final response.
+
+        The tool executor reuses the existing MCP layer (so authorization,
+        balances, and on-chain logic are unchanged) and feeds the *raw* tool
+        result back to Claude, which then narrates the outcome in Xiao's voice.
+        Animations and the swap two-step confirmation are captured via a side
+        channel so the packaged response keeps its existing shape.
+        """
+        captured: Dict[str, Any] = {"animation_name": None, "pending_action": None}
+
+        async def tool_executor(tool_name: str, tool_input: Dict[str, Any]) -> str:
+            args = dict(tool_input or {})
+
+            # Animations are a UI side effect, not a backend call — capture and ack.
+            if tool_name == "play_animation":
+                captured["animation_name"] = args.get("animation_name") or args.get("name")
+                return json.dumps({"status": "animation_played", "animation": captured["animation_name"]})
+
+            if user_id:
+                args["user_id"] = user_id
+
+            logger.info(f"🤖 [AGENTIC] executing tool {tool_name} args={args}")
+            tool_result = await self.mcp_manager.execute_tool(tool_name=tool_name, arguments=args)
+
+            # Preserve the swap two-step: a quote stores a pending confirmation so
+            # the user can still approve before the swap actually executes.
+            if tool_name == "get_swap_quote" and isinstance(tool_result, dict) and tool_result.get("success"):
+                self._store_swap_pending(tool_result, user_id, pending_confirmations)
+
+            return json.dumps(tool_result, cls=DecimalEncoder)
+
+        try:
+            agent_result = await self.claude_engine.run(
+                system_prompt=system_prompt,
+                message=message,
+                tools=available_tools,
+                tool_executor=tool_executor,
+            )
+        except Exception as exc:
+            logger.error(f"🤖 [AGENTIC] Claude agent loop failed: {exc}", exc_info=True)
+            return self.package_response(
+                "Something went wrong while I was working on that! Please try again. 💫",
+                animation_name="Ouch",
+            )
+
+        text = agent_result.get("text") or "I'm not sure how to help with that! 🤔"
+        return self.package_response(
+            text,
+            animation_name=captured["animation_name"],
+            pending_action=captured["pending_action"],
+        )
+
+    def _store_swap_pending(self, tool_result: Dict[str, Any], user_id: Optional[str],
+                            pending_confirmations: Dict) -> None:
+        """Store a pending internal_swap confirmation from a successful swap quote."""
+        if not user_id or pending_confirmations is None:
+            return
+        context = tool_result.get("context", {})
+        execution_params = context.get("quote", {}).copy()
+        if 'from_amount' in execution_params:
+            execution_params['amount'] = execution_params.pop('from_amount')
+        pending_confirmations[user_id] = {
+            "tool_name": "internal_swap",
+            "action_type": "internal_swap",
+            "params": execution_params,
+            "created_at": time.time(),
+        }
+        logger.info(f"🤖 [AGENTIC] stored pending swap confirmation for user {user_id}")
 
     async def _analyze_intent(self,
                               message: str) -> Tuple[str, Dict[str, Any]]:

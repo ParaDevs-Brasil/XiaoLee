@@ -4,6 +4,11 @@
 > Program ID: `Fmmpn79Tij8fzYHg31ekZz4MmK9ArGzN59VogfcwhXiM`
 > Cluster atual: **Devnet**
 
+> **Escopo (reconciliado 2026-05-30):** este documento cobre **apenas a track Solana (Anchor)**.
+> A XiaoLee é multi-chain. O contrato **Stellar (Soroban) `xiaolee_core`** está especificado em
+> [`RT_XIAOLEE_STELLAR.md`](RT_XIAOLEE_STELLAR.md) seção 10 e **ainda não foi escrito** (nenhum
+> crate Soroban no repositório). Status consolidado em [`MAINNET_READINESS.md`](MAINNET_READINESS.md) (Gates 1A/1B).
+
 ---
 
 ## 1. Visão Geral do Programa

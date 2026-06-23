@@ -10,7 +10,7 @@ from mcp.server import Server
 from mcp.types import Tool, TextContent
 from sqlalchemy import text, select, func
 from database.database import init_db
-from database.models import User, TokenPrice, PendingTransfer, TokenBalance, Campaign
+from database.models import DMLog, User, TokenPrice, PendingTransfer, TokenBalance, Campaign
 from swaps.price_manager import PriceManager
 from swaps.balance_manager import BalanceManager
 from swaps.swap_engine import SwapEngine
@@ -2135,10 +2135,15 @@ class MCPToolsManager:
             async with self.db_session_factory() as session:
                 # Get messages for this user
                 result = await session.execute(
-                    select(text("content, message_type, created_at, platform, conversation_id"))
-                    .select_from(text("dmlogs"))
-                    .where(text(f"user_id = {user.id}"))
-                    .order_by(text("created_at DESC"))
+                    select(
+                        DMLog.content,
+                        DMLog.message_type,
+                        DMLog.created_at,
+                        DMLog.platform,
+                        DMLog.conversation_id,
+                    )
+                    .where(DMLog.user_id == user.id)
+                    .order_by(DMLog.created_at.desc())
                     .limit(limit)
                 )
                 

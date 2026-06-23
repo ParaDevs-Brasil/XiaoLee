@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import logging
 import re
 from typing import Any, Dict, Optional
 
@@ -7,9 +9,46 @@ from server.integrations.gemini_client import GeminiClient
 from server.integrations.solana_client import SolanaClient
 from server.integrations.stellar_adapter import StellarAdapter
 from server.schemas import IntentResponse
+from server.settings import settings
+
+logger = logging.getLogger(__name__)
 
 SOL_MINT = "So11111111111111111111111111111111111111112"
 USDC_DEVNET_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+STELLAR_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+
+# Tools exposed to Claude in the agentic path (OpenAI function format — the
+# ClaudeAgentEngine converts them to Anthropic input_schema). The wallet is NOT
+# a parameter: it comes from the connected Freighter wallet and is injected by
+# the executor, so Claude can't operate on an arbitrary address.
+STELLAR_AGENT_TOOLS = [
+    {"type": "function", "function": {
+        "name": "stellar_get_balance",
+        "description": (
+            "Consulta o saldo da carteira Stellar conectada do usuário (XLM e assets como USDC). "
+            "Use quando o usuário perguntar sobre saldo / quanto tem / balance."
+        ),
+        "parameters": {"type": "object", "properties": {}},
+    }},
+    {"type": "function", "function": {
+        "name": "stellar_swap_quote",
+        "description": (
+            "Gera uma cotação de swap no Stellar DEX (path payment) e prepara a transação para o "
+            "usuário assinar no Freighter. Use quando o usuário quiser trocar/swap entre ativos "
+            "(ex: XLM↔USDC). Sempre apresente o quote ao usuário; a XiaoLee NÃO executa o swap — "
+            "quem assina é o usuário no Freighter."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "from_asset": {"type": "string", "description": "Ativo de origem, ex: XLM ou USDC"},
+                "to_asset": {"type": "string", "description": "Ativo de destino, ex: USDC ou XLM"},
+                "amount": {"type": "number", "description": "Quantidade do ativo de origem a trocar"},
+            },
+            "required": ["from_asset", "to_asset", "amount"],
+        },
+    }},
+]
 
 _PLATFORM_CONTEXT = (
     "You are XiaoLee — a conversational AI layer for DeFi on Stellar. "
@@ -38,6 +77,20 @@ class OrchestrationService:
         self.gemini = gemini
         self.solana = solana
         self.stellar = stellar
+
+        # Claude agentic engine — active only when LLM_PROVIDER=anthropic + key set.
+        # When on, execute() routes through the multi-step tool-use loop and the
+        # legacy Gemini intent state machine below becomes the fallback.
+        self.claude_engine = None
+        if settings.llm_provider == "anthropic" and settings.anthropic_api_key:
+            try:
+                import anthropic
+                from claude_agent import ClaudeAgentEngine
+                self._anthropic = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+                self.claude_engine = ClaudeAgentEngine(self._anthropic, settings.anthropic_model)
+                logger.info("🤖 [AGENTIC] OrchestrationService running on Claude — model=%s", settings.anthropic_model)
+            except Exception as exc:
+                logger.warning("Claude engine init failed, staying on Gemini path: %s", exc)
 
     # ------------------------------------------------------------------
     # Helpers
@@ -161,10 +214,132 @@ class OrchestrationService:
         return IntentResponse(action="help", confidence=0.5, entities={})
 
     # ------------------------------------------------------------------
+    # Agentic execution (Claude)
+    # ------------------------------------------------------------------
+
+    def _build_agentic_system_prompt(self, stellar_wallet: str | None, platform: str) -> str:
+        wallet_ctx = self._stellar_wallet_ctx(stellar_wallet)
+        return (
+            f"{_PLATFORM_CONTEXT}\n{_STELLAR_CONTEXT}\n{wallet_ctx}\n\n"
+            "FERRAMENTAS DISPONÍVEIS:\n"
+            "- stellar_get_balance: chame quando o usuário perguntar sobre o saldo dele (XLM/USDC).\n"
+            "- stellar_swap_quote: chame quando o usuário quiser trocar/swap ativos (ex: XLM↔USDC). "
+            "Ela gera o quote e prepara a transação para o Freighter. Apresente o quote e diga que é só "
+            "assinar no Freighter — você NÃO executa o swap sozinha.\n\n"
+            "Para saudações, dúvidas sobre campanhas/$XLEE, SEP-24, x402 ou crypto em geral, responda "
+            "direto com sua personalidade, sem ferramentas. Se uma operação exigir carteira e ela não "
+            "estiver conectada, peça gentilmente para conectar o Freighter. Responda SEMPRE no idioma do usuário."
+        )
+
+    def _make_stellar_executor(self, stellar_wallet: str | None, captured: Dict[str, Any]):
+        """Build the tool executor closure for the agentic loop.
+
+        Executes the real Stellar operations and captures the structured
+        ``execution`` payload (incl. ``swap_xdr`` for Freighter signing) so the
+        /chat response keeps its existing shape for the frontend.
+        """
+        async def executor(tool_name: str, tool_input: Dict[str, Any]) -> str:
+            if tool_name == "stellar_get_balance":
+                if not stellar_wallet:
+                    return json.dumps({"error": "no_wallet",
+                                       "message": "Nenhuma carteira Freighter conectada. Peça ao usuário para conectar."})
+                balance = await self.stellar.get_balance(stellar_wallet)
+                captured["actions"].append("stellar_balance")
+                captured["execution"] = {
+                    "chain": "stellar", "wallet": stellar_wallet,
+                    "xlm": balance.xlm, "assets": balance.assets, "network": balance.network,
+                }
+                return json.dumps({
+                    "wallet": stellar_wallet, "xlm": balance.xlm,
+                    "assets": [{"asset_code": a.get("asset_code"), "balance": a.get("balance")} for a in balance.assets],
+                    "network": balance.network,
+                })
+
+            if tool_name == "stellar_swap_quote":
+                from_asset = str(tool_input.get("from_asset", "XLM"))
+                to_asset = str(tool_input.get("to_asset", "USDC"))
+                amount = float(tool_input.get("amount", 10.0))
+                captured["last_swap_args"] = {"from": from_asset, "to": to_asset, "amount": amount}
+                quote = await self.stellar.prepare_swap(
+                    wallet=stellar_wallet or "", from_asset=from_asset, to_asset=to_asset, amount=amount,
+                )
+                swap_xdr = None
+                if quote.destination_amount > 0 and stellar_wallet:
+                    try:
+                        swap_xdr = await self.stellar.build_swap_xdr(
+                            wallet=stellar_wallet, from_asset=from_asset, to_asset=to_asset,
+                            send_amount=quote.source_amount, min_dest_amount=quote.destination_amount * 0.99,
+                        )
+                    except Exception as xdr_err:
+                        logger.warning("build_swap_xdr falhou: %s", xdr_err)
+                captured["actions"].append("stellar_swap")
+                captured["execution"] = {
+                    "chain": "stellar",
+                    "swap_quote": {
+                        "from": from_asset, "to": to_asset,
+                        "source_amount": quote.source_amount, "destination_amount": quote.destination_amount,
+                    },
+                    "swap_xdr": swap_xdr,
+                    "network_passphrase": STELLAR_NETWORK_PASSPHRASE,
+                }
+                if quote.destination_amount <= 0:
+                    return json.dumps({"no_path": True, "from": from_asset, "to": to_asset,
+                                       "message": "Sem path de liquidez no Stellar DEX testnet agora."})
+                return json.dumps({
+                    "from": from_asset, "to": to_asset,
+                    "source_amount": quote.source_amount, "destination_amount": quote.destination_amount,
+                    "fee_xlm": quote.fee_xlm, "ready_to_sign": bool(swap_xdr),
+                })
+
+            return json.dumps({"error": "unknown_tool", "tool": tool_name})
+
+        return executor
+
+    def _synthesize_intent(self, captured: Dict[str, Any], stellar_wallet: str | None) -> IntentResponse:
+        """Reconstruct an IntentResponse from the tools Claude actually called."""
+        actions = captured.get("actions", [])
+        if "stellar_swap" in actions:
+            return IntentResponse(action="stellar_swap", confidence=0.9,
+                                  entities=captured.get("last_swap_args", {}))
+        if "stellar_balance" in actions:
+            return IntentResponse(action="stellar_balance", confidence=0.9,
+                                  entities={"wallet": stellar_wallet})
+        return IntentResponse(action="help", confidence=0.7, entities={})
+
+    async def _execute_agentic(self, text: str, user_id: str, history: list = None,
+                               platform: str = "web") -> Dict[str, Any]:
+        stellar_wallet = self._extract_stellar_wallet_from_note(text)
+        clean_text = self._clean_text(text)
+        captured: Dict[str, Any] = {"actions": [], "execution": None, "last_swap_args": {}}
+
+        system_prompt = self._build_agentic_system_prompt(stellar_wallet, platform)
+        executor = self._make_stellar_executor(stellar_wallet, captured)
+
+        result = await self.claude_engine.run(
+            system_prompt=system_prompt,
+            message=clean_text,
+            tools=STELLAR_AGENT_TOOLS,
+            tool_executor=executor,
+        )
+
+        reply = result.get("text") or "Como posso te ajudar com sua carteira Stellar hoje? 🌸"
+        intent = self._synthesize_intent(captured, stellar_wallet)
+        execution = captured["execution"] or {"status": "info"}
+        logger.info("🤖 [AGENTIC] tools=%s stop=%s", captured["actions"], result.get("stop_reason"))
+        return {"intent": intent, "reply_text": reply, "execution": execution}
+
+    # ------------------------------------------------------------------
     # Main execution
     # ------------------------------------------------------------------
 
     async def execute(self, text: str, user_id: str, history: list = None, platform: str = "web") -> Dict[str, Any]:
+        # 🤖 Agentic path (Claude) — falls back to the Gemini state machine on error.
+        if self.claude_engine is not None:
+            try:
+                return await self._execute_agentic(text, user_id, history=history, platform=platform)
+            except Exception as exc:
+                logger.error("🤖 [AGENTIC] path failed, falling back to Gemini: %s", exc, exc_info=True)
+
         wallet_address = self._extract_wallet_from_note(text)
         stellar_wallet = self._extract_stellar_wallet_from_note(text)
         clean_text = self._clean_text(text)

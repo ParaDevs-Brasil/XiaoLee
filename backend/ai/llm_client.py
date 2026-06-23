@@ -8,11 +8,22 @@ from sqlalchemy import text
 from database.database import init_db
 
 class LLMClient:
-    def __init__(self, provider: str = "deepseek"):
-        self.provider = provider.lower()
+    def __init__(self, provider: Optional[str] = None):
+        # Active provider is env-driven (LLM_PROVIDER) so we can switch to Claude
+        # without code changes; an explicit arg still wins for tests/overrides.
+        self.provider = (provider or os.getenv("LLM_PROVIDER", "deepseek")).lower()
         self.db = init_db()
-        
-        if self.provider == "deepseek":
+
+        if self.provider == "anthropic":
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+            if not api_key:
+                raise ValueError("Anthropic API key missing")
+
+            # Lazy import so non-Claude deployments don't need the SDK installed.
+            import anthropic
+            self.client = anthropic.AsyncAnthropic(api_key=api_key)
+            self.model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+        elif self.provider == "deepseek":
             api_key = os.getenv("DEEPSEEK_API_KEY")
             if not api_key:
                 raise ValueError("DeepSeek API key missing")
@@ -43,7 +54,7 @@ class LLMClient:
             self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
             self.model = os.getenv("OLLAMA_MODEL", "llama2")
         else:
-            raise ValueError(f"Provider not supported: {provider}")
+            raise ValueError(f"Provider not supported: {self.provider}")
     
     async def generate_response(self, message: str, user_id: str, tools: List[Dict] = None) -> str:
         try:

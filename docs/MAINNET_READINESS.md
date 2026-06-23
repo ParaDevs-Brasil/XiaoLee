@@ -1,104 +1,159 @@
-# XiaoLee — Mainnet Readiness Checklist
+# XiaoLee — Mainnet Readiness Checklist (Multi-chain)
 
-> Documento de referência para o rollout controlado do protocolo XiaoLee na mainnet Solana.
-> Atualizado em: **2026-05-09** | Sprint 10 em andamento — deploy Render + Railway configurado, CI verde.
+> Documento de referência para o rollout controlado do protocolo XiaoLee em mainnet.
+> Atualizado em: **2026-05-30** | Reconciliado para arquitetura **híbrida multi-chain** (Solana + Stellar).
+>
+> **Decisão de arquitetura:** XiaoLee mantém duas tracks on-chain em paralelo. A track Solana
+> (Anchor) já tem contrato em devnet; a track Stellar (Soroban) é a direção estratégica do
+> programa 37 Graus e ainda não tem contrato escrito. O backend, o frontend e a infra são
+> compartilhados pelas duas tracks (coluna `chain` no DB desde a migração `20260515_stellar_columns.py`).
+
+---
+
+## Como ler este documento
+
+Cada gate marca o estado real verificado no código (não aspiracional). Onde Solana e Stellar
+divergem, há colunas separadas. Mainnet só é liberada quando **todos os gates da track escolhida**
+estiverem verdes E os gates compartilhados (backend, infra, segurança) estiverem verdes.
+
+| Legenda | Significado |
+|---|---|
+| Concluido | Verificado no código / em produção |
+| Em andamento | Iniciado, incompleto |
+| Pendente | Não iniciado |
+| BLOQUEADOR | Impede mainnet com fundos reais |
 
 ---
 
 ## Status Geral
 
-| Categoria | Status | Progresso |
-|---|---|---|
-| Contratos on-chain | [######....] 60% | Emergency pause Concluido, record_swap dry_run; submit real pendente keypair |
-| Backend API | [##########] 100% | **65 testes** passando, CI verde, CORS hardened, Redis limiter |
-| Frontend | [##########] 100% | TypeScript sem erros, enum unificado, i18n EN/PT, contraste corrigido |
-| Deploy Render + Railway | [######....] 60% | `railway.toml` + `render.yaml` prontos; provisionar serviços cloud |
-| Telegram Bot | [##########] 100% | Canal principal para hackathon — operacional |
-| X/Twitter DM outbound | [####......] 40% | Poller implementado — **requer Twitter Developer App ($100/mês)** — ver Gate 7 |
-| PostgreSQL + Alembic | [########..] 80% | Migração gerada; **provisionar DB de produção** |
-| Redis Rate Limiting | [########..] 80% | Código pronto + fallback; **configurar REDIS_URL em produção** |
-| Docker Compose | [##########] 100% | PostgreSQL + Redis + Grafana + migrate one-shot |
-| Grafana / Observabilidade | [##########] 100% | Dashboard provisionado automaticamente |
-| Testes de carga | [######....] 60% | Locust 3 cenários; **executar em staging** |
-| Auditoria externa | [..........] 0% -- BLOQUEADOR | Iniciar contratação — bloqueia mainnet |
-| Secrets / Vault | [..........] 0% | SOLANA_ADMIN_KEYPAIR_B58 + DB pass + Redis pass |
-| HTTPS + HSTS | [..........] 0% | Configurar no deploy de produção |
-| Multisig Gnosis Safe | [..........] 0% | Substituir admin EOA antes do mainnet |
-| Bug bounty | [..........] 0% | Após auditoria |
+| Categoria | Track | Status | Progresso |
+|---|---|---|---|
+| Contrato on-chain — Solana (Anchor) | Solana | Em andamento | [######....] 60% — devnet ok; `record_swap` submit real pendente keypair |
+| Contrato on-chain — Soroban (Stellar) | Stellar | Pendente | [..........] 0% — **contrato NÃO escrito** (só spec no RT) |
+| Backend API (compartilhado) | Ambos | Em andamento | [########..] 80% — ~128 testes coletados (1 erro de coleta a corrigir), auditoria interna feita |
+| Frontend (compartilhado) | Ambos | Em andamento | [#######...] 70% — Freighter + Anchor convivem; limpeza do híbrido pendente |
+| Camada Stellar off-chain (Horizon/SEP-10/x402) | Stellar | Concluido | [##########] 100% — `stellar_adapter`, `stellar_auth`, `x402` auditados (AUDIT.md) |
+| PostgreSQL + Alembic (multi-chain) | Ambos | Concluido | [##########] 100% — coluna `chain` + `stellar_wallet` migradas |
+| Redis Rate Limiting | Ambos | Em andamento | [########..] 80% — código + fallback; configurar `REDIS_URL` em prod |
+| Deploy Railway/Render | Ambos | Em andamento | [######....] 60% — configs prontas; provisionar serviços |
+| Telegram Bot | Ambos | Concluido | [##########] 100% — canal principal operacional |
+| X/Twitter DM outbound | Ambos | Em andamento | [####......] 40% — requer Twitter Developer App ($100/mês) |
+| Asset $XLEE — Solana (SPL) | Solana | Em andamento | — |
+| Asset $XLEE — Stellar (SAC/SEP-41) | Stellar | Pendente | [..........] 0% — não emitido |
+| Auditoria externa | Ambos | Pendente | [..........] 0% -- **BLOQUEADOR** |
+| Secrets / Vault | Ambos | Pendente | [..........] 0% — keypairs, DB pass, Redis pass, JWT_SECRET |
+| HTTPS + HSTS | Ambos | Pendente | [..........] 0% — configurar no deploy |
+| Multisig (admin) | Ambos | Pendente | [..........] 0% — substituir EOA antes do mainnet |
+| Bug bounty | Ambos | Pendente | [..........] 0% — após auditoria |
+
+> Auditoria interna de segurança (Sprint 2026-05): 23 findings corrigidos, ver `AUDIT.md`.
+> Isso **não substitui** auditoria externa independente para mainnet com TVL real.
 
 ---
 
-## Gate 1 — Contratos On-chain
-
-### Programa XiaoLee Core
+## Gate 1A — Contrato On-chain Solana (Anchor)
 
 | Item | Status | Evidência |
 |---|---|---|
 | Program ID confirmado | Concluido | `Fmmpn79Tij8fzYHg31ekZz4MmK9ArGzN59VogfcwhXiM` |
+| Código do programa | Concluido | `solana-program/xiaolee_core/programs/xiaolee_core/src/lib.rs` |
 | IDL real no frontend | Concluido | `frontend/src/idl/xiaolee_core.json` |
 | Cluster alinhado (devnet) | Concluido | `Anchor.toml`, `useXiaoLeeProgram.ts` |
-| `initialize_global` | Concluido | Executado uma vez no deploy |
-| `initialize_user` | Concluido | Chamado pelo frontend via Anchor SDK |
+| `initialize_global` / `initialize_user` | Concluido | Executado em devnet |
 | `record_swap` — serialização | Concluido | Discriminador correto, Borsh u64 |
-| `record_swap` — submit real | PENDENTE P0 | Pendente `SOLANA_ADMIN_KEYPAIR_B58` + Sprint 7 |
-| Upgrade path definido | Concluido | UUPS documentado no ADR |
-| Emergency pause | Em andamento | Verificar se implementado no Rust |
+| `record_swap` — submit real | PENDENTE P0 | Requer `SOLANA_ADMIN_KEYPAIR_B58` |
+| Emergency pause (`pause_protocol`) | Concluido | No contrato Rust |
+| Auditoria externa do programa | BLOQUEADOR | 0% |
 
-### Ações P0 antes do mainnet
-
+### Ações P0 (track Solana)
 - [ ] Configurar `SOLANA_ADMIN_KEYPAIR_B58` em produção via vault
-- [ ] Executar `anchor deploy --provider.cluster mainnet-beta`
-- [ ] Verificar Program ID em Solscan/Explorer
-- [ ] Executar `initialize_global` na mainnet
+- [ ] `anchor deploy --provider.cluster mainnet`
+- [ ] Verificar Program ID em Solscan
+- [ ] `initialize_global` na mainnet
 - [ ] Testar `record_swap` com keypair real em devnet antes do mainnet
 
 ---
 
-## Gate 2 — Backend API
+## Gate 1B — Contrato On-chain Stellar (Soroban) — NÃO INICIADO
+
+> **Este é o P0 que destrava a track Stellar.** O contrato `xiaolee_core` Soroban está
+> especificado no `RT_XIAOLEE_STELLAR.md` (seção 10), mas **não existe código** — não há
+> crate Rust/Soroban no repositório (só o programa Anchor de Solana).
+
+| Item | Status | Spec |
+|---|---|---|
+| Crate Soroban `xiaolee_core` criado | Pendente | RT seção 10 |
+| `initialize(admin, xlee_sac)` | Pendente | `require_auth`, GlobalConfig em instance storage |
+| `initialize_user(twitter_id)` | Pendente | persistent storage + TTL bump |
+| `record_reward(admin, twitter_id, amount)` | Pendente | `require_auth` + `checked_add` + transfer via SAC |
+| `pause_protocol` / `unpause_protocol` | Pendente | emergency pause |
+| `transfer_admin` | Pendente | migração de autoridade |
+| Eventos (`reward_recorded`, etc.) | Pendente | RT seção 10 |
+| Testes do contrato | Pendente | — |
+| Deploy em **Testnet** | Pendente | P0 |
+| Deploy em **Mainnet** | Pendente | só após auditoria |
+
+### Ações P0 (track Stellar)
+- [ ] Escrever o crate Soroban conforme spec do RT (auth, overflow check, eventos)
+- [ ] Testes unitários do contrato (`soroban test`)
+- [ ] `stellar contract deploy` em **Testnet**
+- [ ] Emitir asset `XLEE` + `stellar contract asset deploy` (SAC) em Testnet
+- [ ] Integrar `StellarAdapter.record_reward` ao contrato real (hoje é stub/off-chain)
+- [ ] Só então: deploy Mainnet (pós-auditoria)
+
+---
+
+## Gate 2 — Backend API (compartilhado)
 
 | Item | Status | Evidência |
 |---|---|---|
-| Testes unitários | Concluido | 63 passed, 6 skipped |
+| Suíte de testes | Em andamento | ~128 testes coletados; **1 erro de coleta** em `scripts/db/test_mcp_migration.py` a corrigir |
 | CORS headers restritos | Concluido | `CORS_ALLOWED_HEADERS` env, não wildcard |
-| Rate limiting | Concluido | Redis (com fallback in-memory) |
-| Idempotência (409) | Concluido | `uq_participant_campaign_user` constraint |
-| Observabilidade `/metrics` | Concluido | Prometheus format |
-| `/health/detailed` | Concluido | DB, Solana, Gemini, Jupiter |
-| Helius webhook | Concluido | HMAC validado, best-effort record_swap |
-| PostgreSQL pronto | Em andamento | `asyncpg` instalado, Alembic configurado |
-| Redis em produção | Pendente | Configurar `REDIS_URL` em produção |
-| Secrets via vault | Pendente | Implementar HashiCorp/AWS Secrets Manager |
+| Rate limiting | Concluido | Redis + fallback in-memory |
+| Idempotência (409) | Concluido | `uq_participant_campaign_user` |
+| Observabilidade `/metrics` | Concluido | Prometheus |
+| `/health/detailed` | Concluido | DB, Solana, Gemini; **falta Horizon/Stellar RPC** |
+| SEP-10 auth (Stellar) | Concluido | `stellar_auth_routes.py` — auditado (SEC-008/014/015) |
+| x402 micropagamento | Concluido | `x402_routes.py` — anti-replay auditado (SEC-001/013) |
+| Helius webhook | Concluido | HMAC validado (SEC-007/011 corrigidos) |
+| PostgreSQL multi-chain | Concluido | coluna `chain`, `stellar_wallet` |
+| Redis em produção | Pendente | configurar `REDIS_URL` |
+| `JWT_SECRET` obrigatório no startup | Concluido | raise se ausente (SEC-002) |
+| Secrets via vault | Pendente | HashiCorp/AWS/Doppler |
+
+### Ação imediata
+- [ ] Corrigir erro de coleta em `backend/scripts/db/test_mcp_migration.py` para a suíte rodar limpa
 
 ---
 
-## Gate 3 — Frontend
+## Gate 3 — Frontend (compartilhado, híbrido)
 
 | Item | Status | Evidência |
 |---|---|---|
-| Build TypeScript limpo | Concluido | Exit code 0, sem type errors |
-| IDL real (sem mock) | Concluido | `useXiaoLeeProgram.ts` |
-| Status enum unificado | Concluido | `enrolled / tasks_verified / paid` |
-| 409 Conflict tratado | Concluido | `useJoinCampaign.ts` — flag `alreadyJoined` |
-| Wallet connect | Concluido | Devnet configurada |
-| Error handling | Concluido | `extractErrorMessage` centralizado |
-| i18n EN/PT | Concluido | `LanguageContext`, locales completos, toggle na Navbar |
-| Contraste de texto | Concluido | Remoção de opacidade `/60`–`/80` em todos os textos |
-| Tamanhos de texto | Concluido | Mínimo `text-sm` em cards de conteúdo |
+| Build TypeScript limpo | Concluido | exit 0 |
+| Wallet Solana (Anchor) | Concluido | `useXiaoLeeProgram.ts`, `Wallet.tsx` |
+| Wallet Stellar (Freighter) | Concluido | `StellarWallet.tsx`, `utils/stellar.ts` |
+| Seleção/abstração de chain na UI | Pendente | hooks Anchor e Freighter convivem sem switch unificado |
+| 409 Conflict tratado | Concluido | `useJoinCampaign.ts` |
+| i18n EN/PT | Concluido | `LanguageContext`, locales completos |
+| Contraste/legibilidade | Concluido | sem opacidade em texto |
+
+### Decisão pendente (híbrido)
+- [ ] Definir UX de troca de chain (Solana vs Stellar) ou detectar por wallet conectada
+- [ ] Remover hooks mortos se uma track for desativada
 
 ---
 
-## Gate 4 — Banco de Dados
+## Gate 4 — Banco de Dados (compartilhado)
 
 | Item | Status | Notas |
 |---|---|---|
-| SQLite (dev/devnet) | Concluido | Funcional com aiosqlite |
-| PostgreSQL suporte | Concluido | `asyncpg` + `_build_database_url()` |
-| Alembic configurado | Concluido | env.py async, migração inicial gerada |
-| Migração inicial | Concluido | `46a820fcb3c2_initial_schema.py` |
-| Connection pool | Concluido | pool_size=10, pool_pre_ping=True |
-| DB de produção | Pendente | Provisionar PostgreSQL 15+ |
-
-### Comando de migração em produção
+| SQLite (dev) | Concluido | aiosqlite |
+| PostgreSQL (prod) | Concluido | asyncpg + pool_pre_ping |
+| Alembic async | Concluido | migrações versionadas |
+| Migração multi-chain | Concluido | `20260515_stellar_columns.py` |
+| DB de produção provisionada | Pendente | PostgreSQL 16 gerenciado (RDS/Railway) |
 
 ```bash
 export DATABASE_URL="postgresql+asyncpg://user:pass@host:5432/xiaolee_prod"
@@ -107,106 +162,83 @@ cd backend && alembic upgrade head
 
 ---
 
-## Gate 5 — Performance (SLA)
-
-Meta Mainnet:
+## Gate 5 — Performance (SLA, compartilhado)
 
 | Métrica | Target | Status |
 |---|---|---|
-| p50 | < 200ms | Em andamento Pendente teste de carga staging |
-| p95 | < 500ms | Em andamento Pendente teste de carga staging |
-| p99 | < 1000ms | Em andamento Pendente |
-| Error rate | < 1% | Em andamento Pendente |
+| p50 | < 200ms | Pendente teste de carga em staging |
+| p95 | < 500ms | Pendente |
+| p99 | < 1000ms | Pendente |
+| Error rate | < 1% | Pendente |
 
-### Executar testes de carga
-
-```bash
-# Smoke test local
-locust -f load_tests/locustfile.py \
---host=http://localhost:8000 \
---users=20 --spawn-rate=4 --run-time=120s --headless
-
-# Staging (pré-mainnet)
-locust -f load_tests/locustfile.py \
---host=https://api-staging.xiaolee.io \
---users=100 --spawn-rate=10 --run-time=600s --headless \
---html=load_tests/reports/staging_$(date +%Y%m%d).html
-```
+Os endpoints Stellar (SEP-10, swap path payment) ainda não foram medidos sob carga —
+o `locustfile.py` já tem as classes (`XiaoLeeStellarAuth`), falta executar em staging.
 
 ---
 
-## Gate 6 — Segurança
+## Gate 6 — Segurança (compartilhado)
 
 | Item | Status | Prazo |
 |---|---|---|
-| Auditoria externa (smart contracts) | [..........] 0% -- BLOQUEADOR | Iniciar imediatamente |
-| Auditoria externa (backend API) | [..........] 0% -- BLOQUEADOR | Junto com SC |
-| Bug bounty program | Pendente | Após auditoria |
-| Secrets em vault | Pendente | Sprint 7 |
-| Pen test frontend | Em andamento | Após auditoria SC |
-| HTTPS + HSTS | Pendente | Configurar no deploy |
+| Auditoria interna (Semgrep + crypto + fuzzing) | Concluido | 23 findings corrigidos — `AUDIT.md` |
+| Auditoria externa — contratos | BLOQUEADOR | iniciar antes de mainnet |
+| Auditoria externa — backend API | BLOQUEADOR | junto com contratos |
+| Bug bounty | Pendente | após auditoria |
+| Secrets em vault | Pendente | — |
+| HTTPS + HSTS | Pendente | no deploy |
 
-### Auditores Recomendados
+### Auditores por chain
 
-| Empresa | Especialização | Contato |
+| Track | Especialização | Candidatos |
 |---|---|---|
-| Trail of Bits | Solana + Rust | trailofbits.com |
-| Ottersec | Solana-first | osec.io |
-| Sec3 | Solana programs | sec3.dev |
-| Sherlock | DeFi protocols | sherlock.xyz |
+| Solana (Anchor/Rust) | Solana programs | Ottersec (osec.io), Sec3 (sec3.dev), Trail of Bits |
+| Stellar (Soroban/Rust) | Soroban | Veridise, OtterSec (Soroban), Certora; revisão community SDF (Discord) como pré-auditoria |
+| Backend/DeFi | App + protocolo | Trail of Bits, Sherlock (sherlock.xyz) |
 
-> [ATENCAO] Mínimo 2 auditorias independentes** são obrigatórias antes do mainnet com TVL real.
+> Mínimo **2 auditorias independentes** por track antes de mainnet com TVL real.
 
 ---
 
-## Gate 7 — X/Twitter DM Outbound
-
-> Este gate é **exclusivo para mainnet** e não bloqueia o hackathon. O Telegram cobre 100% do fluxo conversacional até lá.
+## Gate 7 — X/Twitter DM Outbound (compartilhado, não bloqueia hackathon)
 
 | Item | Status | Detalhe |
 |---|---|---|
 | Webhook inbound HMAC | Concluido | `/v1/integrations/x/webhook` valida SHA-256 |
-| Poller implementado (`x_poller.py`) | Concluido | Suporta login, env cookies e arquivo de cookies |
-| Twitter API oficial (DM v2) | Pendente | Requer Developer App com permissão de DM |
-| Plano mínimo para ativar | Pendente | **Basic ($100/mês)** — [developer.twitter.com](https://developer.twitter.com) |
+| Poller implementado | Concluido | `x_poller.py` |
+| Twitter API oficial (DM v2) | Pendente | requer Developer App, escopo `dm.write` |
+| Plano mínimo | Pendente | Basic ($100/mês) |
 
-### Por que o DM outbound não está ativo no hackathon
-
-A biblioteca `agent-twitter-client` (scraper não-oficial) parou de funcionar em 2025 porque o Twitter removeu o endpoint `guest/activate.json` da API v1.1. Mesmo com autenticação por cookies válidos de sessão, a API retorna 401 por vinculação server-side de sessão ao fingerprint do browser.
-
-A única via confiável é a **API oficial v2** com um Twitter Developer App credenciado. O plano Free não inclui DM access; o plano Basic ($100/mês) é o mínimo necessário.
-
-**Ação para mainnet:** criar Developer App, gerar Access Token com escopo `dm.write`, configurar `TWITTER_BEARER_TOKEN` e `TWITTER_ACCESS_TOKEN` no vault.
+`agent-twitter-client` (scraper) inviável desde 2025 (Twitter removeu `guest/activate.json`).
+Telegram cobre 100% do fluxo conversacional até a ativação do X.
 
 ---
 
-## Plano de Rollout
+## Plano de Rollout (multi-chain)
 
 ```
-Sprint 10 — Hackathon Demo (em andamento)
-├── Provisionar Railway (PostgreSQL + Redis + env vars)
-├── Provisionar Render (static site frontend)
-├── CORS atualizado com URL do Render
-└── URL pública para demo e juízes
+Agora — Reconciliação + Soroban
+├── Reconciliar docs para multi-chain (este doc, DEPLOY_MAINNET, README, ARCHITECTURE, SMART_CONTRACT)
+├── Escrever contrato Soroban xiaolee_core (Gate 1B) + testes
+├── Corrigir erro de coleta de testes (Gate 2)
+└── Deploy Soroban em Testnet + emitir XLEE/SAC Testnet
 
-Sprint 11 — Mainnet Prep
-├── Twitter Developer App Basic → ativar DM outbound
-├── SOLANA_ADMIN_KEYPAIR_B58 no vault
-├── record_swap submit real (solders completo)
-├── Testes de carga em staging (p95 < 500ms)
-└── Contratar auditores
+Pré-Mainnet
+├── Track Solana: SOLANA_ADMIN_KEYPAIR_B58 no vault, record_swap submit real
+├── Track Stellar: StellarAdapter.record_reward integrado ao contrato real
+├── Secrets/vault + HTTPS/HSTS + multisig (ambas tracks)
+├── Testes de carga em staging (p95 < 500ms) incluindo endpoints Stellar
+└── Contratar auditores (uma por track + backend)
 
-Sprint 12 — Auditoria
-├── Auditoria Smart Contracts (2–4 semanas)
+Auditoria
+├── Auditoria contratos (Anchor + Soroban) — 2–4 semanas cada
 ├── Correções pós-auditoria
 ├── Pen test frontend
 └── Bug bounty em testnet pública
 
-Sprint 13 — Mainnet Beta
-├── Deploy em mainnet com TVL limitado
-├── Monitor Tenderly + OpenZeppelin Defender
-├── Rollout gradual: 10% → 50% → 100%
-└── Bug bounty público ativo
+Mainnet Beta
+├── Deploy mainnet com TVL limitado (track por track)
+├── Monitor (Tenderly/Defender p/ Solana; Horizon stream p/ Stellar)
+└── Rollout gradual 10% -> 50% -> 100% + bug bounty público
 ```
 
 ---
@@ -215,11 +247,11 @@ Sprint 13 — Mainnet Beta
 
 | Severidade | Definição | Tempo | Ação |
 |---|---|---|---|
-| P0 | Fundos em risco / sistema down | < 15 min | Pausar contratos, war room |
+| P0 | Fundos em risco / sistema down | < 15 min | Pausar contratos (`pause_protocol`), war room |
 | P1 | Funcionalidade crítica degradada | < 1 hora | Hotfix, comunicado |
 | P2 | Funcionalidade não-crítica | < 24 horas | Fix planejado |
 
-**Contatos de emergência:**
-- Admin multisig: Gnosis Safe (configurar antes do mainnet)
-- Monitor: Tenderly Alerts (configurar antes do mainnet)
-- Canal de incidentes: Discord #incident-response
+**Contatos de emergência (configurar antes do mainnet):**
+- Admin multisig — Solana (Squads) e Stellar (multisig nativo)
+- Monitor — Tenderly Alerts (Solana) + Horizon event_stream (Stellar)
+- Canal de incidentes — Discord #incident-response

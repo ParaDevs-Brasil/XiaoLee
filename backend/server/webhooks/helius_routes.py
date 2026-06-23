@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import hmac
 import json
 import logging
 
@@ -40,13 +41,18 @@ async def helius_webhook(
     Helius sends the secret in the Authorization header.
     """
     raw_body = await request.body()
-    
-    # Helius passes the webhook secret in the Authorization header
-    if helius_client.webhook_secret and authorization != helius_client.webhook_secret:
+
+    # Fail-closed: reject all requests when secret not configured
+    if not helius_client.webhook_secret:
+        LOG.critical("[Helius] webhook_secret not configured — rejecting webhook")
+        raise HTTPException(status_code=503, detail="Webhook authentication not configured")
+
+    # Use HMAC-SHA256 over raw body (not plain secret string comparison)
+    if not helius_client.verify_webhook_signature(authorization or "", raw_body):
         raise HTTPException(status_code=401, detail="Invalid Helius Webhook Secret")
 
     try:
-        data = await request.json()
+        data = json.loads(raw_body)
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
 
@@ -108,8 +114,11 @@ async def helius_webhook(
                     # Volume em lamports derivado do from_amount (proxy: 1 SOL = 1e9 lamports).
                     if transaction.status == "completed" and user.twitter_user_id:
                         try:
-                            raw_amount = event.get("amount", 0) or 0
-                            volume_lamports = int(float(raw_amount) * 1_000_000_000) if raw_amount else 0
+                            try:
+                                raw_amount = float(event.get("amount", 0) or 0)
+                                volume_lamports = max(0, min(int(raw_amount * 1_000_000_000), 2**63 - 1))
+                            except (ValueError, OverflowError):
+                                volume_lamports = 0
                             anchor_result = await anchor_client.record_swap(
                                 twitter_id=user.twitter_user_id,
                                 volume_lamports=volume_lamports,

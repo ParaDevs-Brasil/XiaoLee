@@ -23,6 +23,12 @@ class Settings:
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
+    # ── LLM provider / Claude (engine agêntica) ──────────────────────────────────
+    # LLM_PROVIDER=anthropic ativa o loop agêntico Claude no OrchestrationService.
+    llm_provider: str = os.getenv("LLM_PROVIDER", "gemini")
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    anthropic_model: str = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+
     solana_rpc_url: str = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
     solana_cluster: str = os.getenv("SOLANA_CLUSTER", "devnet")
     jupiter_quote_url: str = os.getenv(

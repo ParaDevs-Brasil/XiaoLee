@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+import json
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -13,9 +16,18 @@ from database.models import NotificationEvent, OnchainEvent, TransactionHistory,
 
 client = TestClient(app_module.app)
 
+_HELIUS_SECRET = "helius-secret"
+
 
 def _set_helius_secret():
-    object.__setattr__(app_module.settings, "helius_webhook_secret", "helius-secret")
+    object.__setattr__(app_module.settings, "helius_webhook_secret", _HELIUS_SECRET)
+    # helius_client is instantiated at module load — sync its secret too
+    helius_routes_module.helius_client.webhook_secret = _HELIUS_SECRET
+
+
+def _helius_sig(body: bytes) -> str:
+    """Compute the HMAC-SHA256 signature the webhook now expects in Authorization."""
+    return hmac.new(_HELIUS_SECRET.encode(), body, hashlib.sha256).hexdigest()
 
 
 @pytest.mark.asyncio
@@ -43,19 +55,21 @@ async def test_helius_webhook_persists_swap_and_updates_transaction(db_session):
         yield db_session
 
     app_module.app.dependency_overrides[get_db_session] = override_db_session
+    payload = [
+        {
+            "type": "SWAP",
+            "signature": "sig-123",
+            "transactionError": None,
+            "tokenTransfers": [],
+            "nativeTransfers": [],
+        }
+    ]
+    raw = json.dumps(payload).encode()
     try:
         response = client.post(
             "/v1/solana/webhooks/helius",
-            json=[
-                {
-                    "type": "SWAP",
-                    "signature": "sig-123",
-                    "transactionError": None,
-                    "tokenTransfers": [],
-                    "nativeTransfers": [],
-                }
-            ],
-            headers={"authorization": "helius-secret"},
+            content=raw,
+            headers={"authorization": _helius_sig(raw), "content-type": "application/json"},
         )
 
         assert response.status_code == 200
@@ -109,18 +123,20 @@ async def test_helius_webhook_creates_x_delivery_notification(db_session):
         helius_routes_module.x_client.send_dm = send_mock
         helius_routes_module.x_client.bearer_token = "token"
 
+        payload = [
+            {
+                "type": "SWAP",
+                "signature": "sig-456",
+                "transactionError": None,
+                "tokenTransfers": [],
+                "nativeTransfers": [],
+            }
+        ]
+        raw = json.dumps(payload).encode()
         response = client.post(
             "/v1/solana/webhooks/helius",
-            json=[
-                {
-                    "type": "SWAP",
-                    "signature": "sig-456",
-                    "transactionError": None,
-                    "tokenTransfers": [],
-                    "nativeTransfers": [],
-                }
-            ],
-            headers={"authorization": "helius-secret"},
+            content=raw,
+            headers={"authorization": _helius_sig(raw), "content-type": "application/json"},
         )
 
         assert response.status_code == 200

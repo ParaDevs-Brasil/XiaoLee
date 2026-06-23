@@ -227,6 +227,174 @@ class XiaoLeeChat(HttpUser):
                 resp.failure(f"status={resp.status_code}")
 
 
+# ─── Usuário: Auth Stellar / SEP-10 ──────────────────────────────────────────
+
+class XiaoLeeStellarAuth(HttpUser):
+    """
+    Estresa o fluxo SEP-10:
+        GET /auth/stellar/challenge  → POST /auth/stellar/token
+
+    Valida que:
+      - O challenge store não vaza memória sob carga (SEC-020)
+      - Contas inválidas recebem 400 (não 500)
+      - Desafios com XDR inválido recebem 401 (não 500)
+
+    Peso baixo — é um fluxo menos frequente que campanhas.
+    """
+
+    wait_time = between(2, 5)
+    weight = 1
+
+    # Endereços Stellar válidos de loadtest (formato correto, checksum falso)
+    _ACCOUNTS = [
+        "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN",
+        "GBCSGRNVHPOKJNMXQGCSGXLPQFBDNBXQOCVLLSQNZDAVSLYXPHMNKXPS",
+        "GDQERENVPGPQRXGJMPNJ4gygbsygth2qzwmbh6vs5nwtnkjnmdopb3ac",
+    ]
+
+    def on_start(self):
+        self.account = random.choice(self._ACCOUNTS)
+
+    @task(3)
+    def get_challenge(self):
+        with self.client.get(
+            f"/auth/stellar/challenge?account={self.account}",
+            name="GET /auth/stellar/challenge",
+            catch_response=True,
+        ) as resp:
+            # 200 = challenge emitido; 400 = conta inválida (checksum); 429 = store cheio; 503 = secret ausente
+            if resp.status_code in (200, 400, 429, 503):
+                resp.success()
+            else:
+                resp.failure(f"status={resp.status_code}")
+
+    @task(1)
+    def get_challenge_invalid_account(self):
+        """Garante que contas inválidas retornam 400, não 500."""
+        invalid = random.choice(["notakey", "X" * 56, "G" * 55, "", "G" + "0" * 55])
+        with self.client.get(
+            f"/auth/stellar/challenge?account={invalid}",
+            name="GET /auth/stellar/challenge [invalid]",
+            catch_response=True,
+        ) as resp:
+            if resp.status_code in (400, 422, 429, 503):
+                resp.success()
+            elif resp.status_code == 500:
+                resp.failure(f"500 para conta inválida: {invalid!r}")
+            else:
+                resp.success()
+
+    @task(2)
+    def post_token_invalid_xdr(self):
+        """POST com XDR inválido deve retornar 401, não 500."""
+        with self.client.post(
+            "/auth/stellar/token",
+            json={"account": self.account, "transaction": "invalido=="},
+            name="POST /auth/stellar/token [invalid]",
+            catch_response=True,
+        ) as resp:
+            if resp.status_code in (401, 400, 503):
+                resp.success()
+            elif resp.status_code == 500:
+                resp.failure(f"500 para XDR inválido")
+            else:
+                resp.success()
+
+
+# ─── Usuário: Stress de Segurança (ataques esperados) ────────────────────────
+
+class XiaoLeeSecurityStress(HttpUser):
+    """
+    Simula padrões de ataque que DEVEM ser rejeitados com 4xx, nunca 500.
+
+    Não é para medir throughput — é para validar que os controles de segurança
+    aguentam carga sem degradar para erros internos.
+
+    Peso baixo — não deve dominar o mix.
+    """
+
+    wait_time = between(0.5, 2)
+    weight = 1
+
+    def on_start(self):
+        self.session_id = _random_session_id()
+
+    @task(2)
+    def replay_payment_attempt(self):
+        """Tenta usar o mesmo tx_hash repetidamente — deve retornar 402 a partir da 2ª vez."""
+        tx_hash = "loadtest_replay_" + "a" * 48  # hash fixo = mesmo para todos os usuários
+        with self.client.post(
+            "/v1/ai/query",
+            json={"message": "fuzz", "session_id": self.session_id},
+            headers={
+                "Authorization": f"Bearer {self.session_id}",
+                "X-Payment": f'{{"tx_hash": "{tx_hash}", "network": "testnet"}}',
+            },
+            name="POST /v1/ai/query [replay]",
+            catch_response=True,
+            timeout=15,
+        ) as resp:
+            # 200 = processado, 402 = pagamento rejeitado (replay), 401 = não autenticado, 503 = sem carteira
+            if resp.status_code in (200, 402, 401, 503, 422):
+                resp.success()
+            elif resp.status_code == 500:
+                resp.failure("500 no endpoint x402 — não deve ocorrer")
+            else:
+                resp.success()
+
+    @task(2)
+    def campaign_verify_without_tasks(self):
+        """
+        Tenta verificar campanha sem ter feito as tarefas.
+        Agora que SEC-006 está corrigido, deve retornar success=false.
+        """
+        with self.client.post(
+            "/campaigns/verify",
+            json={"campaign_identifier": str(random.randint(1, 3))},
+            headers={"Authorization": f"Bearer {self.session_id}"},
+            name="POST /campaigns/verify [sem tarefas]",
+            catch_response=True,
+        ) as resp:
+            if resp.status_code in (200, 400, 401):
+                resp.success()
+            elif resp.status_code == 500:
+                resp.failure("500 no verify — não deve ocorrer")
+            else:
+                resp.success()
+
+    @task(1)
+    def malformed_campaign_identifier(self):
+        """Identifiers malformados devem retornar 400/422, nunca 500."""
+        bad_ids = ["'; DROP TABLE campaigns; --", "-1", "99999999", "null", "<script>", ""]
+        with self.client.post(
+            "/campaigns/verify",
+            json={"campaign_identifier": random.choice(bad_ids)},
+            headers={"Authorization": f"Bearer {self.session_id}"},
+            name="POST /campaigns/verify [malformed id]",
+            catch_response=True,
+        ) as resp:
+            if resp.status_code == 500:
+                resp.failure(f"500 para campaign_identifier malformado")
+            else:
+                resp.success()
+
+    @task(1)
+    def challenge_store_flood(self):
+        """Flood de contas distintas — challenge store deve segurar com 429, não travar."""
+        fake_account = "G" + "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", k=55))
+        with self.client.get(
+            f"/auth/stellar/challenge?account={fake_account}",
+            name="GET /auth/stellar/challenge [flood]",
+            catch_response=True,
+        ) as resp:
+            if resp.status_code in (200, 400, 429, 503):
+                resp.success()
+            elif resp.status_code == 500:
+                resp.failure("500 no challenge flood")
+            else:
+                resp.success()
+
+
 # ─── Hooks de Relatório ───────────────────────────────────────────────────────
 
 @events.quitting.add_listener

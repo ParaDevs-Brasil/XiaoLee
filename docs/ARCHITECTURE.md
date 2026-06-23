@@ -1,8 +1,16 @@
 # Arquitetura XiaoLee — Estado Atual
 
 > Atualizado em: **2026-05-10** | Sprint 11 — Transfer universal, UX de chat e AI bilíngue.
-> Estimativa geral de construção: **99%** — código, UI e deploy completos.
-> O que falta é exclusivamente **auditoria externa e mainnet**.
+
+> **Escopo (reconciliado 2026-05-30):** os diagramas e fluxos abaixo descrevem a **track Solana
+> (Anchor/Jupiter/Helius)**. A XiaoLee evoluiu para **multi-chain (Solana + Stellar)**. A
+> arquitetura Stellar (StellarAdapter, SEP-10, Stellar DEX path payments, Soroban, EtherFuse,
+> x402) está documentada em [`RT_XIAOLEE_STELLAR.md`](RT_XIAOLEE_STELLAR.md) seções 6–11.
+> A camada Stellar off-chain já existe e foi auditada (`../AUDIT.md`); o contrato Soroban
+> on-chain ainda não foi escrito. Estado consolidado: [`MAINNET_READINESS.md`](MAINNET_READINESS.md).
+>
+> A afirmação anterior de "99% — só falta auditoria/mainnet" valia para a track Solana isolada
+> e **não reflete** o estado multi-chain (a track Stellar on-chain está em ~0%).
 
 ---
 

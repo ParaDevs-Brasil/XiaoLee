@@ -47,3 +47,7 @@ backend/xiao_lee.db
 MODO ARQUITETO  RULES.md
 Links Xiaolee.md
 Arquitetura Completa do Projeto XiaoLee.md
+
+# Stellar mainnet secret keys (NUNCA commitar)
+mainnet_secrets.txt
+*secrets*.txt

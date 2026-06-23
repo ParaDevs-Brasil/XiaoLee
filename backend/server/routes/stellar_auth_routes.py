@@ -57,7 +57,13 @@ def _server_secret() -> str:
 
 
 def _jwt_secret() -> str:
-    return os.getenv("JWT_SECRET", "xiaolee-stellar-jwt-secret-change-in-prod")
+    secret = os.getenv("JWT_SECRET", "")
+    if not secret:
+        raise RuntimeError(
+            "JWT_SECRET environment variable is required but not set. "
+            "Set a strong random value (e.g. `openssl rand -hex 32`) before starting the server."
+        )
+    return secret
 
 
 def _network() -> str:
@@ -76,12 +82,13 @@ def _issue_jwt(account: str, expires_in: int = 86400) -> str:
     """Issues a compact JWT signed with HMAC-SHA256. Uses PyJWT if available."""
     try:
         import jwt as pyjwt
+        now = int(time.time())
         payload = {
             "sub": account,
             "stellar_wallet": account,
             "chain": "stellar",
-            "iat": int(time.time()),
-            "exp": int(time.time()) + expires_in,
+            "iat": now,
+            "exp": now + expires_in,
         }
         return pyjwt.encode(payload, _jwt_secret(), algorithm="HS256")
     except ImportError:
@@ -94,12 +101,13 @@ def _issue_jwt(account: str, expires_in: int = 86400) -> str:
         return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
     header = _b64url(_json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
+    now = int(time.time())
     payload_data = {
         "sub": account,
         "stellar_wallet": account,
         "chain": "stellar",
-        "iat": int(time.time()),
-        "exp": int(time.time()) + expires_in,
+        "iat": now,
+        "exp": now + expires_in,
     }
     payload = _b64url(_json.dumps(payload_data).encode())
     signing_input = f"{header}.{payload}".encode()
@@ -108,14 +116,33 @@ def _issue_jwt(account: str, expires_in: int = 86400) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Challenge store (in-memory, TTL 5min)
+# Challenge store (in-memory, TTL 5 min, hard cap 5 000 entries)
+# ---------------------------------------------------------------------------
+# SEC-020: bounded to prevent unbounded memory growth under enumeration attacks.
+# On each store() call expired entries are swept first; if the dict is still at
+# capacity after the sweep a 429 is returned by the caller.
 # ---------------------------------------------------------------------------
 
 _challenges: dict[str, tuple[str, float]] = {}  # account → (nonce, expires_at)
+_CHALLENGE_MAX = 5_000
 
 
-def _store_challenge(account: str, nonce: str, ttl: int = 300):
+def _sweep_expired_challenges() -> None:
+    now = time.time()
+    expired = [acct for acct, (_, exp) in _challenges.items() if now > exp]
+    for acct in expired:
+        _challenges.pop(acct, None)
+
+
+def _store_challenge(account: str, nonce: str, ttl: int = 300) -> bool:
+    """Stores a challenge. Returns False if the store is full after sweeping expired entries."""
+    if account not in _challenges and len(_challenges) >= _CHALLENGE_MAX:
+        _sweep_expired_challenges()
+        if len(_challenges) >= _CHALLENGE_MAX:
+            LOG.warning("[SEP-10] challenge store at capacity (%d) — rejecting new challenge", _CHALLENGE_MAX)
+            return False
     _challenges[account] = (nonce, time.time() + ttl)
+    return True
 
 
 def _pop_challenge(account: str) -> Optional[str]:
@@ -144,17 +171,30 @@ class TokenResponse(BaseModel):
     chain: str = "stellar"
 
 
+def _validate_stellar_account(account: str) -> None:
+    """Validates Stellar account format using SDK checksum when available."""
+    if not account.startswith("G") or len(account) != 56:
+        raise HTTPException(status_code=400, detail="Invalid Stellar account format")
+    sdk = _load_stellar_sdk()
+    if sdk:
+        Keypair = sdk[0]
+        try:
+            Keypair.from_public_key(account)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid Stellar account format")
+
+
 @router.get("/challenge")
 async def get_challenge(account: str = Query(..., description="Stellar public key G...")):
     """
     SEP-10 step 1: emite challenge transaction XDR para o account informado.
     O frontend deve ter o Freighter assinar este XDR e enviar para /auth/stellar/token.
     """
-    if not account.startswith("G") or len(account) < 56:
-        raise HTTPException(status_code=400, detail="Invalid Stellar account format")
+    _validate_stellar_account(account)
 
     nonce = secrets.token_hex(32)
-    _store_challenge(account, nonce)
+    if not _store_challenge(account, nonce):
+        raise HTTPException(status_code=429, detail="Too many pending challenges. Try again later.")
 
     sdk = _load_stellar_sdk()
     if sdk is None:
@@ -171,14 +211,12 @@ async def get_challenge(account: str = Query(..., description="Stellar public ke
 
     server_secret = _server_secret()
     if not server_secret:
-        # Gera keypair efêmero para desenvolvimento
-        server_kp = Keypair.random()
-        LOG.warning(
-            "[SEP-10] STELLAR_SERVER_SECRET not set — using ephemeral keypair %s",
-            server_kp.public_key,
+        LOG.error("[SEP-10] STELLAR_SERVER_SECRET not configured — cannot issue challenge")
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication service temporarily unavailable: server secret not configured.",
         )
-    else:
-        server_kp = Keypair.from_secret(server_secret)
+    server_kp = Keypair.from_secret(server_secret)
 
     network = _network()
     network_passphrase = (
@@ -202,7 +240,7 @@ async def get_challenge(account: str = Query(..., description="Stellar public ke
         }
     except Exception as exc:
         LOG.error("[SEP-10] build_challenge_transaction failed | %s", exc)
-        raise HTTPException(status_code=500, detail=f"Failed to build SEP-10 challenge: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Failed to build SEP-10 challenge") from exc
 
 
 @router.post("/token", response_model=TokenResponse)
@@ -216,15 +254,15 @@ async def get_token(body: TokenRequest):
     account = body.account
     signed_xdr = body.transaction
 
-    if not account.startswith("G") or len(account) < 56:
-        raise HTTPException(status_code=400, detail="Invalid Stellar account format")
+    _validate_stellar_account(account)
 
     sdk = _load_stellar_sdk()
     if sdk is None:
-        # Sem SDK — aceita mock challenge para desenvolvimento
+        # Sem SDK — aceita mock challenge apenas se nonce bater exatamente
         try:
             decoded = base64.b64decode(signed_xdr).decode()
-            if decoded.startswith(f"mock-challenge:{account}:"):
+            nonce = _pop_challenge(account)
+            if nonce and decoded == f"mock-challenge:{account}:{nonce}":
                 token = _issue_jwt(account)
                 return TokenResponse(token=token, account=account)
         except Exception:
@@ -235,9 +273,11 @@ async def get_token(body: TokenRequest):
 
     server_secret = _server_secret()
     if not server_secret:
-        LOG.warning("[SEP-10] STELLAR_SERVER_SECRET not set — skipping server sig verification")
-        token = _issue_jwt(account)
-        return TokenResponse(token=token, account=account)
+        LOG.error("[SEP-10] STELLAR_SERVER_SECRET not configured — refusing to issue token")
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication service temporarily unavailable: server secret not configured.",
+        )
 
     server_kp = Keypair.from_secret(server_secret)
     network = _network()
@@ -268,7 +308,7 @@ async def get_token(body: TokenRequest):
         )
     except Exception as exc:
         LOG.warning("[SEP-10] verify failed | account=%s | %s", account, exc)
-        raise HTTPException(status_code=401, detail=f"SEP-10 verification failed: {exc}") from exc
+        raise HTTPException(status_code=401, detail="SEP-10 verification failed") from exc
 
     token = _issue_jwt(client_account_id)
     LOG.info("[SEP-10] token issued | account=%s", client_account_id)

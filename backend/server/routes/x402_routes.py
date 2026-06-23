@@ -35,9 +35,12 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_db_session
+from database.models import UsedPayment
 from database.repository import DatabaseRepository
 from server.integrations.stellar_adapter import StellarAdapter
 
@@ -72,7 +75,10 @@ def _stellar_network() -> str:
 def _build_payment_info(expires_in: int = 300) -> Dict[str, Any]:
     pay_to = _x402_wallet()
     if not pay_to:
-        pay_to = "GDPMVTTDQD6RDMCJEL7MBKSAN6EBZ3F3W7IQ2RSEGECKUOIMRCNWL6DE"  # testnet placeholder
+        raise HTTPException(
+            status_code=503,
+            detail="Payment service not configured: STELLAR_X402_WALLET not set.",
+        )
     return {
         "version": "x402/1",
         "network": "stellar",
@@ -92,7 +98,7 @@ def _build_payment_info(expires_in: int = 300) -> Dict[str, Any]:
 
 async def _verify_payment_header(
     x_payment: str, stellar: StellarAdapter
-) -> bool:
+) -> bool:  # raises HTTPException(503) if wallet unconfigured
     """
     Valida o header X-Payment enviado pelo cliente após o pagamento.
     Formato: JSON com {"tx_hash": "...", "network": "testnet"}
@@ -108,9 +114,11 @@ async def _verify_payment_header(
 
     pay_to = _x402_wallet()
     if not pay_to:
-        # Sem carteira configurada — aceita qualquer hash em dev para facilitar testes
-        LOG.warning("[x402] STELLAR_X402_WALLET not set — skipping on-chain verification")
-        return True
+        LOG.error("[x402] STELLAR_X402_WALLET not configured — service unavailable")
+        raise HTTPException(
+            status_code=503,
+            detail="Payment processing temporarily unavailable: server wallet not configured.",
+        )
 
     min_amount = _x402_price_xlm()
     return await stellar.verify_payment(
@@ -168,6 +176,16 @@ async def ai_query(
                 detail="Payment verification failed. Check tx_hash and amount.",
             )
 
+        # SEC-001: anti-replay — extract and atomically claim tx_hash BEFORE processing
+        try:
+            payment_data = json.loads(x_payment)
+            tx_hash_used = payment_data.get("tx_hash", "")
+        except Exception:
+            tx_hash_used = ""
+
+        if not tx_hash_used:
+            raise HTTPException(status_code=402, detail="Payment verification failed: missing tx_hash.")
+
     # Pagamento validado (ou x402 desabilitado) — processa a query
     try:
         body = await request.json()
@@ -178,8 +196,25 @@ async def ai_query(
     if not message:
         raise HTTPException(status_code=400, detail="message is required")
 
-    wallet_address = body.get("stellar_wallet", "")
+    raw_wallet = body.get("stellar_wallet", "")
     user_id = body.get("user_id", "stellar_web_anonymous")
+
+    # Atomically claim payment BEFORE the expensive orchestrator call (TOCTOU fix)
+    if _x402_enabled() and x_payment and tx_hash_used:
+        db.add(UsedPayment(
+            tx_hash=tx_hash_used,
+            user_id=user_id,
+            amount_xlm=_x402_price_xlm(),
+            network=_stellar_network(),
+        ))
+        try:
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(
+                status_code=402,
+                detail="Payment already used. Each transaction can only be redeemed once.",
+            )
 
     # Delega ao OrchestrationService existente
     from server.app import orchestrator as _orchestrator  # lazy import to avoid circular
@@ -188,12 +223,14 @@ async def ai_query(
     history = await repo.get_user_history(user.id, limit=10)
     await repo.log_dm(user.id, "web", message, message_type="user")
 
+    # Validate wallet address format before injecting into prompt (prompt injection mitigation)
     text_with_ctx = message
-    if wallet_address:
-        text_with_ctx = f"[System Note: Stellar wallet {wallet_address}] {message}"
+    if raw_wallet and raw_wallet.startswith("G") and len(raw_wallet) == 56:
+        text_with_ctx = f"[System Note: Stellar wallet {raw_wallet}] {message}"
 
     result = await _orchestrator.execute(text_with_ctx, user_id, history=history)
     await repo.log_dm(user.id, "web", result["reply_text"], message_type="bot")
+
     await db.commit()
 
     return {
