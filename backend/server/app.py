@@ -40,6 +40,7 @@ from server.notifications_routes import router as notifications_router
 from server.routes.stellar_auth_routes import router as stellar_auth_router
 from server.routes.stellar_routes import router as stellar_router
 from server.routes.x402_routes import router as x402_router
+from server.routes.agent_routes import router as agent_router
 
 
 @asynccontextmanager
@@ -70,6 +71,26 @@ async def lifespan(app: FastAPI):
     x_poller = XPoller(orchestrator=orchestrator)
     x_task = asyncio.create_task(x_poller.start())
     logger.info("X poller scheduled")
+
+    # Restart resilience: mark any payment_intents that were left as 'pending'
+    # (i.e. the process crashed before Arc could confirm) as 'failed' so they
+    # can be retried.  Durable intent log guarantees idempotency on retry.
+    try:
+        import database.database as _db_mod
+        from database.repository import DatabaseRepository as _Repo
+        if _db_mod.SessionLocal is not None:
+            async with _db_mod.SessionLocal() as _session:
+                _repo = _Repo(_session)
+                _stale = await _repo.list_stale_pending_intents()
+                if _stale:
+                    logger.warning(
+                        "[startup] found %d stale pending payment_intents — marking as failed",
+                        len(_stale),
+                    )
+                    for _intent in _stale:
+                        await _repo.update_payment_intent(_intent.intent_id, status="failed")
+    except Exception as _exc:
+        logger.warning("[startup] could not check stale intents: %s", _exc)
 
     yield
 
@@ -103,6 +124,7 @@ app.include_router(notifications_router)
 app.include_router(stellar_auth_router)
 app.include_router(stellar_router)
 app.include_router(x402_router)
+app.include_router(agent_router)
 
 request_hits: Dict[str, Deque[datetime]] = defaultdict(deque)
 

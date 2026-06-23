@@ -88,8 +88,8 @@ class XiaoLeeResponseGenerator:
         # single-shot path (see _generate_agentic_response).
         self.claude_engine = None
         if getattr(self.client, "provider", None) == "anthropic":
-            from claude_agent import ClaudeAgentEngine
-            self.claude_engine = ClaudeAgentEngine(self.client.client, self.client.model)
+            from chat_agent import ChatAgentEngine
+            self.claude_engine = ChatAgentEngine(self.client.client, self.client.model)
             logger.info(f"🤖 [AGENTIC] Claude agent engine enabled — model={self.client.model}")
         self.mapped_responses = {
             # Campaign Success

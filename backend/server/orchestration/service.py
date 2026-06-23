@@ -13,12 +13,14 @@ from server.settings import settings
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+
 SOL_MINT = "So11111111111111111111111111111111111111112"
 USDC_DEVNET_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
 STELLAR_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
 
 # Tools exposed to Claude in the agentic path (OpenAI function format — the
-# ClaudeAgentEngine converts them to Anthropic input_schema). The wallet is NOT
+# ChatAgentEngine converts them to Anthropic input_schema). The wallet is NOT
 # a parameter: it comes from the connected Freighter wallet and is injected by
 # the executor, so Claude can't operate on an arbitrary address.
 STELLAR_AGENT_TOOLS = [
@@ -85,9 +87,9 @@ class OrchestrationService:
         if settings.llm_provider == "anthropic" and settings.anthropic_api_key:
             try:
                 import anthropic
-                from claude_agent import ClaudeAgentEngine
+                from chat_agent import ChatAgentEngine
                 self._anthropic = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-                self.claude_engine = ClaudeAgentEngine(self._anthropic, settings.anthropic_model)
+                self.claude_engine = ChatAgentEngine(self._anthropic, settings.anthropic_model)
                 logger.info("🤖 [AGENTIC] OrchestrationService running on Claude — model=%s", settings.anthropic_model)
             except Exception as exc:
                 logger.warning("Claude engine init failed, staying on Gemini path: %s", exc)
@@ -157,10 +159,34 @@ class OrchestrationService:
         return match.group(0) if match else None
 
     def _extract_amount(self, text: str) -> float | None:
-        match = re.search(r"(\d+(?:[\.,]\d+)?)", text)
-        if not match:
-            return None
-        return float(match.group(1).replace(",", "."))
+        # Prefer monetary patterns: "100 USDC", "$50", "5 SOL", "10.5 XLM"
+        monetary = re.search(
+            r"(\d+(?:[.,]\d+)?)\s*(?:usdc|sol|xlm|usd|\$|reais|brl)",
+            text, re.IGNORECASE
+        )
+        if monetary:
+            return float(monetary.group(1).replace(",", "."))
+        # Fallback: first standalone number (not preceded by # - /)
+        plain = re.search(r"(?<![\#\/\-])\b(\d{1,10}(?:[.,]\d{1,8})?)\b(?![\-\/\#])", text)
+        if plain:
+            return float(plain.group(1).replace(",", "."))
+        return None
+
+    _NEGATION_RE = re.compile(
+        r"\b(não|nao|no|not|nunca|never|cancel|cancelar|cancela|sem|without)\b",
+        re.IGNORECASE,
+    )
+    _SWAP_QUESTION_RE = re.compile(
+        r"\b(o que é|what is|como funciona|how does|me explica|explain|o que sao|what are)\b",
+        re.IGNORECASE,
+    )
+    _SWAP_ACTION_RE = re.compile(
+        r"\b(quero|queria|faz|faça|make|execute|converter|convert|trocar|troca|swap now)\b",
+        re.IGNORECASE,
+    )
+
+    def _has_negation(self, text: str) -> bool:
+        return bool(self._NEGATION_RE.search(text))
 
     # ------------------------------------------------------------------
     # Intent detection
@@ -202,8 +228,14 @@ class OrchestrationService:
             return IntentResponse(action="check_balance", confidence=0.75, entities={"wallet": wallet})
 
         if any(w in lowered for w in ("quote", "cotação", "cotacao", "swap", "trocar", "exchange")):
-            amount = self._extract_amount(clean) or 1.0
-            return IntentResponse(action="swap_quote", confidence=0.75, entities={"amount": amount, "from": "USDC", "to": "SOL"})
+            # #14 — não disparar swap se for pergunta educacional ("o que é swap")
+            # #15 — não disparar swap se houver negação ("não quero swap")
+            is_question = bool(self._SWAP_QUESTION_RE.search(clean))
+            has_action = bool(self._SWAP_ACTION_RE.search(clean))
+            if not is_question or has_action:
+                if not self._has_negation(clean):
+                    amount = self._extract_amount(clean) or 1.0
+                    return IntentResponse(action="swap_quote", confidence=0.75, entities={"amount": amount, "from": "USDC", "to": "SOL"})
 
         if any(w in lowered for w in ("campaign", "campanha", "xlee", "$xlee", "reward", "recompensa", "tarefa")):
             return IntentResponse(action="campaign_info", confidence=0.70, entities={})
@@ -211,6 +243,49 @@ class OrchestrationService:
         if any(w in lowered for w in ("oi", "olá", "hello", "hi", "hey", "ola", "bom dia", "boa tarde", "boa noite")):
             return IntentResponse(action="greeting", confidence=0.75, entities={})
 
+        # --- intents do agente Arc (sprint Lepton) ---
+        _arc_run_kw = (
+            "run campaign", "executar campanha", "disparar agente",
+            "start campaign", "iniciar campanha", "rodar agente",
+        )
+        _arc_pay_kw = (
+            "pay creator", "pagar creator", "nanopayment",
+            "usdc creator", "pagar usdc",
+        )
+        _arc_discover_kw = (
+            "discover creators", "buscar creators", "find creators",
+            "encontrar creators", "listar creators",
+        )
+        _arc_budget_kw = (
+            "check budget", "verificar budget", "saldo usdc",
+            "quanto tenho usdc", "arc balance",
+        )
+
+        if any(w in lowered for w in _arc_run_kw):
+            campaign_id = self._extract_amount(clean)
+            return IntentResponse(
+                action="run_campaign_agent",
+                confidence=0.85,
+                entities={"campaign_id": int(campaign_id) if campaign_id else None},
+            )
+
+        if any(w in lowered for w in _arc_pay_kw):
+            return IntentResponse(action="pay_creator", confidence=0.80, entities={})
+
+        if any(w in lowered for w in _arc_discover_kw):
+            return IntentResponse(action="discover_creators", confidence=0.80, entities={})
+
+        if any(w in lowered for w in _arc_budget_kw):
+            return IntentResponse(action="check_budget", confidence=0.80, entities={})
+
+        # --- intent miss logging (#17) ---
+        logger.warning(
+            "intent_miss user=%s confidence=%.2f gemini_action=%s text_preview=%s",
+            user_id,
+            ai_intent.get("confidence", 0.0),
+            ai_intent.get("action", "none"),
+            clean[:80],
+        )
         return IntentResponse(action="help", confidence=0.5, entities={})
 
     # ------------------------------------------------------------------
@@ -479,8 +554,20 @@ class OrchestrationService:
                 },
             }
 
-        # --- check_balance (sem contexto Stellar → orienta Freighter) ---
+        # --- check_balance — tenta Solana se wallet detectada, senão orienta Stellar ---
         if intent.action == "check_balance":
+            wallet = wallet_address or intent.entities.get("wallet")
+            if wallet and self.solana:
+                try:
+                    bal = await self.solana.get_balance(wallet)
+                    sol = bal.get("sol", 0.0)
+                    return {
+                        "intent": intent,
+                        "reply_text": f"Saldo da carteira {wallet}: {sol:.6f} SOL",
+                        "execution": {"chain": "solana", "wallet": wallet, "sol": sol},
+                    }
+                except Exception:
+                    pass
             stellar_ctx = self._stellar_wallet_ctx(None)
             instruction = (
                 f"{_PLATFORM_CONTEXT} {stellar_ctx} "
@@ -493,8 +580,24 @@ class OrchestrationService:
             )
             return {"intent": intent, "reply_text": reply, "execution": {"status": "missing_stellar_wallet"}}
 
-        # --- swap_quote (sem contexto Stellar → orienta Stellar DEX) ---
+        # --- swap_quote — tenta Jupiter/Solana se disponível, senão orienta Stellar DEX ---
         if intent.action == "swap_quote":
+            amount = float(intent.entities.get("amount", 1.0))
+            if self.solana:
+                try:
+                    quote = await self.solana.get_swap_quote(
+                        input_mint=USDC_DEVNET_MINT,
+                        output_mint=SOL_MINT,
+                        amount_raw=int(amount * 1_000_000),
+                    )
+                    out_sol = int(quote.get("outAmount", 0)) / 1e9
+                    return {
+                        "intent": intent,
+                        "reply_text": f"Cotacao Jupiter: {amount} USDC → {out_sol:.6f} SOL",
+                        "execution": quote,
+                    }
+                except Exception:
+                    pass
             stellar_ctx = self._stellar_wallet_ctx(None)
             instruction = (
                 f"{_PLATFORM_CONTEXT} {stellar_ctx} "
@@ -507,6 +610,35 @@ class OrchestrationService:
                 instruction=instruction, user_text=clean_text, history=history
             )
             return {"intent": intent, "reply_text": reply, "execution": {"status": "redirect_stellar_dex"}}
+
+        # --- run_campaign_agent / discover_creators / pay_creator ---
+        if intent.action in ("run_campaign_agent", "discover_creators", "pay_creator", "check_budget"):
+            campaign_id = intent.entities.get("campaign_id")
+            if intent.action == "run_campaign_agent" and campaign_id:
+                instruction = (
+                    f"{_PLATFORM_CONTEXT} "
+                    f"O usuário quer disparar o agente de campanha para a campanha #{campaign_id}. "
+                    "Informe que o agente autônomo XiaoLee vai descobrir creators elegíveis, avaliá-los "
+                    "e pagar os melhores em USDC via Arc/Circle. "
+                    "Diga que pode fazer isso via API: POST /v1/agent/run-campaign. "
+                    "Seja animada e direta — máximo 2 frases."
+                )
+            else:
+                instruction = (
+                    f"{_PLATFORM_CONTEXT} "
+                    "O usuário está interagindo com o sistema de agente Arc. "
+                    f"Ação solicitada: {intent.action}. "
+                    "Explique brevemente as capacidades do agente: descoberta de creators, avaliação e pagamento USDC. "
+                    "Oriente a usar a API /v1/agent/run-campaign para disparar o loop autônomo."
+                )
+            reply = await self.gemini.generate_reply(
+                instruction=instruction, user_text=clean_text, history=history
+            )
+            return {
+                "intent": intent,
+                "reply_text": reply,
+                "execution": {"status": "arc_agent", "campaign_id": campaign_id},
+            }
 
         # --- campaign_info ---
         if intent.action == "campaign_info":

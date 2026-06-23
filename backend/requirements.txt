@@ -40,5 +40,9 @@ anthropic>=0.69.0          # Claude (Messages API) — engine agêntica (LLM_PRO
 # ─── Integrações ──────────────────────────────────────────────────────────────
 python-telegram-bot>=21.0   # Telegram
 
+# ─── AI / Agent Engine (Sprint Lepton) ───────────────────────────────────────
+anthropic>=0.111.0
+openai>=1.0.0         # Anthropic SDK — ClaudeAgentEngine (loop agêntico)
+
 # ─── Utilitários ──────────────────────────────────────────────────────────────
 python-dotenv==1.1.0       # Variáveis de ambiente (.env)

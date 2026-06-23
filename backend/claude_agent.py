@@ -1,155 +1,290 @@
 """
-Claude agentic engine — native Anthropic Messages API tool-use loop.
+claude_agent.py — ClaudeAgentEngine
 
-This is the engine that makes Xiao Lee *agentic* instead of a single-shot
-chatbot: it runs a multi-step loop (call model → execute tool(s) → feed the raw
-results back → call again) until Claude stops requesting tools, so Xiao can chain
-operations and reason about real results in her own voice.
+Motor do loop agêntico nativo Anthropic:
+    chama modelo → executa tool → devolve resultado → repete
 
-Active only when ``LLM_PROVIDER=anthropic``; the Gemini/OpenAI path in
-``response_generator`` stays untouched as a fallback.
+Regra de ouro: wallet/budget NUNCA são parâmetros do modelo —
+sempre injetados pelo executor via `context`.
+
+Uso:
+    engine = ClaudeAgentEngine(tools=CREATOR_PAY_TOOLS, executors=executors, max_steps=50)
+    result = await engine.run(prompt, context={"campaign_id": 1, "budget": 100.0})
 """
+
+from __future__ import annotations
+
 import json
 import logging
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+import os
+import uuid
+from dataclasses import dataclass, field
+from typing import Any, Callable, Coroutine, Optional
 
-logger = logging.getLogger(__name__)
+import anthropic
 
-DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
-
-# Safety bound on the tool loop — caps how many model↔tool round trips a single
-# user turn may trigger before we stop and return whatever text we have.
-MAX_AGENTIC_STEPS = 8
-
-# Async callback: (tool_name, tool_input) -> string result fed back to Claude.
-ToolExecutor = Callable[[str, Dict[str, Any]], Awaitable[str]]
+LOG = logging.getLogger(__name__)
 
 
-def openai_tools_to_anthropic(tools: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
-    """Convert OpenAI function-format tool schemas to Anthropic ``input_schema`` format.
+# ---------------------------------------------------------------------------
+# Data types
+# ---------------------------------------------------------------------------
 
-    OpenAI:    {"type": "function", "function": {"name", "description", "parameters"}}
-    Anthropic: {"name", "description", "input_schema"}
-    """
-    converted: List[Dict[str, Any]] = []
-    for tool in tools or []:
-        fn = tool.get("function", tool)
-        name = fn.get("name")
-        if not name:
-            continue
-        converted.append({
-            "name": name,
-            "description": fn.get("description", ""),
-            "input_schema": fn.get("parameters") or {"type": "object", "properties": {}},
-        })
-    return converted
+
+@dataclass
+class AgentStep:
+    step: int
+    tool_name: str
+    tool_input: dict
+    tool_result: dict
+
+
+@dataclass
+class AgentResult:
+    run_id: str
+    status: str  # completed | max_steps | budget_exhausted | failed
+    steps: list[AgentStep] = field(default_factory=list)
+    payments: list[dict] = field(default_factory=list)
+    final_message: str = ""
+    total_paid_usdc: float = 0.0
+    error: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        return {
+            "run_id": self.run_id,
+            "status": self.status,
+            "steps": [
+                {
+                    "step": s.step,
+                    "tool_name": s.tool_name,
+                    "tool_input": s.tool_input,
+                    "tool_result": s.tool_result,
+                }
+                for s in self.steps
+            ],
+            "payments": self.payments,
+            "final_message": self.final_message,
+            "total_paid_usdc": self.total_paid_usdc,
+            "error": self.error,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Engine
+# ---------------------------------------------------------------------------
+
+ToolExecutor = Callable[[dict, dict], Coroutine[Any, Any, dict]]
 
 
 class ClaudeAgentEngine:
-    """Runs the manual Anthropic tool-use loop for one user turn."""
+    """
+    Loop nativo Anthropic: chama modelo → executa tool → devolve resultado → repete.
 
-    def __init__(self, client, model: str = DEFAULT_ANTHROPIC_MODEL, max_steps: int = MAX_AGENTIC_STEPS):
-        # client is an anthropic.AsyncAnthropic instance (owned by LLMClient)
-        self.client = client
-        self.model = model
+    Args:
+        tools:      Lista de tools em formato OpenAI (convertidas internamente).
+        executors:  Dict {tool_name: async_callable(inputs, context) -> dict}.
+        max_steps:  Trava de segurança absoluta (padrão: 50).
+        model:      ID do modelo Claude (padrão: claude-sonnet-4-6).
+        api_key:    ANTHROPIC_API_KEY (lido de env se não fornecido).
+    """
+
+    def __init__(
+        self,
+        tools: list[dict],
+        executors: dict[str, ToolExecutor],
+        max_steps: int = 50,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+    ):
+        self.client = anthropic.AsyncAnthropic(
+            api_key=api_key or os.getenv("ANTHROPIC_API_KEY", "")
+        )
+        self.model = model or os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+        self.anthropic_tools = self._convert_tools(tools)
+        self.executors = executors
         self.max_steps = max_steps
 
-    async def run(
-        self,
-        *,
-        system_prompt: str,
-        message: str,
-        tools: Optional[List[Dict[str, Any]]],
-        tool_executor: ToolExecutor,
-        history: Optional[List[Dict[str, Any]]] = None,
-        max_tokens: int = 4096,
-    ) -> Dict[str, Any]:
-        """Drive the loop until Claude stops calling tools, then return the final text.
+    # ------------------------------------------------------------------
+    # Tool format conversion — OpenAI → Anthropic
+    # ------------------------------------------------------------------
 
-        Returns ``{"text", "executed_tools", "stop_reason", "usage"}``.
-        """
-        anthropic_tools = openai_tools_to_anthropic(tools)
-
-        # Stable prefix (system prompt + tool list) → mark for prompt caching.
-        # Render order is tools → system → messages, so the per-request user
-        # message stays after the cached prefix and never invalidates it.
-        system_blocks = [{
-            "type": "text",
-            "text": system_prompt,
-            "cache_control": {"type": "ephemeral"},
-        }]
-        if anthropic_tools:
-            anthropic_tools[-1] = {**anthropic_tools[-1], "cache_control": {"type": "ephemeral"}}
-
-        messages: List[Dict[str, Any]] = list(history or [])
-        messages.append({"role": "user", "content": message})
-
-        executed_tools: List[Dict[str, Any]] = []
-        final_text = ""
-        response = None
-
-        for step in range(self.max_steps):
-            kwargs: Dict[str, Any] = {
-                "model": self.model,
-                "max_tokens": max_tokens,
-                "system": system_blocks,
-                "messages": messages,
-                # Adaptive thinking lets Claude decide how much to reason per
-                # step — interleaved with tool calls in the agentic loop.
-                "thinking": {"type": "adaptive"},
-            }
-            if anthropic_tools:
-                kwargs["tools"] = anthropic_tools
-
-            response = await self.client.messages.create(**kwargs)
-
-            # Server-side pause (e.g. interleaved tool limit) — resend to resume.
-            if response.stop_reason == "pause_turn":
-                messages.append({"role": "assistant", "content": response.content})
-                continue
-
-            # Capture any text the model produced this step.
-            text_now = "".join(b.text for b in response.content if b.type == "text")
-            if text_now:
-                final_text = text_now
-
-            tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
-            if response.stop_reason != "tool_use" or not tool_use_blocks:
-                break
-
-            # Preserve the full assistant turn (thinking + tool_use blocks) — the
-            # API needs them to match the tool_result we send next.
-            messages.append({"role": "assistant", "content": response.content})
-
-            tool_results: List[Dict[str, Any]] = []
-            for block in tool_use_blocks:
-                tool_input = block.input or {}
-                try:
-                    result_str = await tool_executor(block.name, tool_input)
-                    is_error = False
-                except Exception as exc:  # tool failure is fed back, not fatal
-                    logger.error(f"[ClaudeAgent] tool '{block.name}' failed: {exc}", exc_info=True)
-                    result_str = f"Error executing {block.name}: {exc}"
-                    is_error = True
-
-                executed_tools.append({"name": block.name, "input": tool_input})
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": result_str,
-                    "is_error": is_error,
-                })
-
-            messages.append({"role": "user", "content": tool_results})
-            logger.info(
-                f"[ClaudeAgent] step {step + 1}: executed {[t['name'] for t in executed_tools[-len(tool_results):]]}"
+    @staticmethod
+    def _convert_tools(openai_tools: list[dict]) -> list[dict]:
+        """Convert OpenAI function tool format to Anthropic tool format."""
+        result = []
+        for t in openai_tools:
+            func = t.get("function", t)
+            result.append(
+                {
+                    "name": func["name"],
+                    "description": func.get("description", ""),
+                    "input_schema": func.get(
+                        "parameters",
+                        {"type": "object", "properties": {}},
+                    ),
+                }
             )
-        else:
-            logger.warning(f"[ClaudeAgent] hit MAX_AGENTIC_STEPS={self.max_steps} without end_turn")
+        return result
 
-        return {
-            "text": final_text,
-            "executed_tools": executed_tools,
-            "stop_reason": getattr(response, "stop_reason", None),
-            "usage": getattr(response, "usage", None),
-        }
+    # ------------------------------------------------------------------
+    # Main loop
+    # ------------------------------------------------------------------
+
+    async def run(self, prompt: str, context: dict) -> AgentResult:
+        """
+        Executa o loop até finish_reason == 'end_turn' ou max_steps atingido.
+
+        `context` é injetado em cada executor — nunca vai para o modelo.
+        """
+        run_id = str(uuid.uuid4())
+        messages: list[dict] = [{"role": "user", "content": prompt}]
+        steps: list[AgentStep] = []
+        payments: list[dict] = []
+        step_count = 0
+
+        LOG.info("[agent] run_id=%s model=%s max_steps=%d", run_id, self.model, self.max_steps)
+
+        while step_count < self.max_steps:
+            try:
+                response = await self.client.messages.create(
+                    model=self.model,
+                    max_tokens=4096,
+                    tools=self.anthropic_tools,
+                    messages=messages,
+                )
+            except anthropic.APIError as exc:
+                LOG.error("[agent] API error: %s", exc)
+                return AgentResult(
+                    run_id=run_id,
+                    status="failed",
+                    steps=steps,
+                    payments=payments,
+                    error=str(exc),
+                )
+
+            LOG.info(
+                "[agent] step=%d stop_reason=%s content_blocks=%d",
+                step_count,
+                response.stop_reason,
+                len(response.content),
+            )
+
+            # Model decided to stop
+            if response.stop_reason == "end_turn":
+                final_text = next(
+                    (b.text for b in response.content if hasattr(b, "text")), ""
+                )
+                total_paid = sum(p.get("amount_usdc", 0.0) for p in payments)
+                LOG.info(
+                    "[agent] completed run_id=%s steps=%d payments=%d total_usdc=%.4f",
+                    run_id,
+                    step_count,
+                    len(payments),
+                    total_paid,
+                )
+                return AgentResult(
+                    run_id=run_id,
+                    status="completed",
+                    steps=steps,
+                    payments=payments,
+                    final_message=final_text,
+                    total_paid_usdc=total_paid,
+                )
+
+            if response.stop_reason != "tool_use":
+                final_text = next(
+                    (b.text for b in response.content if hasattr(b, "text")), ""
+                )
+                return AgentResult(
+                    run_id=run_id,
+                    status="completed",
+                    steps=steps,
+                    payments=payments,
+                    final_message=final_text,
+                    total_paid_usdc=sum(p.get("amount_usdc", 0.0) for p in payments),
+                )
+
+            # Collect tool calls from this response
+            tool_results: list[dict] = []
+
+            for block in response.content:
+                if block.type != "tool_use":
+                    continue
+
+                step_count += 1
+                tool_name = block.name
+                tool_input = dict(block.input)
+
+                LOG.info(
+                    "[agent] step=%d tool=%s input=%s",
+                    step_count,
+                    tool_name,
+                    json.dumps(tool_input)[:200],
+                )
+
+                executor = self.executors.get(tool_name)
+                if executor:
+                    try:
+                        tool_result = await executor(tool_input, context)
+                    except Exception as exc:
+                        LOG.exception("[agent] executor %s raised: %s", tool_name, exc)
+                        tool_result = {"error": str(exc), "tool": tool_name}
+                else:
+                    tool_result = {"error": f"Unknown tool: {tool_name}"}
+
+                LOG.info(
+                    "[agent] step=%d tool=%s result=%s",
+                    step_count,
+                    tool_name,
+                    json.dumps(tool_result)[:300],
+                )
+
+                # Track payments for the summary
+                if tool_name == "pay_creator_nanopayment" and "tx" in tool_result:
+                    payments.append(
+                        {
+                            "creator_id": tool_input.get("to"),
+                            "amount_usdc": tool_input.get("amount_usdc"),
+                            "tx": tool_result.get("tx"),
+                            "intent_id": tool_input.get("intent_id"),
+                            "step": step_count,
+                        }
+                    )
+
+                steps.append(
+                    AgentStep(
+                        step=step_count,
+                        tool_name=tool_name,
+                        tool_input=tool_input,
+                        tool_result=tool_result,
+                    )
+                )
+
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": json.dumps(tool_result),
+                    }
+                )
+
+                # Budget exhausted — signal stop via context flag so next
+                # check_budget call returns can_pay=false and model stops.
+                if tool_result.get("budget_exhausted"):
+                    context["_budget_exhausted"] = True
+
+            # Append assistant turn + tool results to conversation
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "user", "content": tool_results})
+
+        # max_steps reached
+        LOG.warning("[agent] max_steps=%d reached for run_id=%s", self.max_steps, run_id)
+        total_paid = sum(p.get("amount_usdc", 0.0) for p in payments)
+        return AgentResult(
+            run_id=run_id,
+            status="max_steps",
+            steps=steps,
+            payments=payments,
+            final_message=f"Agent reached max_steps limit ({self.max_steps}). Partial result.",
+            total_paid_usdc=total_paid,
+        )

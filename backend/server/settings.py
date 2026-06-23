@@ -62,6 +62,16 @@ class Settings:
     # Producao: redis://user:pass@host:6379/0  ou  rediss:// para TLS
     redis_url: str = os.getenv("REDIS_URL", "")
 
+    # ── Arc / Circle (Sprint Lepton) ─────────────────────────────────────────────
+    circle_api_key: str = os.getenv("CIRCLE_API_KEY", "")
+    circle_wallet_id: str = os.getenv("CIRCLE_WALLET_ID", "")
+    arc_sandbox: bool = os.getenv("ARC_SANDBOX", "true").lower() == "true"
+
+    # ── Agent Engine ─────────────────────────────────────────────────────────────
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    claude_model: str = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+    agent_max_steps: int = int(os.getenv("AGENT_MAX_STEPS", "50"))
+
     # ── Stellar ──────────────────────────────────────────────────────────────────
     stellar_network: str = os.getenv("STELLAR_NETWORK", "testnet")
     stellar_horizon_url: str = os.getenv("STELLAR_HORIZON_URL", "")
