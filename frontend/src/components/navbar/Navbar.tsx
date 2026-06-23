@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from 'react-toastify';
-import { ChevronDownIcon, UserIcon, RocketLaunchIcon, BellIcon, ChartBarIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, UserIcon, RocketLaunchIcon, BellIcon, ChartBarIcon, CurrencyDollarIcon } from "@heroicons/react/24/outline";
 import Transacoes from "./Transacoes";
 import Historico from "./Historico";
 import Wallet from "./Wallet";
@@ -163,6 +163,15 @@ export default function Navbar() {
                 <ChartBarIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
                 <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
                 <span className="font-semibold hidden lg:inline">{t('navbar.dashboard')}</span>
+              </Link>
+
+              <Link
+                href="/traction"
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-300 border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/traction' ? 'ring-4 ring-emerald-300 scale-105' : ''}`}
+              >
+                <CurrencyDollarIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">Live</span>
+                <span className="font-semibold hidden lg:inline">Traction</span>
               </Link>
             </div>
 

@@ -40,6 +40,7 @@ from server.notifications_routes import router as notifications_router
 from server.routes.stellar_auth_routes import router as stellar_auth_router
 from server.routes.stellar_routes import router as stellar_router
 from server.routes.x402_routes import router as x402_router
+from server.traction_routes import router as traction_router
 
 
 @asynccontextmanager
@@ -97,6 +98,7 @@ app.include_router(notifications_router)
 app.include_router(stellar_auth_router)
 app.include_router(stellar_router)
 app.include_router(x402_router)
+app.include_router(traction_router)
 
 request_hits: Dict[str, Deque[datetime]] = defaultdict(deque)
 

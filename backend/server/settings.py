@@ -70,6 +70,11 @@ class Settings:
     # Headers CORS permitidos.
     cors_allowed_headers: list[str] = None
 
+    # ── Traction / RFB-06 ────────────────────────────────────────────────────
+    # Shared secret entre o agente Arc (f0ntz) e este backend.
+    # Se vazio, o endpoint aceita sem autenticação (dev only).
+    arc_payment_secret: str = os.getenv("ARC_PAYMENT_SECRET", "")
+
     def __post_init__(self):
         object.__setattr__(
             self,
@@ -82,7 +87,7 @@ class Settings:
         object.__setattr__(self, "cors_allowed_origin_regex", cors_origin_regex)
         # Headers CORS: em producao, restringir a lista minima necessaria.
         # Por padrao aceita os headers padrao REST + Authorization.
-        cors_headers_default = "Content-Type,Authorization,Accept,X-Requested-With,X-Payment,X-Payment-Required"
+        cors_headers_default = "Content-Type,Authorization,Accept,X-Requested-With,X-Payment,X-Payment-Required,X-Arc-Secret"
         object.__setattr__(
             self,
             "cors_allowed_headers",
