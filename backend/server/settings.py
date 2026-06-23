@@ -75,6 +75,12 @@ class Settings:
     # Se vazio, o endpoint aceita sem autenticação (dev only).
     arc_payment_secret: str = os.getenv("ARC_PAYMENT_SECRET", "")
 
+    # ── Circle Payments ───────────────────────────────────────────────────────
+    # Circle Developer Console → https://console.circle.com
+    # circle_platform_wallet_id: wallet treasury da plataforma (paga creators).
+    circle_api_key: str = os.getenv("CIRCLE_API_KEY", "")
+    circle_platform_wallet_id: str = os.getenv("CIRCLE_WALLET_ID", "")
+
     def __post_init__(self):
         object.__setattr__(
             self,

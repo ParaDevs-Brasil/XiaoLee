@@ -20,6 +20,12 @@ _payment_latencies: List[float] = []
 _payment_feed: List[dict] = []
 _MAX_FEED = 50
 
+# Creators registrados via /v1/creator/register (handle → {circle_wallet_id, registered_at})
+_registered_creators: dict = {}
+
+# Idempotência: intent_ids já processados — evita double-count se f0ntz chamar payment_settled duas vezes
+_processed_intent_ids: set[str] = set()
+
 
 def record_http_request(method: str, path: str, status_code: int, duration_seconds: float) -> None:
     key = (method.upper(), path, int(status_code))
@@ -40,18 +46,57 @@ def record_campaign_event(event: str) -> None:
         _campaign_counters[event] += 1
 
 
+def register_creator(handle: str, circle_wallet_id: str) -> dict:
+    """Registra creator para receber pagamentos USDC. Idempotente por handle."""
+    from datetime import datetime as _dt
+    handle = handle.lstrip("@").lower()
+    with _lock:
+        if handle in _registered_creators:
+            return {"already_registered": True, **_registered_creators[handle]}
+        entry = {
+            "handle": f"@{handle}",
+            "circle_wallet_id": circle_wallet_id,
+            "registered_at": _dt.utcnow().isoformat() + "Z",
+        }
+        _registered_creators[handle] = entry
+        return {"already_registered": False, **entry}
+
+
+def is_creator_registered(handle: str) -> bool:
+    with _lock:
+        return handle.lstrip("@").lower() in _registered_creators
+
+
+def get_registered_creator_wallet(handle: str) -> str | None:
+    """Retorna o circle_wallet_id do creator registrado, ou None se não encontrado."""
+    with _lock:
+        entry = _registered_creators.get(handle.lstrip("@").lower())
+        return entry["circle_wallet_id"] if entry else None
+
+
+def get_registered_creator_count() -> int:
+    with _lock:
+        return len(_registered_creators)
+
+
 def record_payment_settled(
     intent_id: str,
     amount_usdc: float,
     latency_ms: float,
     creator_handle: str,
     tx: str,
-) -> None:
-    """Registra pagamento USDC confirmado — chamado pelo traction_routes ao receber payment_settled."""
+) -> bool:
+    """
+    Registra pagamento USDC confirmado. Retorna False se intent_id já foi processado (idempotente).
+    Chamado pelo traction_routes ao receber payment_settled.
+    """
     from datetime import datetime as _dt
     global _usdc_total, _payment_count
 
     with _lock:
+        if intent_id in _processed_intent_ids:
+            return False
+        _processed_intent_ids.add(intent_id)
         _usdc_total += amount_usdc
         _payment_count += 1
         _active_creators.add(creator_handle.lstrip("@").lower())
@@ -66,6 +111,7 @@ def record_payment_settled(
         })
         if len(_payment_feed) > _MAX_FEED:
             _payment_feed.pop()
+        return True
 
 
 def get_traction_snapshot() -> dict:
@@ -80,6 +126,7 @@ def get_traction_snapshot() -> dict:
             "total_usdc": round(_usdc_total, 2),
             "total_payments": _payment_count,
             "active_creators": len(_active_creators),
+            "registered_creators": len(_registered_creators),
             "avg_latency_ms": round(avg_lat, 1),
             "p95_latency_ms": round(p95_lat, 1),
             "feed": list(_payment_feed[:20]),
@@ -165,3 +212,5 @@ def clear_metrics() -> None:
         _active_creators.clear()
         _payment_latencies.clear()
         _payment_feed.clear()
+        _registered_creators.clear()
+        _processed_intent_ids.clear()

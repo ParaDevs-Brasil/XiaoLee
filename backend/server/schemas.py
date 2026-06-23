@@ -64,6 +64,7 @@ class TractionSnapshot(BaseModel):
     total_usdc: float
     total_payments: int
     active_creators: int
+    registered_creators: int = 0
     avg_latency_ms: float
     p95_latency_ms: float
     feed: list[Dict[str, Any]]
