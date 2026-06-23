@@ -62,10 +62,31 @@ class Settings:
     # Producao: redis://user:pass@host:6379/0  ou  rediss:// para TLS
     redis_url: str = os.getenv("REDIS_URL", "")
 
-    # ── Arc / Circle (Sprint Lepton) ─────────────────────────────────────────────
-    circle_api_key: str = os.getenv("CIRCLE_API_KEY", "")
-    circle_wallet_id: str = os.getenv("CIRCLE_WALLET_ID", "")
-    arc_sandbox: bool = os.getenv("ARC_SANDBOX", "true").lower() == "true"
+    # ── Arc / Circle Programmable Wallets (W3S) ──────────────────────────────────
+    circle_api_key:       str  = os.getenv("CIRCLE_API_KEY",        "")
+    circle_wallet_id:     str  = os.getenv("CIRCLE_WALLET_ID",      "")
+    # Nome da blockchain na API Circle: "ETH-SEPOLIA" | "ARC-SEPOLIA" | "BASE-SEPOLIA"
+    circle_blockchain:    str  = os.getenv("CIRCLE_BLOCKCHAIN",     "ETH-SEPOLIA")
+    # Token ID do USDC na chain — resolvido automaticamente via API se vazio
+    circle_usdc_token_id: str  = os.getenv("CIRCLE_USDC_TOKEN_ID",  "")
+    arc_sandbox:          bool = os.getenv("ARC_SANDBOX", "true").lower() == "true"
+
+    # ── Arc RPC (Canteen testnet / mainnet) ───────────────────────────────────────
+    arc_rpc_url: str = os.getenv("ARC_RPC_URL", "")
+
+    # ── CCTP — Cross-Chain Transfer Protocol ─────────────────────────────────────
+    cctp_enabled:              bool = os.getenv("CCTP_ENABLED", "false").lower() == "true"
+    cctp_source_rpc:           str  = os.getenv("CCTP_SOURCE_RPC",            "")
+    cctp_signer_private_key:   str  = os.getenv("CCTP_SIGNER_PRIVATE_KEY",    "")
+    # Contratos na chain fonte (defaults = Ethereum Sepolia)
+    cctp_source_usdc:          str  = os.getenv("CCTP_SOURCE_USDC",           "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238")
+    cctp_source_token_messenger: str = os.getenv("CCTP_SOURCE_TOKEN_MESSENGER","0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5")
+    cctp_source_domain:        int  = int(os.getenv("CCTP_SOURCE_DOMAIN",     "0"))
+    # Contratos no Arc (preencher quando disponíveis via docs do hackathon)
+    arc_cctp_usdc:             str  = os.getenv("ARC_CCTP_USDC",              "")
+    arc_cctp_token_messenger:  str  = os.getenv("ARC_CCTP_TOKEN_MESSENGER",   "")
+    arc_cctp_msg_transmitter:  str  = os.getenv("ARC_CCTP_MSG_TRANSMITTER",   "")
+    arc_cctp_domain:           int  = int(os.getenv("ARC_CCTP_DOMAIN",        "7"))
 
     # ── Agent Engine ─────────────────────────────────────────────────────────────
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
