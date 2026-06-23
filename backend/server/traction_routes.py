@@ -18,7 +18,8 @@ from typing import AsyncIterator
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from server.metrics import get_traction_snapshot, record_payment_settled
+from server.integrations.circle_client import get_wallet, transfer_usdc
+from server.metrics import get_traction_snapshot, get_registered_creator_wallet, record_payment_settled, register_creator
 from server.schemas import CreatorRegisterRequest, PaymentSettledEvent, TractionSnapshot
 from server.settings import settings
 
@@ -71,13 +72,17 @@ async def payment_settled(
 
     ts = event.ts or (datetime.now(timezone.utc).isoformat())
 
-    record_payment_settled(
+    is_new = record_payment_settled(
         intent_id=event.intent_id,
         amount_usdc=event.amount,
         latency_ms=event.latency_ms,
         creator_handle=event.creator,
         tx=event.tx,
     )
+
+    if not is_new:
+        logger.warning("payment_settled duplicate | intent_id=%s — ignored", event.intent_id)
+        return {"ok": True, "recorded": None, "duplicate": True, "circle_transfer_id": None}
 
     broadcast_payload = {
         "intent_id": event.intent_id,
@@ -97,7 +102,23 @@ async def payment_settled(
         event.tx[:16] + "..." if len(event.tx) > 16 else event.tx,
     )
 
-    return {"ok": True, "recorded": broadcast_payload}
+    # Dispara transferência Circle apenas para eventos novos (idempotência garantida pelo intent_id)
+    circle_transfer_id: str | None = None
+    creator_wallet = get_registered_creator_wallet(event.creator)
+    if creator_wallet and settings.circle_api_key:
+        transfer = await transfer_usdc(
+            destination_wallet_id=creator_wallet,
+            amount_usdc=event.amount,
+            idempotency_key=event.intent_id,
+        )
+        if transfer:
+            circle_transfer_id = transfer.get("id")
+            logger.info(
+                "circle_transfer | creator=%s | transfer_id=%s | status=%s",
+                event.creator, circle_transfer_id, transfer.get("status"),
+            )
+
+    return {"ok": True, "recorded": broadcast_payload, "duplicate": False, "circle_transfer_id": circle_transfer_id}
 
 
 # ── POST /v1/creator/register ──────────────────────────────────────────────
@@ -106,21 +127,42 @@ async def payment_settled(
 async def creator_register(payload: CreatorRegisterRequest) -> dict:
     """
     Onboarding de creator: associa Circle wallet_id ao @handle.
-    Retorna elegibilidade para receber pagamentos USDC via agente.
+    Idempotente — re-registro do mesmo handle retorna 200 com already_registered=True.
+    Valida que a Circle wallet existe quando CIRCLE_API_KEY está configurada.
     """
     handle = payload.twitter_handle.lstrip("@").lower()
     if not handle:
         raise HTTPException(status_code=422, detail="twitter_handle is required")
+    wallet_id = payload.circle_wallet_id.strip()
+    if not wallet_id:
+        raise HTTPException(status_code=422, detail="circle_wallet_id is required")
 
-    wid_preview = payload.circle_wallet_id[:8] + "..." if len(payload.circle_wallet_id) >= 8 else payload.circle_wallet_id
-    logger.info("creator_register | handle=@%s | circle_wallet=%s", handle, wid_preview)
+    # Valida wallet na Circle API (só bloqueia se a chave estiver configurada)
+    if settings.circle_api_key:
+        wallet_data = await get_wallet(wallet_id)
+        if wallet_data is None:
+            raise HTTPException(status_code=422, detail="circle_wallet_id not found in Circle — check the ID and try again")
+
+    result = register_creator(handle, wallet_id)
+
+    wid_preview = wallet_id[:8] + "..." if len(wallet_id) >= 8 else wallet_id
+    logger.info(
+        "creator_register | handle=@%s | circle_wallet=%s | already_registered=%s",
+        handle, wid_preview, result["already_registered"],
+    )
 
     return {
         "ok": True,
         "creator": f"@{handle}",
-        "circle_wallet_id": payload.circle_wallet_id,
+        "circle_wallet_id": wallet_id,
         "eligible": True,
-        "message": "Creator registered. You are now eligible to receive USDC payments.",
+        "already_registered": result["already_registered"],
+        "registered_at": result["registered_at"],
+        "message": (
+            "Already registered. You are eligible to receive USDC payments."
+            if result["already_registered"]
+            else "Creator registered. You are now eligible to receive USDC payments."
+        ),
     }
 
 
