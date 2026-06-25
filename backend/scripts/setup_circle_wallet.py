@@ -20,11 +20,17 @@ from __future__ import annotations
 
 import asyncio
 import os
+import pathlib
 import sys
 import uuid
 
 import httpx
 from dotenv import find_dotenv, load_dotenv
+
+# Garante que `server.*` seja importável ao rodar o script direto.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+
+from server.integrations.circle_crypto import entity_secret_ciphertext  # noqa: E402
 
 load_dotenv(find_dotenv(usecwd=False))
 
@@ -33,13 +39,19 @@ _W3S_LIVE    = "https://api.circle.com/v1/w3s"
 
 
 async def main() -> None:
-    api_key    = os.getenv("CIRCLE_API_KEY", "")
-    blockchain = os.getenv("CIRCLE_BLOCKCHAIN", "ETH-SEPOLIA")
-    sandbox    = os.getenv("ARC_SANDBOX", "true").lower() == "true"
-    base       = _W3S_SANDBOX if sandbox else _W3S_LIVE
+    api_key       = os.getenv("CIRCLE_API_KEY", "")
+    entity_secret = os.getenv("CIRCLE_ENTITY_SECRET", "")
+    blockchain    = os.getenv("CIRCLE_BLOCKCHAIN", "ETH-SEPOLIA")
+    sandbox       = os.getenv("ARC_SANDBOX", "true").lower() == "true"
+    base          = _W3S_SANDBOX if sandbox else _W3S_LIVE
 
     if not api_key:
         print("[ERRO] CIRCLE_API_KEY não configurada no .env")
+        sys.exit(1)
+
+    if not entity_secret:
+        print("[ERRO] CIRCLE_ENTITY_SECRET não configurada no .env")
+        print("       Gere em console.circle.com → Developer → Configurator (32 bytes hex).")
         sys.exit(1)
 
     headers = {
@@ -54,13 +66,14 @@ async def main() -> None:
 
     async with httpx.AsyncClient(timeout=30) as client:
 
-        # 1. Criar wallet set
+        # 1. Criar wallet set (exige entitySecretCiphertext fresco)
         ws_key  = str(uuid.uuid4())
         ws_resp = await client.post(
             f"{base}/developer/walletSets",
             json={
-                "idempotencyKey": ws_key,
-                "name":           "xiaolee-agent",
+                "idempotencyKey":         ws_key,
+                "entitySecretCiphertext": await entity_secret_ciphertext(api_key, entity_secret, base),
+                "name":                   "xiaolee-agent",
             },
             headers=headers,
         )
@@ -75,15 +88,16 @@ async def main() -> None:
         wallet_set_id = ws_resp.json().get("data", {}).get("walletSet", {}).get("id", "")
         print(f"[ok] walletSetId={wallet_set_id}")
 
-        # 2. Criar wallet
+        # 2. Criar wallet (novo ciphertext — não reutilizar o anterior)
         w_key   = str(uuid.uuid4())
         w_resp  = await client.post(
             f"{base}/developer/wallets",
             json={
-                "idempotencyKey": w_key,
-                "walletSetId":    wallet_set_id,
-                "blockchains":    [blockchain],
-                "count":          1,
+                "idempotencyKey":         w_key,
+                "entitySecretCiphertext": await entity_secret_ciphertext(api_key, entity_secret, base),
+                "walletSetId":            wallet_set_id,
+                "blockchains":            [blockchain],
+                "count":                  1,
             },
             headers=headers,
         )

@@ -14,7 +14,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "20260622_payment_intents"
-down_revision = "20260515_stellar"
+down_revision = "20260522_used_payments"
 branch_labels = None
 depends_on = None
 

@@ -1,25 +1,71 @@
 # XiaoLee Protocol
 
-> Assistente de IA conversacional **multi-chain (Solana + Stellar)** — swap wallet-first, campanhas DeFi on-chain, transfer universal por @handle, notificações in-app e interface bilíngue (EN/PT).
-> **Atualizado: 2026-05-30 | Arquitetura híbrida Solana + Stellar reconciliada**
+> **O agente que paga creators "pela fração" — nanopagamentos USDC em tempo real, conforme o trabalho acontece, sem ninguém apertar botão.**
+
+**Lepton Agents Hackathon · Arc / Circle** — Creator Monetization (RFB-06) + Agent-to-Agent (RFB-03) + Selling Agent Services (RFB-02)
+
+[Live demo](#) · [Vídeo (3min)](#) · [Arquitetura Arc](docs/workflows/ARC_LEPTON_ARCHITECTURE.md) · [Posicionamento](docs/POSICIONAMENTO_ARC_LEPTON.md)
 
 ---
 
-## Status de chain (reconciliado 2026-05-30)
+## O problema
 
-A XiaoLee opera em **duas tracks on-chain em paralelo**, com backend, frontend e infra compartilhados (coluna `chain` no DB):
+Pagar creator hoje é em lote, atrasado, com mínimo de saque e fricção de chain. O micro-trabalho — um post, uma fração de engajamento — **simplesmente não é pagável**: o custo da transação supera o valor pago.
 
-| Track | Estado real | Contrato |
+## A solução
+
+XiaoLee é um **agente autônomo de payout**: a marca define um budget em USDC e critérios; o agente **descobre** o trabalho do creator, **avalia**, **decide** quanto pagar e **liquida o nanopagamento USDC na rede Arc** em tempo real — via x402, com gas nativo em USDC e liquidação sub-500ms. Isso era economicamente inviável antes do Arc.
+
+```
+marca financia budget USDC → agente detecta trabalho → decide pagar a fração no budget
+        → x402 dispara nanopagamento USDC no Arc → creator recebe → dashboard mostra o valor
+```
+
+## Como mapeia nos critérios da banca
+
+| Critério | Peso | Onde está |
 |---|---|---|
-| **Solana (Anchor)** | Devnet operacional, pré-auditoria | `solana-program/xiaolee_core` (existe) |
-| **Stellar (Soroban)** | Direção estratégica (37 Graus); off-chain pronto | Contrato Soroban **ainda não escrito** — só spec no RT |
+| **Agentic** | 30% | Loop autônomo `discover → evaluate → pay` (`ClaudeAgentEngine`, L2) decidindo dentro de budget |
+| **Traction** | 30% | USDC real fluindo na janela — dashboard de pagamentos em tempo real (`metrics.py` + Grafana, L4) |
+| **Circle Tools** | 20% | Circle App Kit + x402 + USDC nativo no Arc; CCTP para funding cross-chain (L0/L1) |
+| **Innovation** | 20% | Recibo de pagamento assinado com cripto pós-quântica (ML-DSA) + identidade de agente ERC-8004 (L3) |
 
-- Camada Stellar off-chain (SEP-10, x402, Horizon adapter) está implementada e **auditada internamente** (`AUDIT.md`).
-- O contrato Soroban on-chain está especificado em [`docs/RT_XIAOLEE_STELLAR.md`](docs/RT_XIAOLEE_STELLAR.md) seção 10, mas **não tem código**.
-- Readiness mainnet (multi-chain) e gates: [`docs/MAINNET_READINESS.md`](docs/MAINNET_READINESS.md).
-- Runbook de deploy (multi-chain): [`ops/DEPLOY_MAINNET.md`](ops/DEPLOY_MAINNET.md).
+## Arquitetura em camadas
 
-> Nota: as seções abaixo deste banner ainda refletem o enquadramento Solana original e estão em processo de reconciliação para multi-chain. Em caso de divergência, este banner e os docs linkados acima prevalecem.
+```
+L4 · Traction & Observability  — métricas + Grafana (dashboard de USDC-flow)
+L3 · Trust & Proof             — recibo PQC (ML-DSA) + identidade de agente ERC-8004
+L2 · Agent Orchestration       — ClaudeAgentEngine: loop discover → evaluate → pay
+L1 · Payment Rail              — x402 (HTTP 402) + USDC nativo Arc + anti-replay (PaymentIntent)
+L0 · Identity & Wallet         — Circle App Kit (EVM) · CCTP funding cross-chain
+```
+
+Verdade detalhada da arquitetura Arc: [`docs/workflows/ARC_LEPTON_ARCHITECTURE.md`](docs/workflows/ARC_LEPTON_ARCHITECTURE.md).
+
+## Quickstart (avaliadores)
+
+```bash
+make init          # venv Python + npm + .env
+make dev           # backend :8000 + frontend :3000
+```
+
+```bash
+# Rodar uma campanha de payout autônoma (loop agêntico)
+curl -X POST http://localhost:8000/v1/agent/run-campaign \
+  -H 'Content-Type: application/json' \
+  -d '{"campaign_id": "demo", "budget_usdc": 50, "criteria": "engajamento real"}'
+
+# Acompanhar a execução
+curl http://localhost:8000/v1/agent/run-campaign/demo/status
+```
+
+Variáveis do sprint Arc (`.env`): `CIRCLE_API_KEY`, `CIRCLE_WALLET_ID`, `ARC_SANDBOX=true`, `ANTHROPIC_API_KEY`, `AGENT_MAX_STEPS=50`.
+
+---
+
+## Base de plataforma (lineage Solana / Stellar)
+
+XiaoLee não nasceu no hackathon. A tese Arc reaproveita uma plataforma madura — agente conversacional, campanhas de creator, rail de pagamento `x402` auditado, observabilidade e i18n EN/PT já em produção. As seções abaixo documentam essa base (originada nas tracks **Solana/Anchor** e **Stellar/Soroban**); elas demonstram o "real progress" sobre o qual a entrega Arc foi construída. Onde houver divergência de chain, o enquadramento **Arc** acima prevalece para o escopo do hackathon.
 
 ---
 

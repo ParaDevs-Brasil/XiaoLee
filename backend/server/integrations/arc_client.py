@@ -1,9 +1,10 @@
 """
 arc_client.py — Circle Programmable Wallets (W3S) client para pagamentos USDC no Arc.
 
-Usa a API W3S de developer-controlled wallets — o entity secret é configurado UMA
-vez no Circle console (setup_circle_wallet.py), e todas as transferências usam
-apenas CIRCLE_API_KEY. Nenhum segredo é enviado por transação.
+Usa a API W3S de developer-controlled wallets. Autenticação por request:
+  - Authorization: Bearer CIRCLE_API_KEY
+  - entitySecretCiphertext: RSA-OAEP fresco do CIRCLE_ENTITY_SECRET, gerado A CADA
+    transação (a Circle invalida cada ciphertext após o uso). Ver circle_crypto.py.
 
 Endpoint real (não Payments API):
     POST /v1/w3s/developer/transactions/transfer   ← este, não /v1/transfers
@@ -27,6 +28,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 import httpx
+
+from server.integrations.circle_crypto import entity_secret_ciphertext
 
 LOG = logging.getLogger(__name__)
 
@@ -70,10 +73,13 @@ class ArcClient:
         wallet_id:     str = "",
         blockchain:    str = "",
         usdc_token_id: str = "",
+        entity_secret: str = "",
         sandbox:       bool = True,
     ):
         self.api_key       = api_key       or os.getenv("CIRCLE_API_KEY",       "")
         self.wallet_id     = wallet_id     or os.getenv("CIRCLE_WALLET_ID",     "")
+        # Entity secret (32 bytes hex) — usado para gerar o entitySecretCiphertext por tx.
+        self.entity_secret = entity_secret or os.getenv("CIRCLE_ENTITY_SECRET", "")
         # Nome do blockchain na API Circle: "ETH-SEPOLIA", "ARB-SEPOLIA", "ARC-SEPOLIA"…
         self.blockchain    = blockchain    or os.getenv("CIRCLE_BLOCKCHAIN",    "ETH-SEPOLIA")
         # Token ID do USDC nessa chain — resolvido automaticamente se vazio
@@ -194,12 +200,18 @@ class ArcClient:
 
         token_id = await self._resolve_token_id()
 
+        # Ciphertext fresco por transação — exigido pela Circle em developer wallets.
+        ciphertext = await entity_secret_ciphertext(
+            self.api_key, self.entity_secret, self._base,
+        )
+
         payload = {
-            "idempotencyKey":    idempotency_key,
-            "walletId":          self.wallet_id,
-            "tokenId":           token_id,
-            "destinationAddress": to_address,
-            "amounts":           [f"{amount_usdc:.6f}"],
+            "idempotencyKey":        idempotency_key,
+            "entitySecretCiphertext": ciphertext,
+            "walletId":              self.wallet_id,
+            "tokenId":               token_id,
+            "destinationAddress":    to_address,
+            "amounts":               [f"{amount_usdc:.6f}"],
             "fee": {
                 "type":   "level",
                 "config": {"feeLevel": "MEDIUM"},

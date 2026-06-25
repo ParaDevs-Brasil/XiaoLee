@@ -195,8 +195,9 @@ class PaymentIntent(Base):
     creator_id: Mapped[str] = mapped_column(Text, index=True)
     amount_usdc: Mapped[float] = mapped_column(Numeric(20, 8))
     status: Mapped[str] = mapped_column(String(50), default='pending')
-    arc_tx_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    executed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    arc_tx_hash:  Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    receipt_pqc:  Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    executed_at:  Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class OnchainEvent(Base):

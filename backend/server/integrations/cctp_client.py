@@ -1,28 +1,26 @@
 """
-cctp_client.py — Circle Cross-Chain Transfer Protocol (CCTP) inflow bridge.
+cctp_client.py — Circle CCTP v2: bridge USDC de qualquer chain EVM para o Arc.
 
-Queima USDC em uma chain de origem (ex: Ethereum Sepolia) e cunha na Arc.
-É o trilho de entrada cross-chain: o agente XiaoLee opera em Arc, mas o
-USDC do patrocinador pode vir de qualquer chain suportada pelo CCTP.
-
-Fluxo (4 passos):
+FLUXO COMPLETO (4 passos, todos auditáveis on-chain):
     1. approve()          USDC.approve(TokenMessenger, amount) na chain fonte
-    2. depositForBurn()   queima USDC, emite MessageSent com nonce + message
-    3. poll_attestation() aguarda Circle assinar o proof (iris-api)
-    4. receive_on_arc()   MessageTransmitter.receiveMessage(msg, attestation) no Arc
+    2. depositForBurn()   queima USDC, emite MessageSent(bytes message)
+    3. poll_attestation() aguarda Circle assinar o proof (iris-api, até 5 min)
+    4. receive_on_arc()   ArcNativeClient.receive_cctp_message(raw_message, attest)
 
-Contratos CCTP v2 conhecidos (Sepolia → Arc):
-    TokenMessenger (Sepolia):     0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5
-    MessageTransmitter (Sepolia): 0x7865fAfC2db2093669d92c0197ea5d5852Ab1e6f
-    USDC (Sepolia):               0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
+DIFERENCIAL vs. implementação naive:
+  - raw_message é extraído do evento MessageSent e passado integralmente ao
+    receiveMessage() — a versão bugada passava keccak256(message) (32 bytes),
+    o que reverte silenciosamente no contrato.
+  - approve é minerado antes do depositForBurn (sem race condition de nonce).
+  - attestation é decodificada de hex antes de enviar ao contrato.
+  - BridgeState rastreia cada etapa — recovery após crash sem duplo burn.
+  - Sandbox simula E2E sem tocar contratos ou Circle API.
 
-Endereços Arc (Canteen testnet) são configuráveis via env:
-    ARC_CCTP_TOKEN_MESSENGER
-    ARC_CCTP_MSG_TRANSMITTER
-    ARC_CCTP_USDC
-    ARC_CCTP_DOMAIN
-
-Feature flag: CCTP_ENABLED=true (false por padrão — sem impacto no core se desligado).
+Contratos CCTP v2 Sepolia (defaults embutidos — não altere sem checar o
+Circle docs, esses endereços são estáveis em testnet):
+    TokenMessenger:     0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5
+    MessageTransmitter: 0x7865fAfC2db2093669d92c0197ea5d5852Ab1e6f
+    USDC:               0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 """
 
 from __future__ import annotations
@@ -32,6 +30,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Optional
 
 import httpx
@@ -42,18 +41,24 @@ LOG = logging.getLogger(__name__)
 _IRIS_SANDBOX = "https://iris-api-sandbox.circle.com/v1/attestations"
 _IRIS_LIVE    = "https://iris-api.circle.com/v1/attestations"
 
-# ── CCTP v2 Sepolia (source chain) ─────────────────────────────────────────
+# ── Contratos CCTP v2 em Ethereum Sepolia ──────────────────────────────────
 _SEPOLIA_TOKEN_MESSENGER     = "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5"
 _SEPOLIA_MSG_TRANSMITTER     = "0x7865fAfC2db2093669d92c0197ea5d5852Ab1e6f"
 _SEPOLIA_USDC                = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
-_CCTP_DOMAIN_ETHEREUM        = 0   # Ethereum = domain 0
+_CCTP_DOMAIN_ETHEREUM        = 0
 
-_ATTEST_INTERVAL_S  = 3.0
-_ATTEST_TIMEOUT_S   = 300.0
-_TX_TIMEOUT_S       = 120.0
+# ── Tópico do evento MessageSent (keccak256 da assinatura) ─────────────────
+_MESSAGE_SENT_TOPIC = (
+    "0x8c5261668696ce22758910d05bab8f186d6eb247ceac2af2e82c7dc17669b036"
+)
 
-# ── Minimal ABIs (apenas funções usadas) ───────────────────────────────────
+# ── Timings ─────────────────────────────────────────────────────────────────
+_ATTEST_INITIAL_WAIT_S = 8.0    # Circle leva alguns segundos após o burn
+_ATTEST_INTERVAL_S     = 4.0
+_ATTEST_TIMEOUT_S      = 300.0
+_TX_TIMEOUT_S          = 120.0
 
+# ── ABIs (source chain — apenas funções necessárias) ────────────────────────
 _USDC_ABI = [
     {
         "name": "approve",
@@ -80,79 +85,90 @@ _TOKEN_MESSENGER_ABI = [
         "type": "function",
         "stateMutability": "nonpayable",
         "inputs": [
-            {"name": "amount",              "type": "uint256"},
-            {"name": "destinationDomain",   "type": "uint32"},
-            {"name": "mintRecipient",       "type": "bytes32"},
-            {"name": "burnToken",           "type": "address"},
+            {"name": "amount",            "type": "uint256"},
+            {"name": "destinationDomain", "type": "uint32"},
+            {"name": "mintRecipient",     "type": "bytes32"},
+            {"name": "burnToken",         "type": "address"},
         ],
         "outputs": [{"name": "nonce", "type": "uint64"}],
     },
 ]
 
-_MSG_TRANSMITTER_ABI = [
-    {
-        "name": "receiveMessage",
-        "type": "function",
-        "stateMutability": "nonpayable",
-        "inputs": [
-            {"name": "message",     "type": "bytes"},
-            {"name": "attestation", "type": "bytes"},
-        ],
-        "outputs": [{"name": "success", "type": "bool"}],
-    },
-]
 
-_MESSAGE_SENT_TOPIC = (
-    "0x8c5261668696ce22758910d05bab8f186d6eb247ceac2af2e82c7dc17669b036"
-)
+# ── Enums + dataclasses ─────────────────────────────────────────────────────
+
+class BridgeStep(str, Enum):
+    PENDING      = "pending"
+    BURNED       = "burned"        # depositForBurn minerado
+    ATTESTING    = "attesting"     # aguardando iris-api
+    ATTESTED     = "attested"      # Circle assinou o proof
+    RECEIVED     = "received"      # receiveMessage minerado no Arc
+
+
+@dataclass
+class BridgeState:
+    """
+    Rastreia o progresso de um bridge para possibilitar recovery após crash.
+    Se o processo morrer depois do burn mas antes do receive, você pode
+    chamar CCTPClient.finalize_bridge(state) com o state salvo.
+    """
+    step:            BridgeStep = BridgeStep.PENDING
+    source_tx_hash:  str        = ""
+    raw_message:     bytes      = field(default_factory=bytes)  # bytes do MessageSent
+    message_hash:    str        = ""                            # keccak256(raw_message)
+    attestation:     bytes      = field(default_factory=bytes)  # assinado pelo Circle
+    arc_tx_hash:     str        = ""
+    amount_usdc:     float      = 0.0
+    recipient:       str        = ""
+    error:           str        = ""
 
 
 @dataclass
 class BridgeResult:
-    source_tx_hash:  str
-    arc_tx_hash:     str
-    amount_usdc:     float
-    recipient:       str
-    message_hash:    str = ""
-    attestation:     str = ""
-    sandbox:         bool = False
+    source_tx_hash: str
+    arc_tx_hash:    str
+    amount_usdc:    float
+    recipient:      str
+    message_hash:   str   = ""
+    sandbox:        bool  = False
 
 
 class CCTPClient:
     """
-    Bridge USDC de qualquer chain EVM suportada pelo CCTP para o Arc.
+    Bridge USDC de qualquer chain EVM para o Arc via CCTP v2.
 
-    Requer web3 instalado. Se CCTP_ENABLED=false, todos os métodos
-    retornam um BridgeResult sandbox sem chamar contratos.
+    Usa ArcNativeClient para o receiveMessage no Arc — o agente assina
+    com sua própria chave Arc, sem depender da Circle W3S API.
     """
 
     def __init__(
         self,
-        source_rpc:     str = "",
-        arc_rpc:        str = "",
-        signer_key:     str = "",
-        sandbox:        bool = True,
+        source_rpc:  str = "",
+        arc_rpc:     str = "",
+        signer_key:  str = "",    # chave que assina o burn na chain fonte
+        arc_key:     str = "",    # chave Arc para receiveMessage (pode ser a mesma)
+        sandbox:     bool = True,
     ):
-        self.source_rpc  = source_rpc  or os.getenv("CCTP_SOURCE_RPC",  "")
-        self.arc_rpc     = arc_rpc     or os.getenv("ARC_RPC_URL",       "")
-        self.signer_key  = signer_key  or os.getenv("CCTP_SIGNER_PRIVATE_KEY", "")
-        self.sandbox     = sandbox
-        self._iris       = _IRIS_SANDBOX if sandbox else _IRIS_LIVE
+        self.source_rpc = source_rpc or os.getenv("CCTP_SOURCE_RPC",         "")
+        self.arc_rpc    = arc_rpc    or os.getenv("ARC_RPC_URL",             "")
+        self.signer_key = signer_key or os.getenv("CCTP_SIGNER_PRIVATE_KEY", "")
+        # chave Arc — fallback para ARC_AGENT_PRIVATE_KEY ou signer_key
+        self.arc_key    = arc_key or os.getenv("ARC_AGENT_PRIVATE_KEY", "") or self.signer_key
+        self.sandbox    = sandbox
+        self._iris      = _IRIS_SANDBOX if sandbox else _IRIS_LIVE
 
-        # Contratos na chain fonte (default Sepolia)
-        self.src_usdc    = os.getenv("CCTP_SOURCE_USDC",            _SEPOLIA_USDC)
-        self.src_tm      = os.getenv("CCTP_SOURCE_TOKEN_MESSENGER",  _SEPOLIA_TOKEN_MESSENGER)
-        self.src_mt      = os.getenv("CCTP_SOURCE_MSG_TRANSMITTER",  _SEPOLIA_MSG_TRANSMITTER)
-        self.src_domain  = int(os.getenv("CCTP_SOURCE_DOMAIN",      str(_CCTP_DOMAIN_ETHEREUM)))
+        # Chain fonte
+        self.src_usdc   = os.getenv("CCTP_SOURCE_USDC",            _SEPOLIA_USDC)
+        self.src_tm     = os.getenv("CCTP_SOURCE_TOKEN_MESSENGER",  _SEPOLIA_TOKEN_MESSENGER)
+        self.src_domain = int(os.getenv("CCTP_SOURCE_DOMAIN",      str(_CCTP_DOMAIN_ETHEREUM)))
 
-        # Contratos no Arc (Canteen testnet — preencha via env)
-        self.arc_usdc    = os.getenv("ARC_CCTP_USDC",            "")
-        self.arc_tm      = os.getenv("ARC_CCTP_TOKEN_MESSENGER",  "")
-        self.arc_mt      = os.getenv("ARC_CCTP_MSG_TRANSMITTER",  "")
-        self.arc_domain  = int(os.getenv("ARC_CCTP_DOMAIN",      "7"))  # placeholder
+        # Arc destino
+        self.arc_mt     = os.getenv("ARC_CCTP_MSG_TRANSMITTER",    "")
+        self.arc_domain = int(os.getenv("ARC_CCTP_DOMAIN",         "7"))
+        self.arc_usdc   = os.getenv("ARC_CCTP_USDC",               "")
 
     # ------------------------------------------------------------------
-    # Entry point
+    # Entry point principal
     # ------------------------------------------------------------------
 
     async def bridge_usdc_to_arc(
@@ -161,211 +177,303 @@ class CCTPClient:
         recipient:   str,
     ) -> BridgeResult:
         """
-        E2E: queima USDC na chain fonte e cunha no Arc.
-
+        Bridge completo Sepolia → Arc.
         recipient = endereço EVM no Arc que receberá o USDC.
+
+        Retorna BridgeResult com ambos os tx hashes para o recibo PQC.
         """
         if self.sandbox:
-            fake_src = f"sandbox_cctp_src_{recipient[:8]}"
-            fake_arc = f"sandbox_cctp_arc_{recipient[:8]}"
-            LOG.info(
-                "[cctp] SANDBOX bridge %.4f USDC → %s | src=%s arc=%s",
-                amount_usdc, recipient, fake_src, fake_arc,
-            )
+            r = f"0xSANDBOX_{recipient[2:10] if recipient.startswith('0x') else recipient[:8]}"
+            LOG.info("[cctp] SANDBOX bridge %.4f USDC → %s", amount_usdc, recipient)
             return BridgeResult(
-                source_tx_hash=fake_src,
-                arc_tx_hash=fake_arc,
+                source_tx_hash=f"{r}_src",
+                arc_tx_hash=f"{r}_arc",
                 amount_usdc=amount_usdc,
                 recipient=recipient,
+                message_hash=f"0x{'0'*64}",
                 sandbox=True,
             )
 
         self._require_web3()
         self._validate_config()
 
+        state = BridgeState(amount_usdc=amount_usdc, recipient=recipient)
+
         try:
-            from web3 import Web3
-            from web3.middleware import ExtraDataToPOAMiddleware
+            # Passo 1+2: approve + depositForBurn
+            state = await self._step_burn(state)
 
-            w3_src = Web3(Web3.HTTPProvider(self.source_rpc))
-            w3_src.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
-            w3_arc = Web3(Web3.HTTPProvider(self.arc_rpc))
-            w3_arc.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+            # Passo 3: attestation Circle
+            state = await self._step_attest(state)
 
-            account = w3_src.eth.account.from_key(self.signer_key)
-            LOG.info("[cctp] signer=%s amount=%.4f USDC → %s", account.address, amount_usdc, recipient)
-
-            # 1. Approve
-            src_tx = await self._approve_and_burn(w3_src, account, amount_usdc, recipient)
-            LOG.info("[cctp] depositForBurn mined: tx=%s", src_tx)
-
-            # 2. Extrair message hash do receipt
-            message_hash = await self._extract_message_hash(w3_src, src_tx)
-            LOG.info("[cctp] message_hash=%s", message_hash)
-
-            # 3. Aguardar attestation Circle
-            attestation = await self._poll_attestation(message_hash)
-            LOG.info("[cctp] attestation received len=%d", len(attestation))
-
-            # 4. Cunhar no Arc
-            arc_tx = await self._receive_on_arc(w3_arc, account, message_hash, attestation)
-            LOG.info("[cctp] receiveMessage mined on Arc: tx=%s", arc_tx)
-
-            return BridgeResult(
-                source_tx_hash=src_tx,
-                arc_tx_hash=arc_tx,
-                amount_usdc=amount_usdc,
-                recipient=recipient,
-                message_hash=message_hash,
-                attestation=attestation,
-                sandbox=False,
-            )
+            # Passo 4: receiveMessage no Arc
+            state = await self._step_receive(state)
 
         except Exception as exc:
-            LOG.error("[cctp] bridge failed: %s", exc, exc_info=True)
-            raise
+            state.error = str(exc)
+            LOG.error(
+                "[cctp] bridge failed at step=%s: %s",
+                state.step.value, exc, exc_info=True,
+            )
+            raise RuntimeError(
+                f"CCTP bridge falhou em step={state.step.value}: {exc}"
+            ) from exc
+
+        return BridgeResult(
+            source_tx_hash=state.source_tx_hash,
+            arc_tx_hash=state.arc_tx_hash,
+            amount_usdc=state.amount_usdc,
+            recipient=state.recipient,
+            message_hash=state.message_hash,
+            sandbox=False,
+        )
+
+    async def finalize_bridge(self, state: BridgeState) -> BridgeResult:
+        """
+        Retoma um bridge parcial a partir do BridgeState salvo.
+        Útil quando o processo crasha depois do burn mas antes do receive.
+        """
+        if state.step == BridgeStep.BURNED:
+            state = await self._step_attest(state)
+        if state.step == BridgeStep.ATTESTED:
+            state = await self._step_receive(state)
+
+        return BridgeResult(
+            source_tx_hash=state.source_tx_hash,
+            arc_tx_hash=state.arc_tx_hash,
+            amount_usdc=state.amount_usdc,
+            recipient=state.recipient,
+            message_hash=state.message_hash,
+            sandbox=False,
+        )
 
     # ------------------------------------------------------------------
-    # Steps
+    # Passo 1+2: approve + depositForBurn
     # ------------------------------------------------------------------
 
-    async def _approve_and_burn(
-        self,
-        w3,
-        account,
-        amount_usdc: float,
-        recipient:   str,
-    ) -> str:
-        """approve() + depositForBurn() na chain fonte. Retorna tx hash do burn."""
+    async def _step_burn(self, state: BridgeState) -> BridgeState:
         from web3 import Web3
+        from web3.middleware import ExtraDataToPOAMiddleware
 
-        usdc     = w3.eth.contract(address=Web3.to_checksum_address(self.src_usdc), abi=_USDC_ABI)
-        decimals = usdc.functions.decimals().call()
-        amount_u = int(amount_usdc * 10 ** decimals)
+        w3  = Web3(Web3.HTTPProvider(self.source_rpc, request_kwargs={"timeout": 30}))
+        w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+        acc = w3.eth.account.from_key(self.signer_key)
 
-        # approve
-        nonce   = w3.eth.get_transaction_count(account.address)
-        gas_p   = w3.eth.gas_price
-        approve_tx = usdc.functions.approve(
+        usdc_contract = w3.eth.contract(
+            address=Web3.to_checksum_address(self.src_usdc),
+            abi=_USDC_ABI,
+        )
+        decimals  = usdc_contract.functions.decimals().call()
+        amount_u  = int(state.amount_usdc * 10 ** decimals)
+        chain_id  = w3.eth.chain_id
+
+        # --- 1. approve (espera receipt antes do burn para evitar nonce race) ---
+        nonce_0  = w3.eth.get_transaction_count(acc.address, "pending")
+        approve_tx = usdc_contract.functions.approve(
             Web3.to_checksum_address(self.src_tm),
             amount_u,
-        ).build_transaction({"from": account.address, "nonce": nonce, "gasPrice": gas_p})
-        signed_a = account.sign_transaction(approve_tx)
-        w3.eth.send_raw_transaction(signed_a.raw_transaction)
-        # we don't await the approve receipt separately — next nonce handles ordering
+        ).build_transaction({
+            "from":    acc.address,
+            "nonce":   nonce_0,
+            "chainId": chain_id,
+            "gasPrice": w3.eth.gas_price,
+        })
+        approve_tx["gas"] = w3.eth.estimate_gas(approve_tx)
+        signed_a = acc.sign_transaction(approve_tx)
+        approve_hash = w3.eth.send_raw_transaction(signed_a.raw_transaction).hex()
+        LOG.info("[cctp] approve sent tx=%s", approve_hash)
 
-        # depositForBurn
+        approve_receipt = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: w3.eth.wait_for_transaction_receipt(approve_hash, timeout=_TX_TIMEOUT_S),
+        )
+        if approve_receipt["status"] != 1:
+            raise RuntimeError(f"[cctp] approve reverted: tx={approve_hash}")
+        LOG.info("[cctp] approve confirmed block=%s", approve_receipt["blockNumber"])
+
+        # --- 2. depositForBurn ---
         messenger = w3.eth.contract(
             address=Web3.to_checksum_address(self.src_tm),
             abi=_TOKEN_MESSENGER_ABI,
         )
-        mint_recipient = bytes.fromhex(
-            Web3.to_checksum_address(recipient).lower().replace("0x", "").zfill(64)
-        )
-        nonce2 = w3.eth.get_transaction_count(account.address)
+        # mintRecipient: endereço Arc padded to bytes32 (big-endian, zero-padded)
+        recipient_clean = state.recipient[2:] if state.recipient.startswith("0x") else state.recipient
+        mint_recipient  = bytes.fromhex(recipient_clean.lower().zfill(64))
+
+        nonce_1 = w3.eth.get_transaction_count(acc.address, "pending")
         burn_tx = messenger.functions.depositForBurn(
             amount_u,
             self.arc_domain,
             mint_recipient,
             Web3.to_checksum_address(self.src_usdc),
-        ).build_transaction({"from": account.address, "nonce": nonce2, "gasPrice": gas_p})
+        ).build_transaction({
+            "from":    acc.address,
+            "nonce":   nonce_1,
+            "chainId": chain_id,
+            "gasPrice": w3.eth.gas_price,
+        })
+        burn_tx["gas"] = w3.eth.estimate_gas(burn_tx)
+        signed_b    = acc.sign_transaction(burn_tx)
+        burn_hash   = w3.eth.send_raw_transaction(signed_b.raw_transaction).hex()
+        LOG.info("[cctp] depositForBurn sent tx=%s amount_u=%d", burn_hash, amount_u)
 
-        signed_b = account.sign_transaction(burn_tx)
-        tx_hash  = w3.eth.send_raw_transaction(signed_b.raw_transaction).hex()
-        receipt  = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: w3.eth.wait_for_transaction_receipt(tx_hash, timeout=_TX_TIMEOUT_S)
+        burn_receipt = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: w3.eth.wait_for_transaction_receipt(burn_hash, timeout=_TX_TIMEOUT_S),
         )
+        if burn_receipt["status"] != 1:
+            raise RuntimeError(f"[cctp] depositForBurn reverted: tx={burn_hash}")
 
-        if receipt["status"] != 1:
-            raise RuntimeError(f"[cctp] depositForBurn failed: tx={tx_hash}")
+        # Extrair raw_message + message_hash do evento MessageSent
+        raw_message, message_hash = self._extract_message_from_receipt(w3, burn_receipt)
+        LOG.info("[cctp] burn confirmed tx=%s msg_hash=%s", burn_hash, message_hash)
 
-        return tx_hash
+        state.step           = BridgeStep.BURNED
+        state.source_tx_hash = burn_hash
+        state.raw_message    = raw_message
+        state.message_hash   = message_hash
+        return state
 
-    async def _extract_message_hash(self, w3, tx_hash: str) -> str:
-        """Extrai o messageHash do evento MessageSent emitido pelo burn."""
-        from web3 import Web3
-        import eth_abi
+    # ------------------------------------------------------------------
+    # Passo 3: attestation
+    # ------------------------------------------------------------------
 
-        receipt = w3.eth.get_transaction_receipt(tx_hash)
-        for log in receipt.get("logs", []):
-            topics = [t.hex() if isinstance(t, bytes) else t for t in log.get("topics", [])]
-            if topics and topics[0].lower() == _MESSAGE_SENT_TOPIC.lower():
-                raw_message = log["data"]
-                if isinstance(raw_message, bytes):
-                    raw_message = raw_message.hex()
-                # keccak256 da mensagem = o hash que a Circle assina
-                msg_bytes = bytes.fromhex(raw_message[2:] if raw_message.startswith("0x") else raw_message)
-                # O data do evento é ABI-encoded (bytes): decode primeiro
-                decoded = eth_abi.decode(["bytes"], msg_bytes)[0]
-                msg_hash = Web3.keccak(decoded).hex()
-                return msg_hash
+    async def _step_attest(self, state: BridgeState) -> BridgeState:
+        state.step = BridgeStep.ATTESTING
 
-        raise RuntimeError(f"[cctp] MessageSent event not found in tx={tx_hash}")
+        # Circle leva alguns segundos após o burn para indexar
+        await asyncio.sleep(_ATTEST_INITIAL_WAIT_S)
+
+        attestation_hex = await self._poll_attestation(state.message_hash)
+        # hex → bytes (remove 0x prefix se presente)
+        hex_clean       = attestation_hex[2:] if attestation_hex.startswith("0x") else attestation_hex
+        state.attestation = bytes.fromhex(hex_clean)
+
+        LOG.info(
+            "[cctp] attestation received msg_hash=%s attest_len=%d",
+            state.message_hash, len(state.attestation),
+        )
+        state.step = BridgeStep.ATTESTED
+        return state
 
     async def _poll_attestation(self, message_hash: str) -> str:
-        """Aguarda Circle assinar o burn proof. Retorna attestation (hex)."""
+        """Retorna o attestation hex quando Circle confirmar. Timeout 5 min."""
         url      = f"{self._iris}/{message_hash}"
         deadline = time.monotonic() + _ATTEST_TIMEOUT_S
 
         async with httpx.AsyncClient(timeout=15) as client:
             while time.monotonic() < deadline:
-                resp = await client.get(url)
-                if resp.is_success:
-                    data = resp.json()
-                    if data.get("status") == "complete":
-                        return data["attestation"]
-                    LOG.debug("[cctp] attestation pending status=%s", data.get("status"))
-                else:
-                    LOG.debug("[cctp] attestation not ready yet: %s", resp.status_code)
+                try:
+                    resp = await client.get(url)
+                except httpx.RequestError as exc:
+                    LOG.warning("[cctp] iris-api unreachable: %s — retrying", exc)
+                    await asyncio.sleep(_ATTEST_INTERVAL_S)
+                    continue
 
+                if resp.status_code == 404:
+                    LOG.debug("[cctp] attestation not indexed yet")
+                    await asyncio.sleep(_ATTEST_INTERVAL_S)
+                    continue
+
+                if not resp.is_success:
+                    LOG.warning("[cctp] iris-api %s: %s", resp.status_code, resp.text[:100])
+                    await asyncio.sleep(_ATTEST_INTERVAL_S)
+                    continue
+
+                data   = resp.json()
+                status = data.get("status")
+                if status == "complete":
+                    return data["attestation"]
+
+                LOG.debug("[cctp] attestation status=%s", status)
                 await asyncio.sleep(_ATTEST_INTERVAL_S)
 
         raise TimeoutError(
-            f"[cctp] attestation não chegou em {_ATTEST_TIMEOUT_S:.0f}s para {message_hash}"
+            f"[cctp] attestation não chegou em {_ATTEST_TIMEOUT_S:.0f}s | msg_hash={message_hash}"
         )
 
-    async def _receive_on_arc(
-        self,
-        w3,
-        account,
-        message_hash: str,
-        attestation:  str,
-    ) -> str:
-        """Chama MessageTransmitter.receiveMessage() no Arc. Retorna tx hash."""
+    # ------------------------------------------------------------------
+    # Passo 4: receiveMessage no Arc
+    # ------------------------------------------------------------------
+
+    async def _step_receive(self, state: BridgeState) -> BridgeState:
+        from server.integrations.arc_native import ArcNativeClient
+
+        arc = ArcNativeClient(
+            rpc_url=self.arc_rpc,
+            private_key=self.arc_key,
+            usdc_address=self.arc_usdc,
+            sandbox=False,
+        )
+
+        if not self.arc_mt:
+            raise RuntimeError(
+                "[cctp] ARC_CCTP_MSG_TRANSMITTER não configurado — "
+                "obtenha o endereço no Discord do hackathon Lepton"
+            )
+
+        result = await arc.receive_cctp_message(
+            msg_transmitter=self.arc_mt,
+            raw_message=state.raw_message,
+            attestation=state.attestation,
+        )
+
+        state.step        = BridgeStep.RECEIVED
+        state.arc_tx_hash = result.tx_hash
+        LOG.info("[cctp] USDC minted on Arc tx=%s", state.arc_tx_hash)
+        return state
+
+    # ------------------------------------------------------------------
+    # Extração do MessageSent
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _extract_message_from_receipt(w3, receipt) -> tuple[bytes, str]:
+        """
+        Extrai raw_message e message_hash do evento MessageSent no receipt.
+
+        MessageSent(bytes message) — o data é ABI-encoded como (bytes).
+        message_hash = keccak256(raw_message) — usado para query da iris-api.
+
+        NÃO retorna o hash como mensagem. raw_message e message_hash são
+        coisas diferentes e não são intercambiáveis.
+        """
+        import eth_abi
         from web3 import Web3
 
-        transmitter = w3.eth.contract(
-            address=Web3.to_checksum_address(self.arc_mt),
-            abi=_MSG_TRANSMITTER_ABI,
+        logs = receipt.get("logs", [])
+        for log in logs:
+            topics = log.get("topics", [])
+            if not topics:
+                continue
+
+            t0 = topics[0]
+            topic_hex = t0.hex() if isinstance(t0, bytes) else str(t0)
+            if topic_hex.lower() != _MESSAGE_SENT_TOPIC.lower():
+                continue
+
+            # data do log = abi.encode(bytes message)
+            raw_data = log["data"]
+            if isinstance(raw_data, bytes):
+                data_bytes = raw_data
+            elif isinstance(raw_data, str):
+                clean = raw_data[2:] if raw_data.startswith("0x") else raw_data
+                data_bytes = bytes.fromhex(clean)
+            else:
+                continue
+
+            # Decode ABI: (bytes) → raw_message
+            (raw_message,) = eth_abi.decode(["bytes"], data_bytes)
+
+            # keccak256(raw_message) = hash para a iris-api
+            message_hash = Web3.keccak(raw_message).hex()
+
+            return raw_message, message_hash
+
+        raise RuntimeError(
+            "[cctp] evento MessageSent não encontrado no receipt. "
+            "Verifique se o endereço do TokenMessenger está correto."
         )
-
-        # message_hash é keccak256(message) — precisamos da mensagem original.
-        # Na prática, a mensagem vem do evento; aqui recebemos o hash pois a
-        # attestation API do Circle retorna o payload completo quando pedimos
-        # o attestation. Para esta implementação, usamos o hash como placeholder
-        # quando a mensagem completa não está disponível.
-        # TODO: armazenar a mensagem completa do evento MessageSent e passar aqui.
-        message_bytes     = bytes.fromhex(message_hash[2:] if message_hash.startswith("0x") else message_hash)
-        attestation_bytes = bytes.fromhex(attestation[2:] if attestation.startswith("0x") else attestation)
-
-        nonce  = w3.eth.get_transaction_count(account.address)
-        gas_p  = w3.eth.gas_price
-
-        arc_tx = transmitter.functions.receiveMessage(
-            message_bytes,
-            attestation_bytes,
-        ).build_transaction({"from": account.address, "nonce": nonce, "gasPrice": gas_p})
-
-        signed  = account.sign_transaction(arc_tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction).hex()
-        receipt = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: w3.eth.wait_for_transaction_receipt(tx_hash, timeout=_TX_TIMEOUT_S)
-        )
-
-        if receipt["status"] != 1:
-            raise RuntimeError(f"[cctp] receiveMessage failed on Arc: tx={tx_hash}")
-
-        return tx_hash
 
     # ------------------------------------------------------------------
     # Guards
@@ -374,11 +482,13 @@ class CCTPClient:
     @staticmethod
     def _require_web3() -> None:
         try:
-            import web3  # noqa
+            import web3       # noqa
+            import eth_abi    # noqa
         except ImportError:
             raise RuntimeError(
-                "web3 não está instalado. Rode: pip install web3>=6.20.0\n"
-                "Ou ative CCTP_ENABLED=false para desabilitar o módulo."
+                "Dependências EVM não instaladas.\n"
+                "Rode: pip install web3>=6.20.0\n"
+                "Ou desative com CCTP_ENABLED=false."
             )
 
     def _validate_config(self) -> None:
@@ -386,9 +496,8 @@ class CCTPClient:
         if not self.source_rpc:   missing.append("CCTP_SOURCE_RPC")
         if not self.arc_rpc:      missing.append("ARC_RPC_URL")
         if not self.signer_key:   missing.append("CCTP_SIGNER_PRIVATE_KEY")
-        if not self.arc_mt:       missing.append("ARC_CCTP_MSG_TRANSMITTER")
+        if not self.arc_key:      missing.append("ARC_AGENT_PRIVATE_KEY")
         if missing:
             raise RuntimeError(
-                f"[cctp] variáveis faltando: {', '.join(missing)}\n"
-                "Configure no .env ou use CCTP_ENABLED=false para o sandbox."
+                f"[cctp] variáveis faltando: {', '.join(missing)}"
             )

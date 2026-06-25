@@ -42,6 +42,7 @@ from server.routes.stellar_routes import router as stellar_router
 from server.routes.x402_routes import router as x402_router
 from server.routes.agent_routes import router as agent_router
 from server.routes.arc_routes import router as arc_router
+from server.routes.trust_routes import router as trust_router
 
 
 @asynccontextmanager
@@ -127,6 +128,7 @@ app.include_router(stellar_router)
 app.include_router(x402_router)
 app.include_router(agent_router)
 app.include_router(arc_router)
+app.include_router(trust_router)
 
 request_hits: Dict[str, Deque[datetime]] = defaultdict(deque)
 

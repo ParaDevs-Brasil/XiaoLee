@@ -65,6 +65,9 @@ class Settings:
     # ── Arc / Circle Programmable Wallets (W3S) ──────────────────────────────────
     circle_api_key:       str  = os.getenv("CIRCLE_API_KEY",        "")
     circle_wallet_id:     str  = os.getenv("CIRCLE_WALLET_ID",      "")
+    # Entity secret (32 bytes hex) — exigido por TODA transação live (transfer/criar wallet).
+    # Cada request envia um entitySecretCiphertext RSA-OAEP fresco gerado a partir dele.
+    circle_entity_secret: str  = os.getenv("CIRCLE_ENTITY_SECRET",  "")
     # Nome da blockchain na API Circle: "ETH-SEPOLIA" | "ARC-SEPOLIA" | "BASE-SEPOLIA"
     circle_blockchain:    str  = os.getenv("CIRCLE_BLOCKCHAIN",     "ETH-SEPOLIA")
     # Token ID do USDC na chain — resolvido automaticamente via API se vazio
@@ -88,9 +91,18 @@ class Settings:
     arc_cctp_msg_transmitter:  str  = os.getenv("ARC_CCTP_MSG_TRANSMITTER",   "")
     arc_cctp_domain:           int  = int(os.getenv("ARC_CCTP_DOMAIN",        "7"))
 
+    # ── Arc Native (EVM direto — sem Circle W3S) ─────────────────────────────────
+    arc_agent_private_key: str = os.getenv("ARC_AGENT_PRIVATE_KEY", "")
+    arc_usdc_address:      str = os.getenv("ARC_USDC_ADDRESS",      "")
+    arc_chain_id:          int = int(os.getenv("ARC_CHAIN_ID",      "0"))  # 0 = auto
+
+    # ── PQC — ML-DSA-87 (FIPS 204) Receipt Signing ───────────────────────────────
+    pqc_enabled:    bool = os.getenv("PQC_ENABLED",    "true").lower() == "true"
+    pqc_secret_key: str  = os.getenv("PQC_SECRET_KEY", "")   # base64 sk — NUNCA commitar
+    pqc_public_key: str  = os.getenv("PQC_PUBLIC_KEY", "")   # base64 pk — público, pode commitar
+
     # ── Agent Engine ─────────────────────────────────────────────────────────────
-    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
-    claude_model: str = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+    claude_model:    str = os.getenv("CLAUDE_MODEL",    "claude-sonnet-4-6")
     agent_max_steps: int = int(os.getenv("AGENT_MAX_STEPS", "50"))
 
     # ── Stellar ──────────────────────────────────────────────────────────────────

@@ -164,9 +164,10 @@ class DatabaseRepository:
 
     async def update_payment_intent(
         self,
-        intent_id: str,
-        status: str,
-        tx_hash: Optional[str] = None,
+        intent_id:   str,
+        status:      str,
+        tx_hash:     Optional[str] = None,
+        receipt_pqc: Optional[str] = None,
     ) -> None:
         stmt = select(PaymentIntent).where(PaymentIntent.intent_id == intent_id)
         result = await self.session.execute(stmt)
@@ -176,6 +177,8 @@ class DatabaseRepository:
         intent.status = status
         if tx_hash:
             intent.arc_tx_hash = tx_hash
+        if receipt_pqc:
+            intent.receipt_pqc = receipt_pqc
         if status in ("submitted", "confirmed"):
             intent.executed_at = datetime.now(timezone.utc)
         await self.session.flush()

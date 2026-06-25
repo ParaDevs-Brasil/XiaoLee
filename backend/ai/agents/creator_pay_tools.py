@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from database.repository import DatabaseRepository
     from server.integrations.arc_client import ArcClient
 
+from services.pqc_receipt import sign_receipt as _pqc_sign
+
 LOG = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -276,11 +278,11 @@ def make_tool_executors(
         if existing and existing.status in ("submitted", "confirmed"):
             LOG.info("[tool] duplicate intent %s — returning existing receipt", intent_id)
             return {
-                "tx": existing.arc_tx_hash,
-                "receipt_pqc": intent_id,
-                "duplicate": True,
+                "tx":          existing.arc_tx_hash,
+                "receipt_pqc": existing.receipt_pqc or intent_id,
+                "duplicate":   True,
                 "amount_usdc": float(existing.amount_usdc),
-                "to": to,
+                "to":          to,
             }
 
         # 1. Write durable intent BEFORE executing (anti-replay)
@@ -300,8 +302,16 @@ def make_tool_executors(
                 idempotency_key=intent_id,
             )
 
-            # 3. Update status to submitted
-            await repo.update_payment_intent(intent_id, status="submitted", tx_hash=tx_hash)
+            # 3. Assina recibo ML-DSA-87 com o tx_hash real
+            receipt_pqc = _pqc_sign(intent_id, to, amount_usdc, tx_hash)
+
+            # 4. Update status to submitted + persiste recibo PQC
+            await repo.update_payment_intent(
+                intent_id,
+                status="submitted",
+                tx_hash=tx_hash,
+                receipt_pqc=receipt_pqc,
+            )
 
             spent["usdc"] += amount_usdc
             LOG.info(
@@ -314,11 +324,11 @@ def make_tool_executors(
             )
 
             return {
-                "tx": tx_hash,
-                "receipt_pqc": intent_id,
+                "tx":          tx_hash,
+                "receipt_pqc": receipt_pqc,
                 "amount_usdc": amount_usdc,
-                "to": to,
-                "status": "submitted",
+                "to":          to,
+                "status":      "submitted",
             }
 
         except Exception as exc:
