@@ -213,5 +213,43 @@
     "cancel": "Cancelar",
     "save": "Salvar",
     "refresh": "Atualizar"
+  },
+  "traction": {
+    "title": "Tração ao Vivo",
+    "subtitle": "USDC real fluindo para creators · RFB-06 · Arc Lepton",
+    "usdc_paid": "USDC Pago",
+    "usdc_paid_sub": "Total na janela",
+    "payments": "Pagamentos",
+    "payments_sub": "Nanopagamentos",
+    "creators": "Creators",
+    "creators_sub": "Ativos",
+    "latency_ok": "Sub-500ms SLA",
+    "latency_degraded": "Latência elevada",
+    "latency_sub": "Latência de confirmação de pagamento — nosso diferencial",
+    "feed_title": "Feed de Pagamentos ao Vivo",
+    "feed_sub": "Agente → Creator · tempo real",
+    "feed_empty": "Aguardando pagamentos…",
+    "feed_empty_sub": "Quando o agente começar a pagar creators, os eventos aparecerão aqui em tempo real.",
+    "sse_live": "SSE ao vivo",
+    "polling": "polling",
+    "footer": "Arc Lepton · RFB-06 · XiaoLee Core"
+  },
+  "onboarding": {
+    "title": "Torne-se um Creator",
+    "subtitle": "Comece a receber USDC em 3 passos — sem fricção.",
+    "step1_label": "Conectar Carteira",
+    "step1_desc": "Conecte sua carteira Circle para receber pagamentos em USDC.",
+    "step1_cta": "Conectar Circle Wallet",
+    "step2_label": "Seu @handle",
+    "step2_desc": "Informe seu handle no X (Twitter) para ser descoberto pelo agente.",
+    "step2_placeholder": "@seuhandle",
+    "step2_cta": "Confirmar Handle",
+    "step3_label": "Você está elegível!",
+    "step3_desc": "O agente vai te pagar em USDC quando seu conteúdo for selecionado.",
+    "step3_cta": "Ver Dashboard de Tração",
+    "connecting": "Conectando…",
+    "confirming": "Confirmando…",
+    "error_handle": "Informe um @handle válido",
+    "error_wallet": "Não foi possível conectar a Circle Wallet. Tente novamente."
   }
 }

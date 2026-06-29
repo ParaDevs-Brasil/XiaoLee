@@ -46,3 +46,30 @@ class SwapPrepareResponse(BaseModel):
     swap_transaction_base64: str
     last_valid_block_height: Optional[int] = None
     disclaimer: str
+
+
+# ── Traction / RFB-06 ─────────────────────────────────────────────────────
+
+class PaymentSettledEvent(BaseModel):
+    """Evento emitido pelo agente ao confirmar pagamento USDC on-chain."""
+    intent_id: str = Field(description="ID da intenção que gerou o pagamento")
+    amount: float = Field(gt=0, description="Valor em USDC")
+    creator: str = Field(description="@handle do creator")
+    tx: str = Field(description="Hash da transação on-chain")
+    ts: Optional[str] = Field(default=None, description="ISO timestamp (preenchido pelo backend se omitido)")
+    latency_ms: float = Field(default=0.0, ge=0, description="Latência da confirmação em ms")
+
+
+class TractionSnapshot(BaseModel):
+    total_usdc: float
+    total_payments: int
+    active_creators: int
+    registered_creators: int = 0
+    avg_latency_ms: float
+    p95_latency_ms: float
+    feed: list[Dict[str, Any]]
+
+
+class CreatorRegisterRequest(BaseModel):
+    circle_wallet_id: str = Field(description="ID da wallet Circle (App Kit)")
+    twitter_handle: str = Field(description="@handle do creator no X/Twitter")

@@ -23,4 +23,25 @@ api.interceptors.response.use(
   }
 );
 
+export interface CreatorRegisterResult {
+  ok: boolean;
+  creator: string;
+  circle_wallet_id: string;
+  eligible: boolean;
+  already_registered: boolean;
+  registered_at: string;
+  message: string;
+}
+
+export async function registerCreator(
+  twitterHandle: string,
+  circleWalletId: string,
+): Promise<CreatorRegisterResult> {
+  const res = await api.post<CreatorRegisterResult>("/v1/creator/register", {
+    twitter_handle: twitterHandle,
+    circle_wallet_id: circleWalletId,
+  });
+  return res.data;
+}
+
 export default api;

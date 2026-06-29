@@ -89,7 +89,7 @@ class Settings:
     arc_cctp_usdc:             str  = os.getenv("ARC_CCTP_USDC",              "")
     arc_cctp_token_messenger:  str  = os.getenv("ARC_CCTP_TOKEN_MESSENGER",   "")
     arc_cctp_msg_transmitter:  str  = os.getenv("ARC_CCTP_MSG_TRANSMITTER",   "")
-    arc_cctp_domain:           int  = int(os.getenv("ARC_CCTP_DOMAIN",        "7"))
+    arc_cctp_domain:           int  = int(os.getenv("ARC_CCTP_DOMAIN",        "26"))  # Arc testnet domain = 26
 
     # ── Arc Native (EVM direto — sem Circle W3S) ─────────────────────────────────
     arc_agent_private_key: str = os.getenv("ARC_AGENT_PRIVATE_KEY", "")
@@ -119,6 +119,16 @@ class Settings:
     # Headers CORS permitidos.
     cors_allowed_headers: list[str] = None
 
+    # ── Traction / RFB-06 ────────────────────────────────────────────────────
+    # Shared secret entre o agente Arc (f0ntz) e este backend.
+    # Se vazio, o endpoint aceita sem autenticação (dev only).
+    arc_payment_secret: str = os.getenv("ARC_PAYMENT_SECRET", "")
+
+    # ── Circle Payments (traction) ────────────────────────────────────────────
+    # circle_platform_wallet_id: wallet treasury da plataforma (paga creators).
+    # circle_api_key já declarado no bloco "Arc / Circle Programmable Wallets" acima.
+    circle_platform_wallet_id: str = os.getenv("CIRCLE_WALLET_ID", "")
+
     def __post_init__(self):
         object.__setattr__(
             self,
@@ -131,7 +141,7 @@ class Settings:
         object.__setattr__(self, "cors_allowed_origin_regex", cors_origin_regex)
         # Headers CORS: em producao, restringir a lista minima necessaria.
         # Por padrao aceita os headers padrao REST + Authorization.
-        cors_headers_default = "Content-Type,Authorization,Accept,X-Requested-With,X-Payment,X-Payment-Required"
+        cors_headers_default = "Content-Type,Authorization,Accept,X-Requested-With,X-Payment,X-Payment-Required,X-Arc-Secret"
         object.__setattr__(
             self,
             "cors_allowed_headers",

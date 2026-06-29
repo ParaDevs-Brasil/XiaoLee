@@ -213,5 +213,43 @@
     "cancel": "Cancel",
     "save": "Save",
     "refresh": "Refresh"
+  },
+  "traction": {
+    "title": "Traction Live",
+    "subtitle": "Real USDC flowing to creators · RFB-06 · Arc Lepton",
+    "usdc_paid": "USDC Paid",
+    "usdc_paid_sub": "Total in window",
+    "payments": "Payments",
+    "payments_sub": "Nanopayments",
+    "creators": "Creators",
+    "creators_sub": "Active",
+    "latency_ok": "Sub-500ms SLA",
+    "latency_degraded": "Latency degraded",
+    "latency_sub": "Payment confirmation latency — our key differentiator",
+    "feed_title": "Live Payment Feed",
+    "feed_sub": "Agent → Creator · real-time",
+    "feed_empty": "Waiting for payments…",
+    "feed_empty_sub": "Once the agent starts paying creators, events will appear here in real time.",
+    "sse_live": "SSE live",
+    "polling": "polling",
+    "footer": "Arc Lepton · RFB-06 · XiaoLee Core"
+  },
+  "onboarding": {
+    "title": "Become a Creator",
+    "subtitle": "Start earning USDC in 3 steps — no friction.",
+    "step1_label": "Connect Wallet",
+    "step1_desc": "Connect your Circle wallet to receive USDC payments.",
+    "step1_cta": "Connect Circle Wallet",
+    "step2_label": "Your @handle",
+    "step2_desc": "Enter your X (Twitter) handle to be discoverable by the agent.",
+    "step2_placeholder": "@yourhandle",
+    "step2_cta": "Confirm Handle",
+    "step3_label": "You're eligible!",
+    "step3_desc": "The agent will pay you USDC when your content is selected.",
+    "step3_cta": "Go to Traction Dashboard",
+    "connecting": "Connecting…",
+    "confirming": "Confirming…",
+    "error_handle": "Enter a valid @handle",
+    "error_wallet": "Could not connect Circle wallet. Try again."
   }
 }

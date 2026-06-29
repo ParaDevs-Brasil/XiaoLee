@@ -144,7 +144,10 @@ class ArcNativeClient:
         return w3
 
     def _account(self):
-        from web3 import Web3
+        try:
+            from web3 import Web3
+        except ImportError:
+            raise RuntimeError("web3 não instalado. Rode: pip install web3>=6.20.0")
         if not self.private_key:
             raise RuntimeError("ARC_AGENT_PRIVATE_KEY não configurado")
         return Web3().eth.account.from_key(self.private_key)

@@ -33,6 +33,7 @@ PyJWT>=2.8.0               # JWT para tokens SEP-10
 
 # ─── HTTP / Networking ────────────────────────────────────────────────────────
 aiohttp==3.13.5            # HTTP async para integrações externas
+httpx==0.27.0              # HTTP async — Circle Payments API
 
 # ─── IA / LLM ─────────────────────────────────────────────────────────────────
 anthropic>=0.69.0          # Claude (Messages API) — engine agêntica (LLM_PROVIDER=anthropic)

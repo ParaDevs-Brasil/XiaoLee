@@ -448,7 +448,10 @@ class CCTPClient:
                 continue
 
             t0 = topics[0]
-            topic_hex = t0.hex() if isinstance(t0, bytes) else str(t0)
+            if isinstance(t0, bytes):
+                topic_hex = "0x" + t0.hex()
+            else:
+                topic_hex = str(t0)
             if topic_hex.lower() != _MESSAGE_SENT_TOPIC.lower():
                 continue
 
