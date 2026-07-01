@@ -184,18 +184,49 @@ Gravar no Loom (gratuito, link público imediato).
 ### P3-02 — README público mapeado aos critérios do hackathon
 **Owner: Jeiel | ETA: D05**
 
-O README precisa ter uma seção "Judging Criteria — How XiaoLee addresses each":
+O README precisa ter uma seção "How XiaoLee scores on Lepton criteria" **no topo**
+(logo abaixo do título/tagline) — é o primeiro contato do júri, e se não for óbvio
+em segundos como o XiaoLee mapeia os 4 critérios, o júri passa para o próximo projeto.
+
+Bloco pronto para colar no README (paths já verificados contra o código em 01/jul):
 
 ```markdown
+> **Live on Arc testnet:** X creators paid · $Y.YY USDC settled · avg latency Zms
+> [Live demo](<URL>) · [Video demo](<LOOM_URL>) · [Submit form](https://forms.gle/SMqLaw2pMGDe58LFA)
+
 ## How XiaoLee scores on Lepton criteria
 
-| Criterion | How we address it |
-|-----------|------------------|
-| Agentic (30%) | ClaudeAgentEngine: autonomous discover→evaluate→pay loop |
-| Traction (30%) | X creators onboarded, Y USDC settled on Arc testnet |
-| Circle Tools (20%) | W3S wallets, x402 on Arc, CCTP bridge, App Kit |
-| Innovation (20%) | ML-DSA-87 PQC receipts + CCTP cross-chain + a2a |
+| Criterion | Weight | How XiaoLee addresses it | Evidence |
+|---|---|---|---|
+| **Agentic** | 30% | `ClaudeAgentEngine`: autonomous discover → evaluate → pay loop. No human in the loop — the agent decides which creators to pay and how much, within budget constraints. | `backend/claude_agent.py`, `POST /v1/agent/run-campaign` |
+| **Traction** | 30% | Creators onboarded and USDC settled on Arc testnet during the event window, exposed live via a stats/feed API and Grafana dashboard. | `GET /v1/traction/stats`, `GET /v1/traction/feed` (SSE), `backend/server/traction_routes.py` |
+| **Circle Tools** | 20% | Circle W3S developer wallets for USDC payouts, x402 HTTP 402 nanopayments on Arc, CCTP bridge to move USDC from Sepolia to Arc, App Kit for the frontend wallet. | `backend/server/integrations/arc_client.py`, `backend/server/routes/arc_x402_routes.py`, `backend/server/integrations/cctp_client.py` |
+| **Innovation** | 20% | ML-DSA-87 (NIST FIPS 204) post-quantum signatures on every payment receipt, plus CCTP cross-chain funding and agent-to-agent identity (ERC-8004, stretch). | `backend/services/pqc_receipt.py`, `backend/server/routes/trust_routes.py` |
+
+### Quick start for judges
+
+\`\`\`bash
+# x402 on Arc — should return HTTP 402 with "network":"arc","asset":"USDC"
+curl -X POST https://<URL>/v1/arc/ai/query \
+  -H "Content-Type: application/json" \
+  -d '{"message":"hello"}'
+
+# Traction stats — creators paid, USDC settled, latency
+curl https://<URL>/v1/traction/stats
+\`\`\`
 ```
+
+**Antes de colar no README:**
+1. Preencher `<URL>` (link do deploy — depende de P1-04) e `<LOOM_URL>` (depende de P3-01)
+2. Preencher X (creators) e $Y.YY (USDC settled) no banner — depende de P1-01/P1-02
+3. Rodar os dois `curl` contra o staging real para confirmar que retornam o esperado antes de publicar
+
+**Critério de aceite:**
+- [ ] Seção "How XiaoLee scores on Lepton criteria" no topo do README
+- [ ] Banner de tração com números reais (preencher após P1-01)
+- [ ] Quick start com comandos curl que o júri pode executar
+- [ ] Link para vídeo demo (preencher após P3-01)
+- [ ] Link para formulário de submissão
 
 ---
 
