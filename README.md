@@ -8,6 +8,55 @@
 
 ---
 
+## How XiaoLee scores on Lepton Hackathon criteria
+
+| Criterion | Weight | How XiaoLee addresses it | Evidence |
+|---|---|---|---|
+| **Agentic** | 30% | `ClaudeAgentEngine`: autonomous discover → evaluate → pay loop. No human in the loop — the agent decides which creators to pay and how much, within budget constraints. | [`backend/claude_agent.py`](backend/claude_agent.py), `POST /v1/agent/run-campaign` |
+| **Traction** | 30% | Creators onboarded, USDC settled on Arc testnet during the event window, live stats/feed for the judges to watch USDC move in real time. | `GET /v1/traction/stats`, `GET /v1/traction/feed` (SSE) — [`backend/server/traction_routes.py`](backend/server/traction_routes.py) |
+| **Circle Tools** | 20% | Circle W3S developer wallets for USDC payouts, x402 HTTP 402 nanopayments on Arc, CCTP bridge to move USDC from Sepolia to Arc, App Kit for the frontend wallet. | [`backend/server/integrations/arc_client.py`](backend/server/integrations/arc_client.py), [`backend/server/routes/arc_x402_routes.py`](backend/server/routes/arc_x402_routes.py), [`backend/server/integrations/cctp_client.py`](backend/server/integrations/cctp_client.py) |
+| **Innovation** | 20% | ML-DSA-87 (NIST FIPS 204) post-quantum signatures on every payment receipt, plus CCTP cross-chain funding and agent-to-agent identity (ERC-8004, stretch). | [`backend/services/pqc_receipt.py`](backend/services/pqc_receipt.py), [`backend/server/routes/trust_routes.py`](backend/server/routes/trust_routes.py) |
+
+> **Live on Arc testnet:** <!-- TODO(P1-01/P1-02): preencher com números reais antes da submissão --> `X` creators paid · `$Y.YY` USDC settled · avg latency `Zms`
+> [Live demo](<URL>) <!-- TODO(P1-04): link do deploy --> · [Video demo](<LOOM_URL>) <!-- TODO(P3-01): link do Loom --> · [Submit form](https://forms.gle/SMqLaw2pMGDe58LFA)
+
+## Quick Start for Judges
+
+```bash
+# Test x402 on Arc — no payment yet, must return HTTP 402
+curl -X POST https://<URL>/v1/arc/ai/query \
+  -H "Content-Type: application/json" \
+  -d '{"message":"hello"}'
+```
+
+Expected response (`402 Payment Required`) — network/asset are nested inside `payment`:
+
+```json
+{
+  "error": "Payment Required",
+  "message": "Esta query AI requer um micropagamento de 0.10 USDC no Arc...",
+  "payment": {
+    "version": "x402/1",
+    "network": "arc",
+    "scheme": "arc",
+    "asset": "USDC",
+    "amount": "0.10",
+    "pay_to": "0x...",
+    "blockchain": "ETH-SEPOLIA",
+    "expires": 1735689600
+  }
+}
+```
+
+```bash
+# Live traction — USDC settled, creators active, latency
+curl https://<URL>/v1/traction/stats
+```
+
+`<URL>` = deploy público (Railway/staging) — preencher assim que o P1-04 estiver concluído.
+
+---
+
 ## O problema
 
 Pagar creator hoje é em lote, atrasado, com mínimo de saque e fricção de chain. O micro-trabalho — um post, uma fração de engajamento — **simplesmente não é pagável**: o custo da transação supera o valor pago.
