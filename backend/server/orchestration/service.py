@@ -74,8 +74,17 @@ _STELLAR_CONTEXT = (
 )
 
 
+_AUTO_DETECT_CLAUDE_ENGINE = object()  # sentinel: distingue "não passado" de "explicitamente None"
+
+
 class OrchestrationService:
-    def __init__(self, gemini: GeminiClient, solana: SolanaClient, stellar: Optional[StellarAdapter] = None):
+    def __init__(
+        self,
+        gemini: GeminiClient,
+        solana: SolanaClient,
+        stellar: Optional[StellarAdapter] = None,
+        claude_engine=_AUTO_DETECT_CLAUDE_ENGINE,
+    ):
         self.gemini = gemini
         self.solana = solana
         self.stellar = stellar
@@ -83,6 +92,13 @@ class OrchestrationService:
         # Claude agentic engine — active only when LLM_PROVIDER=anthropic + key set.
         # When on, execute() routes through the multi-step tool-use loop and the
         # legacy Gemini intent state machine below becomes the fallback.
+        # `claude_engine` aceita override explícito (inclusive None) — usado pelos
+        # testes pra exercitar o caminho legado Gemini sem chamar a API real da
+        # Anthropic sempre que ANTHROPIC_API_KEY estiver configurada no ambiente.
+        if claude_engine is not _AUTO_DETECT_CLAUDE_ENGINE:
+            self.claude_engine = claude_engine
+            return
+
         self.claude_engine = None
         if settings.llm_provider == "anthropic" and settings.anthropic_api_key:
             try:

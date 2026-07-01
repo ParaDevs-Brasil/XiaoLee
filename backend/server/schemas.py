@@ -53,7 +53,9 @@ class SwapPrepareResponse(BaseModel):
 class PaymentSettledEvent(BaseModel):
     """Evento emitido pelo agente ao confirmar pagamento USDC on-chain."""
     intent_id: str = Field(description="ID da intenção que gerou o pagamento")
-    amount: float = Field(gt=0, description="Valor em USDC")
+    # allow_inf_nan=False: Infinity passaria em `gt=0` (inf > 0) e corromperia
+    # permanentemente o total acumulado em server/metrics.py (_usdc_total += inf).
+    amount: float = Field(gt=0, allow_inf_nan=False, description="Valor em USDC")
     creator: str = Field(description="@handle do creator")
     tx: str = Field(description="Hash da transação on-chain")
     ts: Optional[str] = Field(default=None, description="ISO timestamp (preenchido pelo backend se omitido)")

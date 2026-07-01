@@ -23,7 +23,10 @@ class FakeSolana:
 
 @pytest.mark.asyncio
 async def test_detect_balance_intent_with_wallet():
-    service = OrchestrationService(gemini=FakeGemini(), solana=FakeSolana())
+    # claude_engine=None força o caminho legado (Gemini/regras) — sem isso, com
+    # ANTHROPIC_API_KEY configurada no ambiente, o construtor ligaria o
+    # ClaudeAgentEngine de verdade e chamaria a API real da Anthropic aqui.
+    service = OrchestrationService(gemini=FakeGemini(), solana=FakeSolana(), claude_engine=None)
 
     result = await service.execute(
         "consulta saldo da carteira 7vfCXTUXx5X5qM9A2inA1rYv9r8h7xjFh8H6gVn8jYdA",
@@ -36,7 +39,10 @@ async def test_detect_balance_intent_with_wallet():
 
 @pytest.mark.asyncio
 async def test_detect_swap_quote_intent():
-    service = OrchestrationService(gemini=FakeGemini(), solana=FakeSolana())
+    # claude_engine=None força o caminho legado (Gemini/regras) — sem isso, com
+    # ANTHROPIC_API_KEY configurada no ambiente, o construtor ligaria o
+    # ClaudeAgentEngine de verdade e chamaria a API real da Anthropic aqui.
+    service = OrchestrationService(gemini=FakeGemini(), solana=FakeSolana(), claude_engine=None)
 
     result = await service.execute("quero swap 10 usdc para sol", "user-2")
 
@@ -47,7 +53,10 @@ async def test_detect_swap_quote_intent():
 
 @pytest.mark.asyncio
 async def test_help_fallback_uses_gemini_reply():
-    service = OrchestrationService(gemini=FakeGemini(), solana=FakeSolana())
+    # claude_engine=None força o caminho legado (Gemini/regras) — sem isso, com
+    # ANTHROPIC_API_KEY configurada no ambiente, o construtor ligaria o
+    # ClaudeAgentEngine de verdade e chamaria a API real da Anthropic aqui.
+    service = OrchestrationService(gemini=FakeGemini(), solana=FakeSolana(), claude_engine=None)
 
     result = await service.execute("me explica o que voce faz", "user-3")
 

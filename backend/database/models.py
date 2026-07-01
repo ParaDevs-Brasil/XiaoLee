@@ -200,6 +200,19 @@ class PaymentIntent(Base):
     executed_at:  Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class SettledPayment(Base):
+    """Feed de tração persistido (POST /v1/payments/settled) — hidrata server/metrics.py no boot
+    para o dashboard sobreviver a restart do backend."""
+    __tablename__ = 'settled_payments'
+
+    intent_id:      Mapped[str] = mapped_column(Text, unique=True, index=True)
+    creator_handle: Mapped[str] = mapped_column(Text, index=True)
+    amount_usdc:    Mapped[float] = mapped_column(Numeric(20, 8))
+    tx:             Mapped[str] = mapped_column(Text)
+    latency_ms:     Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    settled_at:     Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
 class OnchainEvent(Base):
     __tablename__ = 'onchain_events'
 

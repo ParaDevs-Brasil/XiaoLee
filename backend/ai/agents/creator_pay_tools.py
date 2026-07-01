@@ -263,6 +263,15 @@ def make_tool_executors(
         if not to:
             return {"error": "to address/handle is required"}
 
+        # Guard: amount must be positive — a zero/negative amount would otherwise pass
+        # the "amount_usdc > remaining" check below and, on success, *reduce* spent["usdc"]
+        # (spent["usdc"] += amount_usdc), inflating the remaining budget for later payments.
+        if amount_usdc <= 0:
+            return {
+                "error": "amount_usdc must be positive",
+                "requested_usdc": amount_usdc,
+            }
+
         # Guard: budget check
         remaining = budget_usdc - spent["usdc"]
         if amount_usdc > remaining:

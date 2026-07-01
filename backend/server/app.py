@@ -11,7 +11,8 @@ from typing import Deque, Dict
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from database import init_db
@@ -96,6 +97,32 @@ async def lifespan(app: FastAPI):
     except Exception as _exc:
         logger.warning("[startup] could not check stale intents: %s", _exc)
 
+    # Hidrata o feed de tração (server/metrics.py) a partir do DB — sem isso, o dashboard
+    # que o júri vê zera a cada restart do backend mesmo com pagamentos reais confirmados.
+    try:
+        import database.database as _db_mod
+        from database.repository import DatabaseRepository as _Repo
+        from server.metrics import hydrate_traction as _hydrate_traction
+        if _db_mod.SessionLocal is not None:
+            async with _db_mod.SessionLocal() as _session:
+                _repo = _Repo(_session)
+                _settled = await _repo.list_settled_payments()
+                _hydrate_traction([
+                    {
+                        "intent_id":      _p.intent_id,
+                        "amount_usdc":    float(_p.amount_usdc),
+                        "creator_handle": _p.creator_handle,
+                        "tx":             _p.tx,
+                        "latency_ms":     float(_p.latency_ms),
+                        "ts":             _p.settled_at.isoformat(),
+                    }
+                    for _p in _settled
+                ])
+                if _settled:
+                    logger.info("[startup] traction hydrated from DB: %d settled payments", len(_settled))
+    except Exception as _exc:
+        logger.warning("[startup] could not hydrate traction feed: %s", _exc)
+
     yield
 
     for task in (telegram_task, x_task):
@@ -109,6 +136,35 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+def _sanitize_non_finite(obj):
+    """Substitui float('nan')/inf/-inf por string antes de serializar.
+
+    Starlette's JSONResponse usa json.dumps(..., allow_nan=False) (JSON estrito) —
+    se um payload inválido (ex: amount=Infinity) chega a um erro 422 do FastAPI, o
+    valor bruto rejeitado é ecoado de volta em `detail[].input` por padrão, e esse
+    float não-finito faz o PRÓPRIO response de erro estourar um 500 não tratado.
+    """
+    if isinstance(obj, float) and (obj != obj or obj in (float("inf"), float("-inf"))):
+        return "NaN" if obj != obj else ("Infinity" if obj > 0 else "-Infinity")
+    if isinstance(obj, dict):
+        return {k: _sanitize_non_finite(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_non_finite(v) for v in obj]
+    return obj
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_exception_handler(request: Request, exc: RequestValidationError) -> Response:
+    from fastapi.encoders import jsonable_encoder
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=422,
+        content={"detail": _sanitize_non_finite(jsonable_encoder(exc.errors()))},
+    )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allowed_origins,

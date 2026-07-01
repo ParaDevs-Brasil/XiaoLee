@@ -194,7 +194,8 @@ class TestX402FailClosed:
             if original:
                 os.environ["STELLAR_X402_WALLET"] = original
 
-    def test_verify_payment_raises_503_without_wallet(self):
+    @pytest.mark.asyncio
+    async def test_verify_payment_raises_503_without_wallet(self):
         """_verify_payment_header deve levantar HTTPException(503) sem wallet."""
         from fastapi import HTTPException
         from server.routes.x402_routes import _verify_payment_header
@@ -203,9 +204,7 @@ class TestX402FailClosed:
         with patch("server.routes.x402_routes._x402_wallet", return_value=""):
             with patch("server.routes.x402_routes._x402_enabled", return_value=True):
                 with pytest.raises(HTTPException) as exc:
-                    asyncio.get_event_loop().run_until_complete(
-                        _verify_payment_header(valid_header, None)
-                    )
+                    await _verify_payment_header(valid_header, None)
                 assert exc.value.status_code == 503
 
 
@@ -534,7 +533,8 @@ class TestMockSep10NonceValidation:
 # =============================================================================
 
 class TestWalletAddressValidation:
-    def test_non_stellar_address_rejected_in_x402(self):
+    @pytest.mark.asyncio
+    async def test_non_stellar_address_rejected_in_x402(self):
         """raw_wallet injetado no header JSON não deve crashar — apenas tx_hash é usado."""
         from fastapi import HTTPException
         from server.routes.x402_routes import _verify_payment_header
@@ -549,9 +549,7 @@ class TestWalletAddressValidation:
                     "raw_wallet": "'] DROP TABLE users; --",
                 })
                 try:
-                    asyncio.get_event_loop().run_until_complete(
-                        _verify_payment_header(bad_header, stellar_mock)
-                    )
+                    await _verify_payment_header(bad_header, stellar_mock)
                 except HTTPException:
                     pass  # 503/4xx são esperados
                 except Exception as exc:

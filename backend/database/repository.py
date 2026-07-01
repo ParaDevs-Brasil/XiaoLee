@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from .models import CampaignParticipant, PaymentIntent, User, DMLog
+from .models import CampaignParticipant, PaymentIntent, SettledPayment, User, DMLog
 
 
 class DatabaseRepository:
@@ -194,5 +195,52 @@ class DatabaseRepository:
     async def list_stale_pending_intents(self) -> list[PaymentIntent]:
         """Retorna intents presos em 'pending' (criados mas nunca enviados para a chain)."""
         stmt = select(PaymentIntent).where(PaymentIntent.status == "pending")
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    # ------------------------------------------------------------------
+    # SettledPayment — feed de tração persistido (sobrevive a restart)
+    # ------------------------------------------------------------------
+
+    async def get_settled_payment(self, intent_id: str) -> Optional[SettledPayment]:
+        stmt = select(SettledPayment).where(SettledPayment.intent_id == intent_id)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def create_settled_payment(
+        self,
+        intent_id:      str,
+        creator_handle: str,
+        amount_usdc:    float,
+        tx:             str,
+        latency_ms:     float,
+        ts:             Optional[str] = None,
+    ) -> bool:
+        """Persiste um pagamento liquidado. Retorna False se intent_id já existe (idempotente)."""
+        if await self.get_settled_payment(intent_id):
+            return False
+
+        settled_at = datetime.fromisoformat(ts) if ts else datetime.now(timezone.utc)
+        payment = SettledPayment(
+            intent_id=intent_id,
+            creator_handle=creator_handle,
+            amount_usdc=amount_usdc,
+            tx=tx,
+            latency_ms=latency_ms,
+            settled_at=settled_at,
+        )
+        self.session.add(payment)
+        try:
+            await self.session.flush()
+            await self.session.commit()
+        except IntegrityError:
+            await self.session.rollback()
+            return False
+        return True
+
+    async def list_settled_payments(self) -> list[SettledPayment]:
+        """Todos os pagamentos liquidados em ordem cronológica — usado para hidratar
+        o estado in-memory de server/metrics.py no boot do app."""
+        stmt = select(SettledPayment).order_by(SettledPayment.settled_at.asc())
         result = await self.session.execute(stmt)
         return result.scalars().all()

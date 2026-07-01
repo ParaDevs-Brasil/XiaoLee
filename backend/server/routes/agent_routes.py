@@ -12,7 +12,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_db_session
@@ -48,9 +48,12 @@ _RUNS: dict[str, dict] = {}
 
 class RunCampaignRequest(BaseModel):
     campaign_id: int
-    budget_usdc: float
+    # allow_inf_nan=False: sem isso, budget_usdc=Infinity passaria pelo guard manual
+    # "<= 0" no handler (inf <= 0 é False) e o agente rodaria com orçamento efetivamente
+    # ilimitado; NaN também escapa do mesmo guard (nan <= 0 é False).
+    budget_usdc: float = Field(gt=0, allow_inf_nan=False)
     criteria: dict = {}
-    reward_per_creator_usdc: float = 5.0
+    reward_per_creator_usdc: float = Field(default=5.0, gt=0, allow_inf_nan=False)
 
 
 class RunCampaignResponse(BaseModel):

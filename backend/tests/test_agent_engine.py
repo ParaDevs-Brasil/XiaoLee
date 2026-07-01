@@ -175,10 +175,10 @@ class TestArcClient:
 
     @pytest.mark.asyncio
     async def test_sandbox_transfer_status(self):
-        """Em sandbox, qualquer transfer está como 'complete'."""
+        """Em sandbox, qualquer transfer está como 'CONFIRMED' (vocabulário real da Circle)."""
         arc = ArcClient(sandbox=True)
         status = await arc.get_transfer_status("any_transfer_id")
-        assert status["status"] == "complete"
+        assert status["status"] == "CONFIRMED"
 
     def test_sandbox_flag_true_by_default_with_env(self, monkeypatch):
         """ARC_SANDBOX=true deve ativar o modo de teste."""
@@ -186,10 +186,16 @@ class TestArcClient:
         arc = ArcClient(sandbox=True)
         assert arc.sandbox is True
 
-    def test_live_mode_requires_api_key(self):
-        """Sem CIRCLE_API_KEY em modo live, deve dar erro ao tentar pagar."""
+    def test_live_mode_requires_api_key(self, monkeypatch):
+        """Sem CIRCLE_API_KEY em modo live, deve dar erro ao tentar pagar.
+
+        O construtor do ArcClient faz `api_key or os.getenv("CIRCLE_API_KEY", "")` —
+        sem isolar a env real, api_key="" cairia pro CIRCLE_API_KEY de verdade do .env
+        e este teste dispararia uma chamada HTTP real pra api.circle.com (live).
+        """
+        monkeypatch.delenv("CIRCLE_API_KEY", raising=False)
         arc = ArcClient(api_key="", sandbox=False)
-        with pytest.raises(RuntimeError, match="CIRCLE_API_KEY not configured"):
+        with pytest.raises(RuntimeError, match="CIRCLE_API_KEY or CIRCLE_WALLET_ID not configured"):
             asyncio.run(arc.send_usdc("0xabc", 1.0, "intent123"))
 
 
