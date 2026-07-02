@@ -10,68 +10,11 @@ import { ThemeProviderWrapper } from '@/providers/ThemeProvider';
 import { useUserCampaigns } from '@/hooks/useUserCampaigns';
 import { useLanguage } from '@/contexts/LanguageContext';
 import UserData from '@/components/UserData';
-
-// ── Inline SVG icons — sem emojis ──────────────────────────────────────────
-const IconTarget = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
-  </svg>
-);
-const IconCheck = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-);
-const IconAward = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
-  </svg>
-);
-const IconLock = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-  </svg>
-);
-const IconUsers = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-  </svg>
-);
-const IconGift = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-  </svg>
-);
-const IconTrendingUp = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
-  </svg>
-);
-const IconActivity = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-  </svg>
-);
-const IconCpu = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>
-  </svg>
-);
-const IconZap = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-  </svg>
-);
-const IconWifi = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
-  </svg>
-);
-const IconShield = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-  </svg>
-);
+import {
+  IconTarget, IconCheck, IconAward, IconLock, IconUsers, IconGift,
+  IconTrendingUp, IconActivity, IconCpu, IconZap, IconWifi, IconShield,
+  type IconProps,
+} from '@/components/icons';
 
 // ── Campaign Summary Bar ───────────────────────────────────────────────────
 function CampaignSummaryBar() {
@@ -83,9 +26,9 @@ function CampaignSummaryBar() {
   const claimed  = campaigns.filter(c => c.tasks_claimed).length;
 
   const stats = [
-    { label: t('dashboard.stat_campaigns'), value: joined,   Icon: IconTarget, accent: "text-fuchsia-500",  bg: "bg-fuchsia-50",  border: "border-fuchsia-100" },
-    { label: t('dashboard.stat_verified'),  value: verified, Icon: IconCheck,  accent: "text-violet-500",   bg: "bg-violet-50",   border: "border-violet-100" },
-    { label: t('dashboard.stat_rewarded'),  value: claimed,  Icon: IconAward,  accent: "text-pink-500",     bg: "bg-pink-50",     border: "border-pink-100" },
+    { label: t('dashboard.stat_campaigns'), value: joined,   Icon: IconTarget, sw: undefined, accent: "text-fuchsia-500",  bg: "bg-fuchsia-50",  border: "border-fuchsia-100" },
+    { label: t('dashboard.stat_verified'),  value: verified, Icon: IconCheck,  sw: 2,          accent: "text-violet-500",   bg: "bg-violet-50",   border: "border-violet-100" },
+    { label: t('dashboard.stat_rewarded'),  value: claimed,  Icon: IconAward,  sw: undefined, accent: "text-pink-500",     bg: "bg-pink-50",     border: "border-pink-100" },
   ];
 
   if (loading) {
@@ -100,13 +43,13 @@ function CampaignSummaryBar() {
 
   return (
     <div className="grid grid-cols-3 gap-3 mb-6">
-      {stats.map(({ label, value, Icon, accent, bg, border }) => (
+      {stats.map(({ label, value, Icon, sw, accent, bg, border }) => (
         <div
           key={label}
           className={`rounded-2xl border ${border} ${bg} p-4 text-center hover:shadow-sm transition-shadow duration-200`}
         >
           <div className={`flex justify-center mb-2 ${accent}`}>
-            <Icon />
+            <Icon className="w-4 h-4" sw={sw} />
           </div>
           <div className="text-2xl font-black text-gray-800 leading-none">{value}</div>
           <div className="text-sm text-gray-600 mt-1 font-semibold">{label}</div>
@@ -118,7 +61,7 @@ function CampaignSummaryBar() {
 
 // ── Global Economy Stat ────────────────────────────────────────────────────
 function EconomyStat({ Icon, value, label, accent }: {
-  Icon: () => React.ReactNode;
+  Icon: (p: IconProps) => React.ReactNode;
   value: string;
   label: string;
   accent: string;
@@ -126,7 +69,7 @@ function EconomyStat({ Icon, value, label, accent }: {
   return (
     <div className="flex items-center gap-3 bg-white rounded-2xl border border-pink-100 p-4 hover:shadow-sm transition-shadow duration-200">
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${accent} bg-white border border-current/10 shadow-sm`}>
-        <Icon />
+        <Icon className="w-5 h-5" />
       </div>
       <div className="min-w-0">
         <div className="text-base font-bold text-gray-800 leading-tight">{value}</div>
@@ -186,7 +129,7 @@ export default function DashboardPage() {
           {/* ── Global Economy ─────────────────────────────────────────── */}
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-3 px-1">
-              <span className="text-fuchsia-400"><IconTrendingUp /></span>
+              <span className="text-fuchsia-400"><IconTrendingUp className="w-5 h-5" /></span>
               <h2 className="text-sm font-bold text-gray-600 uppercase tracking-widest">{t('dashboard.global_economy')}</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -202,7 +145,7 @@ export default function DashboardPage() {
             {/* Activity Feed */}
             <div className="rounded-2xl border border-pink-100 bg-white shadow-sm overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-4 border-b border-pink-100/60">
-                <span className="text-fuchsia-400"><IconActivity /></span>
+                <span className="text-fuchsia-400"><IconActivity className="w-4 h-4" /></span>
                 <div>
                   <h2 className="text-sm font-bold text-gray-700">{t('dashboard.recent_activity')}</h2>
                   <p className="text-sm text-gray-600">{t('dashboard.recent_activity_sub')}</p>
@@ -216,7 +159,7 @@ export default function DashboardPage() {
             {/* Architecture */}
             <div className="rounded-2xl border border-pink-100 bg-white shadow-sm p-5">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-fuchsia-400"><IconCpu /></span>
+                <span className="text-fuchsia-400"><IconCpu className="w-4 h-4" /></span>
                 <h2 className="text-sm font-bold text-gray-700">{t('dashboard.architecture')}</h2>
               </div>
               <p className="text-sm text-gray-600 leading-relaxed mb-4">
@@ -230,7 +173,7 @@ export default function DashboardPage() {
                   { Icon: IconWifi,   label: "Helius" },
                 ].map(({ Icon, label }) => (
                   <div key={label} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-pink-50/80 border border-pink-100">
-                    <span className="text-fuchsia-400 shrink-0"><Icon /></span>
+                    <span className="text-fuchsia-400 shrink-0"><Icon className="w-4 h-4" /></span>
                     <span className="text-xs font-semibold text-gray-600">{label}</span>
                   </div>
                 ))}

@@ -67,7 +67,7 @@ XiaoLee é um protocolo DeFi conversacional que combina:
 | Fase 5 | Concluida | Idempotência 409, Anchor Client, CORS hardening, 65 testes |
 | Fase 6 | Concluida | PostgreSQL/Alembic, Redis Rate Limit, solders PDA, Locust |
 | Fase 7 | Concluida | Docker Compose completo, Grafana, Emergency Pause Rust, Makefile, UI Mobile hardening |
-| Fase 8 | Concluida | UI Premium Refactor: Dashboard e Notifications redesenhados (SVG icons inline, paleta unificada, responsividade mobile, Navbar com ícones premium) |
+| Fase 8 | Concluida | UI Premium Refactor: Dashboard e Notifications redesenhados (SVG icons inline, paleta unificada, responsividade mobile¹, Navbar com ícones premium) |
 | Fase 9 | Concluida | i18n EN/PT: `LanguageContext`, `useLanguage()`, `t()` com dot-path + interpolação `{{var}}`, toggle EN/PT na Navbar, locale files `en.json`/`pt.json`, todos os componentes traduzidos, correções de contraste e tamanho de texto |
 | Fase 10 | Concluida | UX sprint: CampaignCard reativo (fix pós-claim), Dashboard fix (Carteira Desconectada), ActivityFeed unificado (campanhas+notifs), errorCode pattern em hooks, Navbar xs responsiva, Historico redesenhado + chat history localStorage, Wallet scroll fix, Withdraw/Deposit → Wallet modal |
 | Fase 11 | Concluida | Transfer universal (`ModernTransferService`), pre-LLM transfer intent detection, Xiaolee bilíngue (espelha idioma), claim reward custodial sem Ed25519, crossfade de vídeo sem flash, typing indicator PT/EN, mensagem imediata no envio, auto-scroll inteligente, auth fallback por `twitter_user_id` |
