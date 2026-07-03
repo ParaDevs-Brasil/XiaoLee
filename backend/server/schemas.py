@@ -71,5 +71,5 @@ class TractionSnapshot(BaseModel):
 
 
 class CreatorRegisterRequest(BaseModel):
-    circle_wallet_id: str = Field(description="ID da wallet Circle (App Kit)")
+    circle_wallet_id: str = Field(description="EVM wallet address (Sepolia, 0x...) or Circle App Kit wallet ID")
     twitter_handle: str = Field(description="@handle do creator no X/Twitter")
