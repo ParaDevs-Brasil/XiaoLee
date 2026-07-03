@@ -4,8 +4,10 @@ import Video from "./Video";
 import UserData from "./UserData";
 import handleAuth, { AuthStatus } from "@/hooks/useAuth";
 import { signTransactionXdr, submitToHorizon } from "@/utils/stellar";
-import { IconSend, IconChat, IconCheck } from "@/components/icons";
+import { IconSend, IconCheck, IconSpark } from "@/components/icons";
 import { XiaoleeBubble } from "@/components/landing/primitives";
+import ChatHeader from "@/components/chat/ChatHeader";
+import EmptyState from "@/components/chat/EmptyState";
 
 type SwapExecution = {
   chain?: string;
@@ -26,7 +28,14 @@ type MessageType = {
   hasCode?: boolean;
   code?: string;
   execution?: SwapExecution;
+  time?: string;
 };
+
+function formatTime(iso?: string): string {
+  const date = iso ? new Date(iso) : new Date();
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 const actions = {
   Cheer: "xiaolee_cheer.mov",
   Giggle: "xiaolee_giggle.mp4",
@@ -84,7 +93,8 @@ export default function ChatPanel() {
           sent: chat.user_message.content,
           response: chat.assistant_response.content,
           hasCode: false,
-          code: ""
+          code: "",
+          time: formatTime(chat.user_message.timestamp)
         }));
         setMsgs(existingMessages);
       }
@@ -169,8 +179,10 @@ export default function ChatPanel() {
     setMessage("");
     isNearBottomRef.current = true; // always scroll on send
 
+    const sentAt = formatTime();
+
     // Show user message + typing indicator immediately
-    setMsgs(prev => [...prev, { sent: message, response: TYPING_SENTINEL, hasCode: false, code: "" }]);
+    setMsgs(prev => [...prev, { sent: message, response: TYPING_SENTINEL, hasCode: false, code: "", time: sentAt }]);
 
     try {
       const response = await sendChatMessage(message);
@@ -192,7 +204,7 @@ export default function ChatPanel() {
         const execution = response.execution as SwapExecution | undefined;
         setMsgs(prev => {
           const updated = [...prev];
-          updated[updated.length - 1] = { sent: message, response: content, hasCode: messageHasCode, code: messageCode, execution };
+          updated[updated.length - 1] = { sent: message, response: content, hasCode: messageHasCode, code: messageCode, execution, time: sentAt };
           return updated;
         });
         UserData.addLocalChatMessage(message, content);
@@ -207,7 +219,7 @@ export default function ChatPanel() {
       const errText = "Sorry, there was an error sending your message. Please try again.";
       setMsgs(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { sent: message, response: errText, hasCode: false, code: "" };
+        updated[updated.length - 1] = { sent: message, response: errText, hasCode: false, code: "", time: sentAt };
         return updated;
       });
       UserData.addLocalChatMessage(message, errText);
@@ -217,24 +229,10 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="w-full lg:col-span-2 h-full min-h-0 rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm flex flex-col overflow-hidden">
+    <div className="w-full lg:col-span-7 h-full min-h-0 rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-e2 flex flex-col overflow-hidden">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 md:px-5 py-3 md:py-4 border-b border-pink-100/60 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="text-fuchsia-400"><IconChat size={16} /></span>
-          <div>
-            <h2 className="text-sm font-bold text-gray-700">Chat with Xiaolee</h2>
-            <p className="text-xs text-gray-500 hidden md:block">Swaps, campaigns and payments — by message</p>
-          </div>
-        </div>
-        {authStatus?.status === "active" && (
-          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1">
-            <IconCheck size={10} sw={3} />
-            Authenticated
-          </span>
-        )}
-      </div>
+      <ChatHeader authenticated={authStatus?.status === "active"} />
 
       {/* Messages */}
       <div
@@ -243,29 +241,23 @@ export default function ChatPanel() {
         className="flex-1 overflow-y-auto px-3 md:px-5 py-4 space-y-4 custom-scrollbar min-h-0"
       >
         {messagesWithCodes.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <XiaoleeBubble size={64} />
-            <p className="mt-4 text-sm font-semibold text-gray-700">
-              Start a chat with Xiaolee
-            </p>
-            <p className="mt-1 text-xs text-gray-500 max-w-xs leading-relaxed">
-              Ask for a swap, check a balance or join a campaign — she handles it all right here. (◕‿◕)♡
-            </p>
-          </div>
+          <EmptyState onSuggestion={(text) => !loading && handleSendMessage(text)} />
         )}
 
         {messagesWithCodes.map((msg, index) => (
-          <div key={index} className="space-y-3">
+          <div key={index} className="space-y-3 msg-in">
 
             {/* User Message */}
             <div className="flex justify-end">
               <div className="max-w-[85%] md:max-w-[70%]">
-                <div className="btn-primary text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+                <div className="btn-primary text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-e1">
                   <p className="font-medium leading-relaxed break-words text-sm">
                     {msg.sent}
                   </p>
                 </div>
-                <p className="text-[10px] text-gray-400 text-right mt-1 pr-1">You</p>
+                <p className="text-[10px] text-gray-500 text-right mt-1 pr-1">
+                  You{msg.time ? ` · ${msg.time}` : ""}
+                </p>
               </div>
             </div>
 
@@ -275,7 +267,7 @@ export default function ChatPanel() {
                 <XiaoleeBubble size={28} />
               </div>
               <div className="max-w-[85%] md:max-w-[70%]">
-                <div className="bg-white border border-pink-100 rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">
+                <div className="bg-white border border-pink-100 rounded-2xl rounded-bl-md px-4 py-2.5 shadow-e1">
                   {msg.response === TYPING_SENTINEL ? (
                     <div className="flex items-center gap-2 py-1 text-fuchsia-400">
                       <span className="typing-dot" />
@@ -366,7 +358,9 @@ export default function ChatPanel() {
 
                 {/* Meta row: name + reactions */}
                 <div className={`flex items-center justify-between mt-1 px-1 ${msg.response === TYPING_SENTINEL ? 'hidden' : ''}`}>
-                  <span className="text-[10px] text-gray-400">Xiaolee</span>
+                  <span className="text-[10px] text-gray-500">
+                    Xiaolee{msg.time ? ` · ${msg.time}` : ""}
+                  </span>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => Video.setPfp("xiaolee_love.mp4")}
@@ -399,28 +393,33 @@ export default function ChatPanel() {
       </div>
 
       {/* Message Input */}
-      <div className="flex gap-2 px-3 md:px-5 py-3 md:py-4 border-t border-pink-100/60 shrink-0 bg-white/50">
-        <input
-          type="text"
-          inputMode="text"
-          enterKeyHint="send"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onFocus={(e) => {
-            setTimeout(() => {
-              e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 300);
-          }}
-          onKeyPress={(e) => {
-            if (e.key === "Enter" && message.trim() && !loading) {
-              e.preventDefault();
-              handleSendMessage(message);
-            }
-          }}
-          placeholder="Your message here… (づ｡◕‿‿◕｡)づ"
-          className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:border-fuchsia-300 disabled:opacity-60 transition"
-          disabled={loading}
-        />
+      <div className="flex items-center gap-2 px-3 md:px-5 py-3 md:py-4 border-t border-pink-100/60 shrink-0 bg-white/50">
+        <div className="relative flex-1">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-fuchsia-400 pointer-events-none">
+            <IconSpark size={16} />
+          </span>
+          <input
+            type="text"
+            inputMode="text"
+            enterKeyHint="send"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onFocus={(e) => {
+              setTimeout(() => {
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 300);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && message.trim() && !loading) {
+                e.preventDefault();
+                handleSendMessage(message);
+              }
+            }}
+            placeholder="Ask Xiaolee anything…"
+            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-gray-800 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:border-fuchsia-300 focus:shadow-[0_14px_34px_-14px_rgba(147,51,234,0.3)] disabled:opacity-60 transition-all duration-200"
+            disabled={loading}
+          />
+        </div>
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -429,12 +428,12 @@ export default function ChatPanel() {
             }
           }}
           disabled={!message.trim() || loading}
-          className="btn-primary flex items-center gap-2 px-4 md:px-6 py-3 rounded-xl text-white text-sm font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.97]"
+          className="btn-primary flex items-center justify-center gap-2 px-4 md:px-6 py-3.5 rounded-2xl text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.96]"
         >
           {loading ? (
-            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            <span className="w-[18px] h-[18px] border-2 border-white/40 border-t-white rounded-full animate-spin" />
           ) : (
-            <IconSend size={16} />
+            <IconSend size={18} />
           )}
           <span className="hidden md:inline">{loading ? "Sending…" : "Send"}</span>
         </button>

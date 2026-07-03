@@ -70,9 +70,39 @@
 }
 .btn-primary:hover { filter: brightness(1.04); transform: translateY(-1px); }
 
+/* ── Níveis de elevação (hierarquia de sombras) ──────────────────────────── */
+.shadow-e1 { box-shadow: 0 1px 2px rgba(58, 43, 65, 0.05); }
+.shadow-e2 { box-shadow: 0 2px 8px -2px rgba(58, 43, 65, 0.09), 0 1px 2px rgba(58, 43, 65, 0.04); }
+.shadow-e3 { box-shadow: 0 14px 34px -14px rgba(147, 51, 234, 0.28), 0 2px 6px -2px rgba(58, 43, 65, 0.06); }
+
+/* Mensagem entrando no chat — fade + slide sutil */
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.msg-in { animation: msg-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Avatar "respirando" — escala sutil e lenta */
+@keyframes breath {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+.breath { animation: breath 5s ease-in-out infinite; transform-origin: center; }
+
+/* Card de sugestão do estado vazio */
+.suggestion-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
+}
+.suggestion-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(217, 70, 239, 0.35);
+  box-shadow: 0 10px 24px -12px rgba(217, 70, 239, 0.35);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal::before, .reveal::after { animation: none !important; transition: none !important; }
   .reveal { opacity: 1 !important; transform: none !important; }
+  .msg-in, .breath { animation: none !important; }
 }
 
 /* ── Fim dos tokens globais ─────────────────────────────────────────────── */
@@ -504,37 +534,39 @@ body {
   left: 100%;
 }
 
-/* Scrollbar kawaii styling */
+/* Scrollbar — fina, discreta, visível apenas quando útil */
 ::-webkit-scrollbar {
-  width: 12px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--scrollbar-track-bg);
-  border-radius: 10px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-bg);
-  border-radius: 10px;
-  border: 2px solid var(--scrollbar-track-bg);
+  background: rgba(168, 85, 247, 0.22);
+  border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover-bg);
+  background: rgba(168, 85, 247, 0.45);
 }
 
-@layer components {
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-[var(--scrollbar-thumb-bg)] rounded-full;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-[var(--scrollbar-thumb-hover-bg)];
-  }
+/* Scroll interno do chat: invisível até o hover do container */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 8px;
+}
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.28);
+}
+.custom-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.5);
 }

@@ -1,0 +1,39 @@
+import React from "react";
+import { XiaoleeBubble } from "@/components/landing/primitives";
+import { IconCheck } from "@/components/icons";
+
+type ChatHeaderProps = {
+  authenticated: boolean;
+};
+
+export default function ChatHeader({ authenticated }: ChatHeaderProps) {
+  return (
+    <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b border-pink-100/60 shrink-0 bg-white/60">
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <XiaoleeBubble size={38} />
+          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-800 leading-tight">Xiaolee</h2>
+            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Online
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 truncate">
+            Your intelligent DeFi assistant
+          </p>
+        </div>
+      </div>
+
+      {authenticated && (
+        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1">
+          <IconCheck size={10} sw={3} />
+          Authenticated
+        </span>
+      )}
+    </div>
+  );
+}
