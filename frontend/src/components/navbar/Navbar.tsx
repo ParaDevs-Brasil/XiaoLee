@@ -136,42 +136,52 @@ export default function Navbar() {
           </div>
           
           <div className="flex items-center justify-end flex-1 gap-1 md:gap-3">
-            {/* Navigation Buttons */}
-            <div className="flex items-center gap-1 md:gap-2">
+            {/* Navigation — quiet links with palette accents; Dashboard is the single primary CTA */}
+            <div className="flex items-center gap-1 md:gap-1.5">
               <Link
                 href="/campaigns"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 rounded-lg md:rounded-xl px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-11 ${
+                  pathname === '/campaigns'
+                    ? 'bg-[var(--input-bg)] text-fuchsia-600 shadow-e1'
+                    : 'text-[var(--text-secondary)] hover:bg-white/40 hover:text-fuchsia-600'
+                }`}
               >
-                <RocketLaunchIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.campaigns').slice(0,4)}</span>
-                <span className="font-semibold hidden lg:inline">{t('navbar.campaigns')}</span>
-              </Link>
-
-              <Link
-                href="/notifications"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/notifications' ? 'ring-4 ring-cyan-300 scale-105' : ''}`}
-              >
-                <BellIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.notifications').slice(0,5)}</span>
-                <span className="font-semibold hidden lg:inline">{t('navbar.notifications')}</span>
-              </Link>
-
-              <Link
-                href="/dashboard"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/dashboard' ? 'ring-4 ring-purple-300 scale-105' : ''}`}
-              >
-                <ChartBarIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
-                <span className="font-semibold hidden lg:inline">{t('navbar.dashboard')}</span>
+                <RocketLaunchIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0 text-fuchsia-500" />
+                <span className="hidden lg:inline">{t('navbar.campaigns')}</span>
               </Link>
 
               <Link
                 href="/traction"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-300 border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/traction' ? 'ring-4 ring-emerald-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 rounded-lg md:rounded-xl px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-11 ${
+                  pathname === '/traction'
+                    ? 'bg-[var(--input-bg)] text-sky-600 shadow-e1'
+                    : 'text-[var(--text-secondary)] hover:bg-white/40 hover:text-sky-600'
+                }`}
               >
-                <CurrencyDollarIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">Live</span>
-                <span className="font-semibold hidden lg:inline">Traction</span>
+                <CurrencyDollarIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0 text-sky-500" />
+                <span className="hidden lg:inline">Traction</span>
+              </Link>
+
+              <Link
+                href="/notifications"
+                title={t('navbar.notifications')}
+                aria-label={t('navbar.notifications')}
+                className={`inline-flex items-center justify-center rounded-lg md:rounded-xl transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 active:scale-95 w-9 h-9 sm:h-10 sm:w-10 md:h-11 md:w-11 ${
+                  pathname === '/notifications'
+                    ? 'bg-[var(--input-bg)] text-purple-600 shadow-e1'
+                    : 'text-[var(--text-secondary)] hover:bg-white/40 hover:text-purple-600'
+                }`}
+              >
+                <BellIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
+              </Link>
+
+              <Link
+                href="/dashboard"
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl btn-primary px-0 sm:px-3 md:px-5 text-[11px] md:text-sm font-bold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-11 ${pathname === '/dashboard' ? 'ring-2 ring-white/70' : ''}`}
+              >
+                <ChartBarIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
+                <span className="hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
+                <span className="hidden lg:inline">{t('navbar.dashboard')}</span>
               </Link>
             </div>
 
@@ -180,9 +190,9 @@ export default function Navbar() {
               <div className="relative" data-dropdown>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px]"
+                  className="inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl bg-white/40 border border-white/50 px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold text-[var(--text-primary)] hover:bg-white/60 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 backdrop-blur-sm active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-11"
                 >
-                  <div className="w-4 h-4 md:w-5 md:h-5 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                  <div className="w-5 h-5 md:w-6 md:h-6 bg-gradient-to-br from-pink-400 to-purple-500 text-white rounded-full flex items-center justify-center shrink-0">
                     <UserIcon className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden="true" />
                   </div>
                   <span className="hidden lg:inline">
@@ -420,14 +430,8 @@ export default function Navbar() {
 
         {/* Floating emoji decorations - Hidden on mobile */}
         <div className="hidden md:block absolute top-2 left-20 text-lg animate-float cursor-none">🌸</div>
-        <div className="hidden md:block absolute top-6 right-32 text-sm animate-sparkle delay-200 cursor-none">
-          ✨
-        </div>
-        <div className="hidden md:block absolute bottom-2 left-1/4 text-xs animate-gentle-bounce delay-500 cursor-none">
-          💫
-        </div>
         <div className="hidden md:block absolute bottom-4 right-16 text-sm animate-sparkle delay-700 cursor-none">
-          🌟
+          ✨
         </div>
       </nav>
       
