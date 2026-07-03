@@ -1,13 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Pfp from './Pfp';
 import Video from './Video';
+import UserData from './UserData';
+import { IconStar } from '@/components/icons';
 
 export default function AnimePanel() {
   const [currentPfp, setCurrentPfp] = useState(Video.getPfp());
   const [shouldLoop, setShouldLoop] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [chatCount, setChatCount] = useState(0);
 
   const dragElementRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const loadChatCount = () => setChatCount(UserData.getChatHistory().length);
+    loadChatCount();
+    window.addEventListener('userDataLoaded', loadChatCount);
+    return () => window.removeEventListener('userDataLoaded', loadChatCount);
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -114,23 +124,40 @@ export default function AnimePanel() {
         </div>
       ) : (
         // Desktop: clean glass card, avatar constrained to a stable aspect ratio
-        <div className="w-full lg:col-span-1 h-full min-h-0 rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm flex flex-col overflow-hidden">
+        <div className="w-full lg:col-span-3 h-full min-h-0 rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-e2 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100/60 shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-pink-100/60 shrink-0">
             <div>
               <h3 className="text-sm font-bold text-grad">Xiaolee</h3>
               <p className="text-xs text-gray-500 mt-0.5">Your DeFi companion</p>
             </div>
             <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live
+              Online
             </span>
           </div>
 
-          {/* Avatar — centered, proportional, never stretched */}
-          <div className="flex-1 min-h-0 flex items-center justify-center p-5">
-            <div className="relative w-full max-w-[300px] aspect-[3/4] max-h-full rounded-2xl overflow-hidden border border-pink-100 bg-gradient-to-b from-pink-50/60 to-purple-50/60 shadow-sm">
+          {/* Avatar — fills the available card space, video cropped via object-cover */}
+          <div className="flex-1 min-h-0 p-4">
+            <div className="breath relative w-full h-full rounded-2xl overflow-hidden border border-pink-100 bg-pink-50/40 shadow-e1">
               <Pfp pfp={currentPfp} loop={shouldLoop} />
+            </div>
+          </div>
+
+          {/* Character info */}
+          <div className="px-4 py-3 border-t border-pink-100/60 shrink-0 space-y-2">
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Always ready to help with swaps, campaigns and payments.
+            </p>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-gray-500">
+                {chatCount > 0 ? `${chatCount} conversation${chatCount === 1 ? '' : 's'}` : 'New here? Say hi!'}
+              </span>
+              <span className="flex items-center gap-0.5 text-amber-400" aria-label="5 star assistant">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <IconStar key={i} size={11} />
+                ))}
+              </span>
             </div>
           </div>
         </div>

@@ -8,9 +8,23 @@ export default class Video {
 
     private static idleVideos = [
         "xiaolee_standby.mov",
-        "xiaolee_standby2.mov", 
+        "xiaolee_standby2.mov",
         "xiaolee_standby3.mov"
     ];
+
+    // Animações expressivas intercaladas no ciclo de idle para manter a
+    // personagem viva: pulando, dançando, feliz, surpresa, brava/"não".
+    private static expressionVideos = [
+        "xiaolee_cheer.mov",
+        "xiaolee_kawaii.mov",
+        "xiaolee_giggle.mp4",
+        "xiaolee_love.mp4",
+        "xiaolee_surprise.mov",
+        "xiaolee_uncomfortable.mov"
+    ];
+
+    // Probabilidade de tocar uma expressão em vez de outro standby a cada troca
+    private static EXPRESSION_CHANCE = 0.45;
     
     static setPfp(pfp: string) {
         // Se um vídeo de animação (não idle) estiver tocando, bloqueia a troca.
@@ -49,6 +63,12 @@ export default class Video {
         this.setPfp(randomIdle);
     }
 
+    // Seleciona uma animação expressiva aleatória
+    private static getRandomExpressionVideo(): string {
+        const randomIndex = Math.floor(Math.random() * this.expressionVideos.length);
+        return this.expressionVideos[randomIndex];
+    }
+
     // Seleciona um vídeo idle aleatório
     private static getRandomIdleVideo(): string {
         const randomIndex = Math.floor(Math.random() * this.idleVideos.length);
@@ -72,14 +92,21 @@ export default class Video {
         this.idleTimer = setTimeout(() => {
             // Only change if still in idle video and not transitioning
             if (this.isIdleVideo(this.baseUrl) && !this.isTransitioning && !this.isPlaying) {
+                // Às vezes toca uma expressão (toca uma vez e volta ao idle
+                // via primaryVideoDidEnd); senão, troca de standby.
+                if (Math.random() < this.EXPRESSION_CHANCE) {
+                    this.setPfp(this.getRandomExpressionVideo());
+                    return;
+                }
+
                 const currentIdle = this.baseUrl;
                 let newIdle = this.getRandomIdleVideo();
-                
+
                 // Ensure we don't repeat the same video
                 while (newIdle === currentIdle && this.idleVideos.length > 1) {
                     newIdle = this.getRandomIdleVideo();
                 }
-                
+
                 this.setPfp(newIdle);
             }
         }, randomDelay);
