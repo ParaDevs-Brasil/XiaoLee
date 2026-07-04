@@ -6,7 +6,7 @@ import Navbar from "../../components/navbar/Navbar";
 import { ThemeProviderWrapper } from "@/providers/ThemeProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { registerCreator, CreatorRegisterResult, CreatorChain } from "@/api/api";
-import { connectEvmWallet, isEvmWalletInstalled } from "@/lib/evmWallet";
+import { detectWallets, type DetectedWallet } from "@/lib/walletProviders";
 import { detectChainFromAddress, CHAIN_LABEL, type Chain } from "@/lib/chains";
 import { IconUser, IconWallet, IconCheck, IconDollar, IconArrow, IconActivity } from "@/components/icons";
 
@@ -19,12 +19,13 @@ export default function OnboardingPage() {
   const [walletId, setWalletId] = useState("");
   const [result, setResult] = useState<CreatorRegisterResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
-  const [connecting, setConnecting] = useState(false);
-  const [hasWallet, setHasWallet] = useState(false);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [wallets, setWallets] = useState<DetectedWallet[]>([]);
   const [chain, setChain] = useState<Chain | null>(null);
 
+  // Detecta todas as wallets instaladas: EVM (EIP-6963), Phantom/Solflare, Freighter
   useEffect(() => {
-    setHasWallet(isEvmWalletInstalled());
+    detectWallets().then(setWallets);
   }, []);
 
   // Auto-detect da chain pelo formato do endereço (ROADMAP F0.1):
@@ -34,15 +35,16 @@ export default function OnboardingPage() {
     setChain(detectChainFromAddress(value));
   };
 
-  const handleConnectWallet = async () => {
-    setConnecting(true);
+  const handleConnectWallet = async (wallet: DetectedWallet) => {
+    setConnecting(wallet.id);
+    setErrorMsg("");
     try {
-      const address = await connectEvmWallet();
+      const address = await wallet.connect();
       handleWalletChange(address);
     } catch {
       setErrorMsg(t("onboarding.error_wallet"));
     } finally {
-      setConnecting(false);
+      setConnecting(null);
     }
   };
 
@@ -133,17 +135,32 @@ export default function OnboardingPage() {
                       addressInvalid ? "border-red-300" : "border-gray-200"
                     }`}
                   />
-                  {hasWallet && (
-                    <button
-                      type="button"
-                      onClick={handleConnectWallet}
-                      disabled={connecting || step === "loading"}
-                      className="shrink-0 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--accent-soft)] text-[var(--accent)] text-xs font-bold hover:bg-[#fbe3ef] disabled:opacity-50 transition"
-                    >
-                      {connecting ? t("onboarding.connecting") : t("onboarding.step1_label")}
-                    </button>
-                  )}
                 </div>
+
+                {/* Wallets detectadas — EVM (EIP-6963) · Phantom/Solflare · Freighter */}
+                {wallets.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {wallets.map((w) => (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => handleConnectWallet(w)}
+                        disabled={connecting !== null || step === "loading"}
+                        title={`${w.name} · ${CHAIN_LABEL[w.chain]}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--accent-soft)] text-[var(--accent)] text-xs font-bold hover:bg-[#fbe3ef] disabled:opacity-50 transition"
+                      >
+                        {w.icon && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={w.icon} alt="" className="w-4 h-4 rounded" />
+                        )}
+                        {connecting === w.id ? t("onboarding.connecting") : w.name}
+                        <span className="text-[9px] font-bold uppercase text-[var(--accent)]/60">
+                          {CHAIN_LABEL[w.chain]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* Chain detectada / inválida */}
                 {chain && (
                   <p className="text-xs mt-0.5 flex items-center gap-1.5">
