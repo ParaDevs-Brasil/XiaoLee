@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import api from '@/api/api';
 import UserData from '@/components/UserData';
+import { detectChainFromAddress } from '@/lib/chains';
 
 // ─── Tipos alinhados com o backend ─────────────────────────────────────────────
 
@@ -77,9 +78,18 @@ export default function useJoinCampaign(): UseJoinCampaignReturn {
 
       console.log(`🚀 Tentando participar da campanha ${campaignId}...`);
 
+      // Wallet + chain detectada — o agente precisa saber o trilho de payout
+      // de quem entra pela UI (ROADMAP F0.2 / ADR-006)
+      const joinWallet = UserData.getDevnetWalletPublicKey?.();
       const response = await api.post(
         `/campaigns/join`,
-        { campaign_identifier: campaignId.toString() },
+        {
+          campaign_identifier: campaignId.toString(),
+          ...(joinWallet && {
+            wallet_public_key: joinWallet,
+            chain: detectChainFromAddress(joinWallet),
+          }),
+        },
         { headers: { Authorization: `Bearer ${sessionId}` } }
       );
 
@@ -149,7 +159,10 @@ export default function useJoinCampaign(): UseJoinCampaignReturn {
         `/campaigns/claim`,
         {
           campaign_identifier: campaignId.toString(),
-          ...(walletPublicKey && { wallet_public_key: walletPublicKey }),
+          ...(walletPublicKey && {
+            wallet_public_key: walletPublicKey,
+            chain: detectChainFromAddress(walletPublicKey),
+          }),
         },
         { headers: { Authorization: `Bearer ${sessionId}` } }
       );

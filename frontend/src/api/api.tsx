@@ -33,13 +33,23 @@ export interface CreatorRegisterResult {
   message: string;
 }
 
+export type CreatorChain = "arc" | "solana" | "stellar";
+
+/**
+ * Registra um creator com endereço nativo + chain (ROADMAP F0.1).
+ * `circle_wallet_id` segue no payload por compatibilidade com o contrato
+ * anterior; o backend novo lê `wallet_address` + `chain`.
+ */
 export async function registerCreator(
   twitterHandle: string,
-  circleWalletId: string,
+  walletAddress: string,
+  chain: CreatorChain,
 ): Promise<CreatorRegisterResult> {
   const res = await api.post<CreatorRegisterResult>("/v1/creator/register", {
     twitter_handle: twitterHandle,
-    circle_wallet_id: circleWalletId,
+    wallet_address: walletAddress,
+    chain,
+    circle_wallet_id: walletAddress,
   });
   return res.data;
 }

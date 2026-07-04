@@ -10,12 +10,42 @@ export interface AgentStep {
   tool_result: Record<string, unknown>;
 }
 
+// O backend grava cada payment como {creator_id, amount_usdc, tx, intent_id, step};
+// `to`/`destination_chain` chegam quando o backend normalizar (roadmap F1.1) —
+// use `paymentRecipient()` para ler o destinatário de forma robusta.
 export interface AgentPayment {
   step: number;
-  to: string;
+  to?: string;
+  creator_id?: string;
+  destination_chain?: string;
   amount_usdc: number;
   tx: string;
   intent_id: string;
+}
+
+export function paymentRecipient(p: AgentPayment): string {
+  return p.to ?? p.creator_id ?? "";
+}
+
+// Resultado do tool payout_cross_chain_nanopayment (steps[].tool_result)
+export interface CrossChainPayout {
+  step: number;
+  tx: string;
+  to: string;
+  amount_usdc: number;
+  destination_chain: "solana" | "stellar";
+  status: string;
+  receipt_pqc?: string;
+  latency?: { burn_attest_s: number; mint_s: number; total_s: number };
+  error?: string;
+}
+
+/** Extrai payouts cross-chain (CCTP burn→attest→mint) dos steps do run. */
+export function extractCrossChainPayouts(steps: AgentStep[]): CrossChainPayout[] {
+  return steps
+    .filter((s) => s.tool_name === "payout_cross_chain_nanopayment")
+    .map((s) => ({ step: s.step, ...(s.tool_result as unknown as Omit<CrossChainPayout, "step">) }))
+    .filter((p) => Boolean(p.tx) || Boolean(p.error));
 }
 
 export interface AgentStatusData {

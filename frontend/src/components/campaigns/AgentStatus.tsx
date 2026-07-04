@@ -1,6 +1,12 @@
 "use client";
 import React, { useState } from 'react';
-import { useAgentStatus, AgentRunStatus } from '@/hooks/useAgentStatus';
+import {
+  useAgentStatus,
+  AgentRunStatus,
+  paymentRecipient,
+  extractCrossChainPayouts,
+} from '@/hooks/useAgentStatus';
+import { detectChainFromTx, explorerTxUrl, CHAIN_LABEL, type Chain } from '@/lib/chains';
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 const IconBot = () => (
@@ -160,21 +166,115 @@ export default function AgentStatus({
       {expanded && data && (
         <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-3">
 
-          {/* Payments */}
+          {/* Payments — valor real decidido pelo agente por criador (F1.2) */}
           {data.payments.length > 0 && (
             <div>
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Pagamentos</p>
               <div className="space-y-1">
-                {data.payments.map((p, i) => (
-                  <div key={i} className="flex items-center gap-2 text-[11px] bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5">
-                    <IconCheck />
-                    <span className="font-mono text-gray-600 truncate max-w-[100px]">{p.to.slice(0, 10)}…</span>
-                    <span className="font-bold text-emerald-700 ml-auto">{p.amount_usdc} USDC</span>
-                  </div>
-                ))}
+                {data.payments.map((p, i) => {
+                  const chain = (p.destination_chain as Chain | undefined) ?? detectChainFromTx(p.tx);
+                  const txUrl = explorerTxUrl(p.tx, chain);
+                  return (
+                    <div key={i} className="flex items-center gap-2 text-[11px] bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5">
+                      <IconCheck />
+                      <span className="font-mono text-gray-600 truncate max-w-[100px]">
+                        {paymentRecipient(p).slice(0, 10)}…
+                      </span>
+                      {chain && (
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-white border border-emerald-200 text-emerald-600">
+                          {CHAIN_LABEL[chain]}
+                        </span>
+                      )}
+                      {txUrl && (
+                        <a
+                          href={txUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[9px] font-semibold text-[var(--accent)] hover:underline"
+                          title={p.tx}
+                        >
+                          tx ↗
+                        </a>
+                      )}
+                      <span
+                        className="font-bold text-emerald-700 ml-auto"
+                        title="Valor decidido pelo agente com base no score do criador"
+                      >
+                        {Number(p.amount_usdc).toFixed(2)} USDC
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
+
+          {/* Timeline cross-chain — burn no Arc → attestation → mint no destino (F1.1) */}
+          {(() => {
+            const payouts = extractCrossChainPayouts(data.steps);
+            if (payouts.length === 0) return null;
+            return (
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                  Payouts cross-chain (CCTP)
+                </p>
+                <div className="space-y-1.5">
+                  {payouts.map((cp) => (
+                    <div key={cp.step} className="rounded-lg border border-[var(--border)] bg-white px-2.5 py-2 text-[10px]">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[var(--accent)]">#{cp.step}</span>
+                        <span className="font-mono text-gray-600 truncate max-w-[110px]">{cp.to?.slice(0, 12)}…</span>
+                        <span className="font-bold uppercase text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
+                          Arc → {CHAIN_LABEL[cp.destination_chain] ?? cp.destination_chain}
+                        </span>
+                        {cp.receipt_pqc && (
+                          <span
+                            className="text-[9px] font-semibold text-emerald-600"
+                            title="Recibo pós-quântico ML-DSA-87 emitido para este pagamento"
+                          >
+                            🔐 PQC
+                          </span>
+                        )}
+                        <span className="ml-auto font-bold text-gray-700">
+                          {Number(cp.amount_usdc).toFixed(2)} USDC
+                        </span>
+                      </div>
+                      {cp.error ? (
+                        <p className="mt-1 text-red-500">{cp.error}</p>
+                      ) : (
+                        <div className="mt-1.5 flex items-center gap-1 text-gray-500">
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-100 text-emerald-600">
+                            burn + attest {cp.latency ? `${cp.latency.burn_attest_s}s` : "✓"}
+                          </span>
+                          <span className="text-gray-300">→</span>
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-100 text-emerald-600">
+                            mint {cp.latency ? `${cp.latency.mint_s}s` : "✓"}
+                          </span>
+                          <span className="text-gray-300">→</span>
+                          {(() => {
+                            const url = explorerTxUrl(cp.tx, cp.destination_chain);
+                            return url ? (
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[var(--accent)] hover:underline font-semibold"
+                                title={cp.tx}
+                              >
+                                {cp.status}{cp.latency ? ` · ${cp.latency.total_s}s` : ""} ↗
+                              </a>
+                            ) : (
+                              <span>{cp.status}</span>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Recent steps */}
           {data.steps.length > 0 && (

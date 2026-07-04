@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '../../components/navbar/Navbar';
 import TokenomicsCard from '../../components/dashboard/TokenomicsCard';
+import TreasuryCard from '../../components/dashboard/TreasuryCard';
 import UserStatsCard from '../../components/dashboard/UserStatsCard';
 import ActivityFeed from '../../components/dashboard/ActivityFeed';
 import { TypeUserData } from "@/interfaces";
@@ -43,13 +44,13 @@ function CampaignSummaryBar() {
 
   return (
     <div className="grid grid-cols-3 gap-3 mb-6">
-      {stats.map(({ label, value, Icon, sw, accent, bg, border }) => (
+      {stats.map(({ label, value, Icon, accent, bg, border }) => (
         <div
           key={label}
           className={`rounded-2xl border ${border} ${bg} p-4 text-center hover:shadow-sm transition-shadow duration-200`}
         >
           <div className={`flex justify-center mb-2 ${accent}`}>
-            <Icon className="w-4 h-4" sw={sw} />
+            <Icon className="w-4 h-4" />
           </div>
           <div className="text-2xl font-black text-gray-800 leading-none">{value}</div>
           <div className="text-sm text-gray-600 mt-1 font-semibold">{label}</div>
@@ -122,6 +123,7 @@ export default function DashboardPage() {
 
           {/* ── Tokenomics + User Stats ────────────────────────────────── */}
           <div className="grid grid-cols-1 gap-4 mb-4">
+            <TreasuryCard />
             <TokenomicsCard />
             <UserStatsCard isConnected={!!userData} twitterId={twitterId} />
           </div>

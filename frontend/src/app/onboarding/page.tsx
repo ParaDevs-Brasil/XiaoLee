@@ -5,8 +5,9 @@ import Link from "next/link";
 import Navbar from "../../components/navbar/Navbar";
 import { ThemeProviderWrapper } from "@/providers/ThemeProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { registerCreator, CreatorRegisterResult } from "@/api/api";
+import { registerCreator, CreatorRegisterResult, CreatorChain } from "@/api/api";
 import { connectEvmWallet, isEvmWalletInstalled } from "@/lib/evmWallet";
+import { detectChainFromAddress, CHAIN_LABEL, type Chain } from "@/lib/chains";
 import { IconUser, IconWallet, IconCheck, IconDollar, IconArrow, IconActivity } from "@/components/icons";
 
 type Step = "form" | "loading" | "success" | "error";
@@ -20,16 +21,24 @@ export default function OnboardingPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [hasWallet, setHasWallet] = useState(false);
+  const [chain, setChain] = useState<Chain | null>(null);
 
   useEffect(() => {
     setHasWallet(isEvmWalletInstalled());
   }, []);
 
+  // Auto-detect da chain pelo formato do endereço (ROADMAP F0.1):
+  // 0x + 40 hex → arc · base58 32-44 → solana · G + 55 → stellar
+  const handleWalletChange = (value: string) => {
+    setWalletId(value);
+    setChain(detectChainFromAddress(value));
+  };
+
   const handleConnectWallet = async () => {
     setConnecting(true);
     try {
       const address = await connectEvmWallet();
-      setWalletId(address);
+      handleWalletChange(address);
     } catch {
       setErrorMsg(t("onboarding.error_wallet"));
     } finally {
@@ -37,21 +46,26 @@ export default function OnboardingPage() {
     }
   };
 
+  const addressInvalid = walletId.trim().length > 0 && chain === null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const h = handle.trim().replace(/^@/, "");
     const w = walletId.trim();
-    if (!h || !w) return;
+    if (!h || !w || !chain) return;
 
     setStep("loading");
     try {
-      const data = await registerCreator(h, w);
+      const data = await registerCreator(h, w, chain as CreatorChain);
       setResult(data);
       setStep("success");
     } catch (err: unknown) {
+      const httpStatus = (err as { response?: { status?: number } })?.response?.status;
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        t("onboarding.error_wallet");
+        httpStatus === 422
+          ? t("onboarding.error_invalid_wallet")
+          : detail ?? t("onboarding.error_wallet");
       setErrorMsg(msg);
       setStep("error");
     }
@@ -111,11 +125,13 @@ export default function OnboardingPage() {
                   <input
                     type="text"
                     value={walletId}
-                    onChange={(e) => setWalletId(e.target.value)}
+                    onChange={(e) => handleWalletChange(e.target.value)}
                     placeholder={t("onboarding.wallet_placeholder")}
                     required
                     disabled={step === "loading"}
-                    className="flex-1 min-w-0 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-mono text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-[rgba(216,27,120,0.45)] disabled:opacity-60 transition"
+                    className={`flex-1 min-w-0 px-4 py-3 rounded-xl border bg-gray-50 text-sm font-mono text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-[rgba(216,27,120,0.45)] disabled:opacity-60 transition ${
+                      addressInvalid ? "border-red-300" : "border-gray-200"
+                    }`}
                   />
                   {hasWallet && (
                     <button
@@ -128,6 +144,20 @@ export default function OnboardingPage() {
                     </button>
                   )}
                 </div>
+                {/* Chain detectada / inválida */}
+                {chain && (
+                  <p className="text-xs mt-0.5 flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-bold text-[10px] uppercase">
+                      {CHAIN_LABEL[chain]}
+                    </span>
+                    <span className="text-gray-400">{t("onboarding.chain_detected")}</span>
+                  </p>
+                )}
+                {addressInvalid && (
+                  <p className="text-xs text-red-500 mt-0.5 font-medium">
+                    {t("onboarding.chain_unknown")}
+                  </p>
+                )}
                 <p className="text-xs text-gray-400 mt-0.5">
                   {t("onboarding.wallet_hint_no_wallet")}{" "}
                   <span className="text-[var(--accent)] font-semibold">{t("onboarding.wallet_hint_coming")}</span>
@@ -137,7 +167,7 @@ export default function OnboardingPage() {
               {/* Submit */}
               <button
                 type="submit"
-                disabled={step === "loading" || !handle.trim() || !walletId.trim()}
+                disabled={step === "loading" || !handle.trim() || !walletId.trim() || !chain}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[var(--accent)] text-white text-sm font-bold shadow-lg hover:bg-[var(--accent-hover)] focus:outline-none focus:ring-4 focus:ring-[rgba(216,27,120,0.25)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 {step === "loading" ? (

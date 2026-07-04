@@ -90,7 +90,9 @@
     "recent_activity_sub": "Claims e eventos on-chain",
     "architecture": "Arquitetura Descentralizada",
     "architecture_desc": "Sua identidade Web2 (Twitter) é vinculada on-chain (Arc) de forma segura, sem chaves privadas centralizadas.",
-    "footer": "Arc Testnet · MVP 2.0 · XiaoLee Core"
+    "footer": "Arc Testnet · MVP 2.0 · XiaoLee Core",
+    "treasury_title": "Treasury",
+    "treasury_sub": "USDC disponível por chain — Arc como hub, CCTP para Solana e Stellar"
   },
   "notifications": {
     "title": "Central de Notificações",
@@ -284,7 +286,10 @@
     "connecting": "Conectando…",
     "confirming": "Confirmando…",
     "error_handle": "Informe um @handle válido",
-    "error_wallet": "Não foi possível conectar a carteira. Tente novamente."
+    "error_wallet": "Não foi possível conectar a carteira. Tente novamente.",
+    "chain_detected": "chain detectada automaticamente",
+    "chain_unknown": "Formato de endereço não reconhecido — use um endereço Arc (0x…), Solana (base58) ou Stellar (G…).",
+    "error_invalid_wallet": "A carteira foi rejeitada pelo servidor (422). Confira o formato do endereço e a chain selecionada."
   },
   "evm_wallet": {
     "title": "Carteira EVM",
