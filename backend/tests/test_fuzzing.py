@@ -278,7 +278,9 @@ class TestCampaignVerifyEndpoint:
     """
 
     @pytest.fixture(autouse=True)
-    def _client(self):
+    def _client(self, isolated_app_db):
+        # isolated_app_db: sem isso, cada um dos 200 exemplos abaixo cria/reusa um User
+        # "fuzz_token" de verdade e semeia campanhas default no dev DB persistente.
         import importlib
         app_module = importlib.import_module("server.app")
         self._client = TestClient(app_module.app)

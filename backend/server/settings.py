@@ -96,6 +96,47 @@ class Settings:
     arc_usdc_address:      str = os.getenv("ARC_USDC_ADDRESS",      "")
     arc_chain_id:          int = int(os.getenv("ARC_CHAIN_ID",      "0"))  # 0 = auto
 
+    # ── CCTP V2 — Solana (domain 5) ───────────────────────────────────────────────
+    # Program IDs reais da Circle (devnet == mainnet, confirmado em developers.circle.com).
+    # Sem SDK Python oficial — instrução construída manualmente via solders (mesmo padrão
+    # hand-rolled de anchor_client.py). Chave de tesouraria SEPARADA de SOLANA_ADMIN_KEYPAIR_B58
+    # (que é só admin do programa xiaolee_core, nunca custodia fundos).
+    solana_cctp_enabled:              bool = os.getenv("SOLANA_CCTP_ENABLED", "false").lower() == "true"
+    solana_cctp_domain:               int  = int(os.getenv("SOLANA_CCTP_DOMAIN", "5"))
+    solana_cctp_token_messenger_minter: str = os.getenv(
+        "SOLANA_CCTP_TOKEN_MESSENGER_MINTER", "CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"
+    )
+    solana_cctp_message_transmitter:  str  = os.getenv(
+        "SOLANA_CCTP_MESSAGE_TRANSMITTER", "CCTPV2Sm4AdWt5296sk4P66VBZ7bEhcARwFaaS9YPbeC"
+    )
+    solana_usdc_mint:                 str  = os.getenv("SOLANA_USDC_MINT", "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU")  # devnet
+    solana_treasury_keypair_b58:      str  = os.getenv("SOLANA_TREASURY_KEYPAIR_B58", "")
+
+    # ── CCTP V2 — Stellar (domain 27) ─────────────────────────────────────────────
+    # Contratos Soroban reais da Circle (testnet, confirmado em
+    # developers.circle.com/cctp/references/stellar-contracts). USDC em Stellar tem 7 casas
+    # decimais (vs 6 nas demais chains) — CCTP escala automaticamente, mas o 7º decimal fica
+    # retido na origem em burns. Inbound SEMPRE precisa apontar mintRecipient/destinationCaller
+    # pro contrato CctpForwarder — nunca para a conta do usuário (fundos ficam presos sem
+    # recovery se errar isso).
+    stellar_cctp_enabled:            bool = os.getenv("STELLAR_CCTP_ENABLED", "false").lower() == "true"
+    stellar_cctp_domain:             int  = int(os.getenv("STELLAR_CCTP_DOMAIN", "27"))
+    stellar_cctp_token_messenger_minter: str = os.getenv(
+        "STELLAR_CCTP_TOKEN_MESSENGER_MINTER", "CDNG7HXAPBWICI2E3AUBP3YZWZELJLYSB6F5CC7WLDTLTHVM74SLRTHP"
+    )
+    stellar_cctp_message_transmitter: str  = os.getenv(
+        "STELLAR_CCTP_MESSAGE_TRANSMITTER", "CBJ6MTCKKZG73PMDZCJMSFRD7DQEMI4FKDH7CGDSV4W6FHCRBCQAVVJY"
+    )
+    stellar_cctp_forwarder:          str  = os.getenv(
+        "STELLAR_CCTP_FORWARDER", "CA66Q2WFBND6V4UEB7RD4SAXSVIWMD6RA4X3U32ELVFGXV5PJK4T4VSZ"
+    )
+    # Chave de tesouraria dedicada — NUNCA reaproveitar stellar_server_secret (SEP-10, comentário
+    # explícito "nunca usado para fundos" — não violar).
+    stellar_treasury_secret:         str  = os.getenv("STELLAR_TREASURY_SECRET", "")
+
+    # ── Bridge multi-chain (flags gerais) ─────────────────────────────────────────
+    bridge_sandbox: bool = os.getenv("BRIDGE_SANDBOX", "true").lower() == "true"
+
     # ── PQC — ML-DSA-87 (FIPS 204) Receipt Signing ───────────────────────────────
     pqc_enabled:    bool = os.getenv("PQC_ENABLED",    "true").lower() == "true"
     pqc_secret_key: str  = os.getenv("PQC_SECRET_KEY", "")   # base64 sk — NUNCA commitar

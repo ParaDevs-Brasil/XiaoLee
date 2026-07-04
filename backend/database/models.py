@@ -161,6 +161,7 @@ class CampaignParticipant(Base):
     # ADR-006: suporte multi-chain
     chain: Mapped[str] = mapped_column(String(16), default='stellar', server_default='stellar')
     stellar_wallet: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    solana_wallet: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
 
 class WebSession(Base):
@@ -211,6 +212,29 @@ class SettledPayment(Base):
     tx:             Mapped[str] = mapped_column(Text)
     latency_ms:     Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     settled_at:     Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class CctpTransfer(Base):
+    """Transferência CCTP real (burn->attest->receive) em qualquer domain suportado pela Circle
+    (EVM, Solana domain 5, Stellar domain 27). Generaliza o BridgeState/BridgeStep in-memory de
+    cctp_client.py para persistência/recovery multi-chain, mesmo padrão de intent durável do
+    PaymentIntent."""
+    __tablename__ = 'cctp_transfers'
+
+    intent_id:        Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    campaign_id:      Mapped[Optional[int]] = mapped_column(ForeignKey("campaigns.id"), nullable=True, index=True)
+    direction:        Mapped[str] = mapped_column(String(16))   # 'outflow' | 'inflow'
+    source_domain:    Mapped[int] = mapped_column()
+    dest_domain:      Mapped[int] = mapped_column()
+    counterparty:     Mapped[str] = mapped_column(Text)
+    amount_usdc:      Mapped[float] = mapped_column(Numeric(20, 8))
+    status:           Mapped[str] = mapped_column(String(50), default='pending')  # pending, burned, attesting, attested, received, failed
+    source_tx_hash:   Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    message_hash:     Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    dest_tx_hash:     Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    receipt_pqc:      Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_message:    Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    executed_at:      Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class OnchainEvent(Base):

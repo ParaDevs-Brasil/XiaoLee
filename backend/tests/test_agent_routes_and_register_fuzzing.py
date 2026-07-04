@@ -26,7 +26,7 @@ from ai.agents.creator_pay_tools import make_tool_executors
 
 class TestRunCampaignValidation:
     @pytest.fixture(autouse=True)
-    def _client(self, monkeypatch):
+    def _client(self, monkeypatch, isolated_app_db):
         # Payloads que escapam da validação (ex: campaign_id=1.0 coagido pra 1) agendam
         # um BackgroundTask real — que o TestClient executa SÍNCRONO dentro da própria
         # chamada. Sem isso, um fuzz test aqui dispara o ClaudeAgentEngine de verdade
@@ -95,7 +95,10 @@ class TestRunCampaignValidation:
 
 class TestCreatorRegisterEndpoint:
     @pytest.fixture(autouse=True)
-    def _isolated(self):
+    def _isolated(self, isolated_app_db):
+        # isolated_app_db: os 80 exemplos do Hypothesis em test_arbitrary_payload_never_500
+        # abaixo, mais os testes de registro "happy path", escreviam creators de verdade
+        # no dev DB persistente sem isso.
         clear_metrics()
         original_circle_key = app_module.settings.circle_api_key
         object.__setattr__(app_module.settings, "circle_api_key", "")  # sem validação de wallet real

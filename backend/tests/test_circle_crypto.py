@@ -55,7 +55,7 @@ def test_rejects_non_hex_secret():
 @pytest.mark.asyncio
 async def test_requires_entity_secret_configured():
     with pytest.raises(RuntimeError, match="CIRCLE_ENTITY_SECRET"):
-        await entity_secret_ciphertext("api_key", "", "https://api-sandbox.circle.com/v1/w3s")
+        await entity_secret_ciphertext("api_key", "", "https://api.circle.com/v1/w3s")
 
 
 @pytest.mark.asyncio

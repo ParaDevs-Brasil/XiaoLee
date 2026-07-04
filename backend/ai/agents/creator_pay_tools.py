@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from server.integrations.arc_client import ArcClient
 
 from services.pqc_receipt import sign_receipt as _pqc_sign
+from server.metrics import get_registered_creator_wallet as _get_registered_wallet
 
 LOG = logging.getLogger(__name__)
 
@@ -108,6 +109,10 @@ PAY_CREATOR_TOOL: dict = {
         "name": "pay_creator_nanopayment",
         "description": (
             "Pay an eligible creator via USDC nanopayment on Arc/Circle. "
+            "amount_usdc is YOUR decision, not a fixed value — scale it with the creator's "
+            "evaluate_creator score around the campaign's reward_per_creator baseline "
+            "(e.g. score 50-69 -> pay less than baseline, 70-89 -> baseline, 90-100 -> pay more). "
+            "The server still enforces the hard campaign budget regardless of what you request. "
             "ALWAYS check_budget before calling this. "
             "ALWAYS generate a fresh UUID v4 for intent_id. "
             "Creates a durable intent log before executing to ensure idempotency. "
@@ -126,7 +131,11 @@ PAY_CREATOR_TOOL: dict = {
                 },
                 "amount_usdc": {
                     "type": "number",
-                    "description": "Amount in USDC to send",
+                    "description": (
+                        "Amount in USDC to send. Decide this based on the creator's score from "
+                        "evaluate_creator relative to reward_per_creator — do not just copy "
+                        "reward_per_creator for every creator."
+                    ),
                 },
             },
             "required": ["intent_id", "to", "amount_usdc"],
@@ -152,15 +161,22 @@ def make_tool_executors(
     campaign_id: int,
     budget_usdc: float,
     reward_per_creator: float = 5.0,
+    spent_tracker: dict | None = None,
 ) -> dict:
     """
     Cria os executores com contexto injetado.
 
     Retorna dict {tool_name: async_callable(inputs, context) -> dict}.
     O `context` passado pelo engine pode conter flags como _budget_exhausted.
+
+    `spent_tracker`: dict opcional {"usdc": float} compartilhado com outros conjuntos de
+    tools (ex: cctp_tools.py) para que o orçamento da campanha seja único mesmo quando o
+    agente tem tanto pay_creator_nanopayment (Arc) quanto payout_cross_chain_nanopayment
+    (Solana/Stellar) disponíveis. Se omitido, cria um tracker isolado (comportamento
+    original, sem mudança pros chamadores existentes).
     """
     # Rastreia gasto em memória durante o run (persiste no DB também)
-    spent = {"usdc": 0.0}
+    spent = spent_tracker if spent_tracker is not None else {"usdc": 0.0}
 
     async def discover_creators(inputs: dict, context: dict) -> dict:
         cid = inputs.get("campaign_id", campaign_id)
@@ -272,16 +288,6 @@ def make_tool_executors(
                 "requested_usdc": amount_usdc,
             }
 
-        # Guard: budget check
-        remaining = budget_usdc - spent["usdc"]
-        if amount_usdc > remaining:
-            return {
-                "error": "insufficient_budget",
-                "remaining_usdc": remaining,
-                "requested_usdc": amount_usdc,
-                "budget_exhausted": True,
-            }
-
         # Idempotency: check if intent already exists
         existing = await repo.get_payment_intent(intent_id)
         if existing and existing.status in ("submitted", "confirmed"):
@@ -294,6 +300,20 @@ def make_tool_executors(
                 "to":          to,
             }
 
+        # Guard: budget check + RESERVA atômica (sem await entre o check e o débito).
+        # Reservar antes do rail — e não debitar só no sucesso — é o que permite o
+        # engine executar tool calls em paralelo sem dois payouts passarem no check
+        # com o mesmo saldo. Estornada no except em caso de falha.
+        remaining = budget_usdc - spent["usdc"]
+        if amount_usdc > remaining:
+            return {
+                "error": "insufficient_budget",
+                "remaining_usdc": remaining,
+                "requested_usdc": amount_usdc,
+                "budget_exhausted": True,
+            }
+        spent["usdc"] += amount_usdc
+
         # 1. Write durable intent BEFORE executing (anti-replay)
         await repo.create_payment_intent(intent_id, campaign_id, to, amount_usdc)
         LOG.info(
@@ -304,9 +324,22 @@ def make_tool_executors(
         )
 
         try:
-            # 2. Call ArcClient (sandbox or live)
+            # 2. Resolve destino: "to" registrado como creator (handle) resolve para o
+            # endereço EVM da wallet W3S do creator via ArcClient.get_wallet_info(); "to"
+            # já como endereço EVM (0x...) é usado direto. Circle Payments API
+            # (transfer_usdc/`/v1/transfers`) NÃO é usada aqui — retorna 403 Forbidden
+            # com credenciais de Programmable Wallets (W3S) sandbox, produto incompatível.
+            registered_wallet_id = _get_registered_wallet(to)
+            if registered_wallet_id:
+                wallet_info = await arc_client.get_wallet_info(registered_wallet_id)
+                destination_address = wallet_info.get("address", "")
+                if not destination_address:
+                    raise RuntimeError(f"no EVM address found for creator wallet={registered_wallet_id}")
+            else:
+                destination_address = to
+
             tx_hash = await arc_client.send_usdc(
-                to_address=to,
+                to_address=destination_address,
                 amount_usdc=amount_usdc,
                 idempotency_key=intent_id,
             )
@@ -322,7 +355,6 @@ def make_tool_executors(
                 receipt_pqc=receipt_pqc,
             )
 
-            spent["usdc"] += amount_usdc
             LOG.info(
                 "[tool] payment sent intent=%s to=%s tx=%s amount=%.4f total_spent=%.4f",
                 intent_id,
@@ -341,6 +373,7 @@ def make_tool_executors(
             }
 
         except Exception as exc:
+            spent["usdc"] -= amount_usdc  # estorna a reserva — o pagamento não saiu
             await repo.update_payment_intent(intent_id, status="failed")
             LOG.error("[tool] payment failed intent=%s error=%s", intent_id, exc)
             return {

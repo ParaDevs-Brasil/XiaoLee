@@ -30,7 +30,10 @@ class TestPaymentSettledEndpointFuzzing:
     nunca 500, pra qualquer JSON malformado que um cliente adversarial mande."""
 
     @pytest.fixture(autouse=True)
-    def _client(self):
+    def _client(self, isolated_app_db):
+        # isolated_app_db: sem isso, os 150+200 exemplos do Hypothesis abaixo escrevem
+        # direto em backend/xiao_lee.db (o dev DB de verdade) via settled_payments —
+        # foi assim que a tabela acumulou lixo (unicode aleatorio, amounts absurdos).
         self._client = TestClient(app_module.app, raise_server_exceptions=False)
         original_secret = app_module.settings.arc_payment_secret
         object.__setattr__(app_module.settings, "arc_payment_secret", "")

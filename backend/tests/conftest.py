@@ -35,6 +35,29 @@ async def db_session(test_engine):
         yield session
 
 
+@pytest_asyncio.fixture
+async def isolated_app_db(db_session):
+    """Overrides get_db_session on the real FastAPI app (server.app.app) so any test
+    using TestClient(app_module.app) never writes to the persistent dev database
+    (backend/xiao_lee.db) — only to the isolated in-memory `db_session`.
+
+    Without this, tests that exercise the real app (property-based fuzzing especially)
+    silently pollute the shared dev DB with garbage rows on every `pytest` run — this
+    is what happened to `settled_payments` (see docs/audit/DB_POLLUTION_FUZZ_TESTS.md).
+    """
+    import importlib
+
+    app_module = importlib.import_module("server.app")
+    from database.database import get_db_session
+
+    async def _override():
+        yield db_session
+
+    app_module.app.dependency_overrides[get_db_session] = _override
+    yield db_session
+    app_module.app.dependency_overrides.pop(get_db_session, None)
+
+
 @pytest.fixture
 def sample_user_data():
     return {

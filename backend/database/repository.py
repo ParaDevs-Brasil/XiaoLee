@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from .models import CampaignParticipant, PaymentIntent, SettledPayment, User, DMLog
+from .models import CampaignParticipant, CctpTransfer, PaymentIntent, SettledPayment, User, DMLog
 
 
 class DatabaseRepository:
@@ -92,7 +92,9 @@ class DatabaseRepository:
                 "has_replied": participant.has_replied,
                 "has_retweeted": participant.has_retweeted,
                 "has_quoted": participant.has_quoted,
+                "chain": participant.chain,
                 "stellar_wallet": participant.stellar_wallet,
+                "solana_wallet": participant.solana_wallet,
             }
             for participant, user in rows
         ]
@@ -122,6 +124,9 @@ class DatabaseRepository:
             "has_replied": participant.has_replied,
             "has_retweeted": participant.has_retweeted,
             "has_quoted": participant.has_quoted,
+            "chain": participant.chain,
+            "stellar_wallet": participant.stellar_wallet,
+            "solana_wallet": participant.solana_wallet,
         }
 
     # ------------------------------------------------------------------
@@ -195,6 +200,77 @@ class DatabaseRepository:
     async def list_stale_pending_intents(self) -> list[PaymentIntent]:
         """Retorna intents presos em 'pending' (criados mas nunca enviados para a chain)."""
         stmt = select(PaymentIntent).where(PaymentIntent.status == "pending")
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    # ------------------------------------------------------------------
+    # CctpTransfer CRUD — recovery pós-crash de burn->attest->receive multi-chain
+    # ------------------------------------------------------------------
+
+    async def get_cctp_transfer(self, intent_id: str) -> Optional[CctpTransfer]:
+        stmt = select(CctpTransfer).where(CctpTransfer.intent_id == intent_id)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def create_cctp_transfer(
+        self,
+        intent_id: str,
+        direction: str,
+        source_domain: int,
+        dest_domain: int,
+        counterparty: str,
+        amount_usdc: float,
+        campaign_id: Optional[int] = None,
+    ) -> CctpTransfer:
+        transfer = CctpTransfer(
+            intent_id=intent_id,
+            campaign_id=campaign_id,
+            direction=direction,
+            source_domain=source_domain,
+            dest_domain=dest_domain,
+            counterparty=counterparty,
+            amount_usdc=amount_usdc,
+            status="pending",
+        )
+        self.session.add(transfer)
+        await self.session.flush()
+        await self.session.commit()
+        return transfer
+
+    async def update_cctp_transfer(
+        self,
+        intent_id: str,
+        status: str,
+        source_tx_hash: Optional[str] = None,
+        message_hash: Optional[str] = None,
+        dest_tx_hash: Optional[str] = None,
+        receipt_pqc: Optional[str] = None,
+        error_message: Optional[str] = None,
+    ) -> None:
+        stmt = select(CctpTransfer).where(CctpTransfer.intent_id == intent_id)
+        result = await self.session.execute(stmt)
+        transfer = result.scalars().first()
+        if not transfer:
+            return
+        transfer.status = status
+        if source_tx_hash:
+            transfer.source_tx_hash = source_tx_hash
+        if message_hash:
+            transfer.message_hash = message_hash
+        if dest_tx_hash:
+            transfer.dest_tx_hash = dest_tx_hash
+        if receipt_pqc:
+            transfer.receipt_pqc = receipt_pqc
+        if error_message:
+            transfer.error_message = error_message
+        if status in ("received", "failed"):
+            transfer.executed_at = datetime.now(timezone.utc)
+        await self.session.commit()
+
+    async def list_stale_pending_cctp_transfers(self) -> list[CctpTransfer]:
+        """Espelha list_stale_pending_intents — recovery pós-restart de transfers presos
+        antes do burn ter sido confirmado (status='pending')."""
+        stmt = select(CctpTransfer).where(CctpTransfer.status == "pending")
         result = await self.session.execute(stmt)
         return result.scalars().all()
 

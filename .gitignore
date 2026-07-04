@@ -42,6 +42,7 @@ test-ledger/
 
 # Local database snapshots
 backend/xiao_lee.db
+xiao_lee.db
 
 # Ignored by user request
 MODO ARQUITETO  RULES.md

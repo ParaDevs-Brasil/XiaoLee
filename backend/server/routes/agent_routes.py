@@ -30,6 +30,10 @@ def _lazy_engine():
     from claude_agent import ClaudeAgentEngine  # noqa
     return ClaudeAgentEngine
 
+def _lazy_cctp_tools():
+    from ai.agents.cctp_tools import CCTP_TOOLS, make_cctp_tool_executors  # noqa
+    return CCTP_TOOLS, make_cctp_tool_executors
+
 LOG = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/agent", tags=["agent"])
@@ -105,16 +109,72 @@ async def _run_agent_task(
             CREATOR_PAY_TOOLS, make_tool_executors = _lazy_tools()
             ClaudeAgentEngine = _lazy_engine()
 
+            # Orçamento compartilhado entre pay_creator_nanopayment (Arc) e
+            # payout_cross_chain_nanopayment (Solana/Stellar via CCTP real) — nunca dois
+            # trackers separados, ou o agente poderia gastar 2x o budget da campanha.
+            spent_tracker = {"usdc": 0.0}
+
             executors = make_tool_executors(
                 repo=repo,
                 arc_client=arc,
                 campaign_id=campaign_id,
                 budget_usdc=budget_usdc,
                 reward_per_creator=reward_per_creator,
+                spent_tracker=spent_tracker,
             )
 
+            tools = list(CREATOR_PAY_TOOLS)
+            cross_chain_enabled = settings.solana_cctp_enabled or settings.stellar_cctp_enabled
+            cross_chain_prompt = ""
+            if cross_chain_enabled:
+                from server.integrations.cctp_client import CCTPClient
+                from server.integrations.solana_cctp import SolanaCCTPClient
+                from server.integrations.stellar_cctp import StellarCCTPClient
+
+                CCTP_TOOLS, make_cctp_tool_executors = _lazy_cctp_tools()
+
+                arc_cctp = CCTPClient(
+                    source_rpc=settings.arc_rpc_url,
+                    signer_key=settings.arc_agent_private_key,
+                    source_domain=settings.arc_cctp_domain,
+                    source_usdc=settings.arc_usdc_address,
+                    source_token_messenger=settings.arc_cctp_token_messenger,
+                    sandbox=settings.bridge_sandbox,
+                    abi_version=2,  # Arc é CCTP V2-only — a ABI V1 nem existe no contrato
+                )
+                solana_cctp = SolanaCCTPClient(
+                    rpc_url=settings.solana_rpc_url,
+                    treasury_keypair_b58=settings.solana_treasury_keypair_b58,
+                    usdc_mint=settings.solana_usdc_mint,
+                    sandbox=settings.bridge_sandbox,
+                )
+                stellar_cctp = StellarCCTPClient(
+                    treasury_secret=settings.stellar_treasury_secret,
+                    network=settings.stellar_network,
+                    sandbox=settings.bridge_sandbox,
+                )
+                cctp_executors = make_cctp_tool_executors(
+                    repo=repo,
+                    arc_cctp_client=arc_cctp,
+                    solana_cctp_client=solana_cctp,
+                    stellar_cctp_client=stellar_cctp,
+                    campaign_id=campaign_id,
+                    budget_usdc=budget_usdc,
+                    reward_per_creator=reward_per_creator,
+                    spent_tracker=spent_tracker,
+                )
+                executors.update(cctp_executors)
+                tools = tools + CCTP_TOOLS
+                cross_chain_prompt = (
+                    "\nCROSS-CHAIN: some creators have chain='solana' or chain='stellar' "
+                    "(check the `chain` field from discover_creators/evaluate_creator). For "
+                    "those, call payout_cross_chain_nanopayment instead of "
+                    "pay_creator_nanopayment, passing destination_chain accordingly. Budget "
+                    "is shared across both tools — check_budget still reflects the true total.\n"
+                )
+
             engine = ClaudeAgentEngine(
-                tools=CREATOR_PAY_TOOLS,
+                tools=tools,
                 executors=executors,
                 max_steps=settings.agent_max_steps,
                 api_key=settings.anthropic_api_key,
@@ -123,19 +183,26 @@ async def _run_agent_task(
 
             system_prompt = (
                 f"You are XiaoLee Agent, an autonomous marketing AI managing campaign #{campaign_id}.\n"
-                f"Available budget: ${budget_usdc:.2f} USDC | Reward per creator: ${reward_per_creator:.2f} USDC.\n\n"
+                f"Available budget: ${budget_usdc:.2f} USDC | Baseline reward per creator: ${reward_per_creator:.2f} USDC.\n\n"
                 "Your mission:\n"
                 f"1. Call discover_creators with campaign_id={campaign_id} to find enrolled participants.\n"
                 "2. For each creator, call evaluate_creator to check eligibility (score >= 50).\n"
                 "3. Before each payment, call check_budget to verify remaining funds.\n"
                 "4. For eligible creators with sufficient budget, call pay_creator_nanopayment.\n"
+                "   - Decide amount_usdc yourself, scaled to the creator's score around the baseline:\n"
+                f"       score 50-69  -> ~0.7x baseline (${reward_per_creator * 0.7:.2f})\n"
+                f"       score 70-89  -> ~1.0x baseline (${reward_per_creator:.2f})\n"
+                f"       score 90-100 -> ~1.4x baseline (${reward_per_creator * 1.4:.2f})\n"
+                "     Use judgment, not a rigid lookup — these are anchors, not exact rules.\n"
                 "   - Generate a fresh UUID v4 for intent_id each time.\n"
-                "5. Stop when check_budget returns can_pay=false OR no more eligible creators.\n\n"
+                "5. Stop when check_budget returns can_pay=false OR no more eligible creators.\n"
+                f"{cross_chain_prompt}\n"
                 "RULES:\n"
                 "- Never pay a creator marked as already_paid=true.\n"
                 "- Always generate a new UUID v4 for each intent_id.\n"
                 "- If budget_exhausted=true is returned, stop immediately.\n"
-                "- After processing all creators, summarize: how many paid, total USDC spent."
+                "- If a payment amount would exceed the remaining budget, scale it down to fit rather than skipping the creator.\n"
+                "- After processing all creators, summarize: how many paid, total USDC spent, and briefly explain your reward scaling decisions."
             )
 
             result = await engine.run(system_prompt, context={"campaign_id": campaign_id})
