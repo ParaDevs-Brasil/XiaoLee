@@ -1,14 +1,26 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Quicksand } from "next/font/google";
+import localFont from "next/font/local";
 import { ThemeProviderWrapper } from "../providers/ThemeProvider";
 import { LanguageProvider } from "../contexts/LanguageContext";
 
-const quicksand = Quicksand({ 
-  subsets: ["latin"], 
+const quicksand = Quicksand({
+  subsets: ["latin"],
   variable: "--font-quicksand",
   weight: ["300", "400", "500", "600", "700"]
 });
+
+// Fonte do logo (navbar do app) — Candice, carregada localmente.
+// candice-web.ttf é o subset latino re-serializado: o TTF original (conversão
+// antiga da URW) tinha tabelas glyf/hmtx malformadas e era rejeitado pelo
+// sanitizador OTS dos navegadores.
+const candice = localFont({
+  src: "../fonts/candice-web.ttf",
+  variable: "--font-candice",
+  display: "swap",
+});
+
 
 export const viewport = {
   width: "device-width",
@@ -53,7 +65,7 @@ export default function RootLayout({
                 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
                 <link rel="preload" as="video" href="/xiaolee_standby.mov" />
             </head>
-                <body className={quicksand.className}>
+                <body className={`${quicksand.className} ${candice.variable}`}>
                 <LanguageProvider>
                   <ThemeProviderWrapper>
                       {children}

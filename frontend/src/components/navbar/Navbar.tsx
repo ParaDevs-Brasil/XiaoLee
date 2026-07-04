@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from 'react-toastify';
 import { ChevronDownIcon, UserIcon, RocketLaunchIcon, BellIcon, ChartBarIcon, CurrencyDollarIcon } from "@heroicons/react/24/outline";
+import { IconSpark } from "@/components/icons";
 import Transacoes from "./Transacoes";
 import Historico from "./Historico";
 import Wallet from "./Wallet";
@@ -139,9 +140,15 @@ export default function Navbar() {
       <nav className="bg-gradient-to-r from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-b border-[var(--navbar-border)] shadow-sm px-2 py-2.5 sm:p-3 md:p-4 sticky top-0 z-20 overflow-visible">
         <div className="container mx-auto flex justify-between items-center relative z-[10000] gap-1.5 sm:gap-2">
           <div className="flex items-center shrink-0">
-            <Link href="/" className="text-base md:text-2xl font-bold text-[var(--text-accent)] hover:scale-105 transition-transform whitespace-nowrap">
-              <span className="hidden sm:inline">XiaoleeChat ✨</span>
-              <span className="sm:hidden">Xiaolee ✨</span>
+            {/* Logo — mesmo da landing: "Xiao" escuro + "lee" no acento + faísca */}
+            <Link href="/" className="flex items-center gap-1 hover:scale-105 transition-transform whitespace-nowrap">
+              <span
+                className="text-2xl md:text-[32px] text-[var(--text-primary)]"
+                style={{ fontFamily: "var(--font-candice), cursive" }}
+              >
+                Xiao<span className="text-grad">lee</span>
+              </span>
+              <IconSpark size={13} className="text-[var(--accent)] -translate-y-1.5" />
             </Link>
           </div>
           
@@ -226,7 +233,7 @@ export default function Navbar() {
                     {/* User Info Section */}
                     <div className="px-4 py-3 border-b border-[var(--navbar-border)]/30 backdrop-blur-sm">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold">
+                        <div className="w-10 h-10 bg-[var(--accent)] rounded-full flex items-center justify-center text-white font-bold">
                           {userData.user_info?.twitter_handle?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div>
@@ -248,7 +255,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                           </svg>
@@ -265,7 +272,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                           </svg>
@@ -282,7 +289,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
@@ -299,9 +306,9 @@ export default function Navbar() {
                           setShouldOpenEvmWallet(true);
                           setIsDropdownOpen(false);
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-indigo-500/10 hover:to-purple-500/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center font-bold">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center font-bold">
                           Ξ
                         </div>
                         <div className="text-left">
@@ -365,7 +372,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
@@ -384,7 +391,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-300 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                           </svg>
