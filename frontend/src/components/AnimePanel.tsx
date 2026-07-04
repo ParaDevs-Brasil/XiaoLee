@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Pfp from './Pfp';
 import Video from './Video';
 import UserData from './UserData';
@@ -7,10 +7,7 @@ import { IconStar } from '@/components/icons';
 export default function AnimePanel() {
   const [currentPfp, setCurrentPfp] = useState(Video.getPfp());
   const [shouldLoop, setShouldLoop] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [chatCount, setChatCount] = useState(0);
-
-  const dragElementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadChatCount = () => setChatCount(UserData.getChatHistory().length);
@@ -20,13 +17,6 @@ export default function AnimePanel() {
   }, []);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024); // Match lg breakpoint (1024px)
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
     Video.setPfp("xiaolee_hello.mov");
 
     const unsubscribe = Video.subscribe((newPfp, loop) => {
@@ -37,131 +27,48 @@ export default function AnimePanel() {
     return () => {
       unsubscribe();
       Video.stopIdleRotation();
-      window.removeEventListener('resize', checkMobile);
     };
-  }, [isMobile]);
-
-  // Initialize drag functionality separately
-  useEffect(() => {
-    if (isMobile && dragElementRef.current) {
-      dragElement(dragElementRef.current);
-    }
-  }, [isMobile]);
-
-  const dragElement = (elmnt: HTMLElement) => {
-    let pos1 = 0, pos2 = 0;
-
-    elmnt.onmousedown = dragMouseDown;
-    elmnt.ontouchstart = dragTouchStart;
-
-    function dragMouseDown(e: MouseEvent) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const rect = elmnt.getBoundingClientRect();
-      pos1 = e.clientX - rect.left;
-      pos2 = e.clientY - rect.top;
-
-      document.onmouseup = closeDragElement;
-      document.onmousemove = elementDrag;
-    }
-
-    function dragTouchStart(e: TouchEvent) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (e.touches.length === 1) {
-        const touch = e.touches[0];
-        const rect = elmnt.getBoundingClientRect();
-        pos1 = touch.clientX - rect.left;
-        pos2 = touch.clientY - rect.top;
-
-        document.ontouchend = closeDragElement;
-        document.ontouchmove = elementTouchDrag;
-      }
-    }
-
-    function elementDrag(e: MouseEvent) {
-      e.preventDefault();
-      e.stopPropagation();
-      elmnt.style.left = (e.clientX - pos1) + "px";
-      elmnt.style.top = (e.clientY - pos2) + "px";
-    }
-
-    function elementTouchDrag(e: TouchEvent) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (e.touches.length === 1) {
-        const touch = e.touches[0];
-        elmnt.style.left = (touch.clientX - pos1) + "px";
-        elmnt.style.top = (touch.clientY - pos2) + "px";
-      }
-    }
-
-    function closeDragElement() {
-      document.onmouseup = null;
-      document.onmousemove = null;
-      document.ontouchend = null;
-      document.ontouchmove = null;
-    }
-  };
+  }, []);
 
   return (
-    <>
-      {isMobile ? (
-        // Mobile: draggable floating avatar
-        <div
-          ref={dragElementRef}
-          className="fixed z-50 w-[104px] h-[104px] cursor-move drag-handle select-none touch-none"
-          style={{ position: 'fixed', top: '96px', left: '12px' }}
-        >
-          <div className="w-full h-full rounded-2xl overflow-hidden border border-pink-100 bg-white/70 backdrop-blur-md shadow-lg ring-soft relative">
-            <div className="relative w-full h-full pointer-events-none">
-              <Pfp pfp={currentPfp} loop={shouldLoop} />
-            </div>
-          </div>
+    // Desktop only — below lg the live avatar lives inside the chat header (MiniAvatar)
+    <div className="hidden lg:flex w-full lg:col-span-3 h-full min-h-0 rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-e2 flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-pink-100/60 shrink-0">
+        <div>
+          <h3 className="text-sm font-bold text-grad">Xiaolee</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Your DeFi companion</p>
         </div>
-      ) : (
-        // Desktop: clean glass card, avatar constrained to a stable aspect ratio
-        <div className="w-full lg:col-span-3 h-full min-h-0 rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-e2 flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-pink-100/60 shrink-0">
-            <div>
-              <h3 className="text-sm font-bold text-grad">Xiaolee</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Your DeFi companion</p>
-            </div>
-            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Online
-            </span>
-          </div>
+        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Online
+        </span>
+      </div>
 
-          {/* Avatar — fills the available card space, video cropped via object-cover */}
-          <div className="flex-1 min-h-0 p-4">
-            <div className="breath relative w-full h-full rounded-2xl overflow-hidden border border-pink-100 bg-pink-50/40 shadow-e1">
-              <Pfp pfp={currentPfp} loop={shouldLoop} />
-            </div>
-          </div>
-
-          {/* Character info */}
-          <div className="px-4 py-3 border-t border-pink-100/60 shrink-0 space-y-2">
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Always ready to help with swaps, campaigns and payments.
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-gray-500">
-                {chatCount > 0 ? `${chatCount} conversation${chatCount === 1 ? '' : 's'}` : 'New here? Say hi!'}
-              </span>
-              <span className="flex items-center gap-0.5 text-amber-400" aria-label="5 star assistant">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <IconStar key={i} size={11} />
-                ))}
-              </span>
-            </div>
-          </div>
+      {/* Avatar — locked to the source video aspect (~480x650) so the full
+          upper body is always in frame; sized by available height, centered */}
+      <div className="flex-1 min-h-0 p-3 flex items-center justify-center">
+        <div className="breath relative h-full max-w-full aspect-[48/65] rounded-2xl overflow-hidden border border-pink-100 bg-pink-50/40 shadow-e1">
+          <Pfp pfp={currentPfp} loop={shouldLoop} objectPosition="50% 0%" />
         </div>
-      )}
-    </>
+      </div>
+
+      {/* Character info */}
+      <div className="px-4 py-3 border-t border-pink-100/60 shrink-0 space-y-2">
+        <p className="text-xs text-gray-600 leading-relaxed">
+          Always ready to help with swaps, campaigns and payments.
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-gray-500">
+            {chatCount > 0 ? `${chatCount} conversation${chatCount === 1 ? '' : 's'}` : 'New here? Say hi!'}
+          </span>
+          <span className="flex items-center gap-0.5 text-amber-400" aria-label="5 star assistant">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <IconStar key={i} size={11} />
+            ))}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

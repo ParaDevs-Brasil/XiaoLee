@@ -70,9 +70,9 @@ export default function ChatPanel() {
     isNearBottomRef.current = distanceFromBottom < 80;
   };
 
-  // Only auto-scroll if already near bottom
+  // Only auto-scroll if already near bottom (and never on the empty state)
   useEffect(() => {
-    if (isNearBottomRef.current) {
+    if (msgs.length > 0 && isNearBottomRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [msgs]);
@@ -238,7 +238,7 @@ export default function ChatPanel() {
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 md:px-5 py-4 space-y-4 custom-scrollbar min-h-0"
+        className="flex-1 overflow-y-auto px-2.5 sm:px-3 md:px-5 py-3 md:py-4 space-y-4 custom-scrollbar min-h-0 overscroll-contain"
       >
         {messagesWithCodes.length === 0 && (
           <EmptyState onSuggestion={(text) => !loading && handleSendMessage(text)} />
@@ -393,9 +393,9 @@ export default function ChatPanel() {
       </div>
 
       {/* Message Input */}
-      <div className="flex items-center gap-2 px-3 md:px-5 py-3 md:py-4 border-t border-pink-100/60 shrink-0 bg-white/50">
+      <div className="flex items-center gap-2 px-2.5 sm:px-3 md:px-5 pt-2.5 md:pt-4 pb-[calc(0.625rem+env(safe-area-inset-bottom))] md:pb-4 border-t border-pink-100/60 shrink-0 bg-white/50">
         <div className="relative flex-1">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-fuchsia-400 pointer-events-none">
+          <span className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 text-fuchsia-400 pointer-events-none">
             <IconSpark size={16} />
           </span>
           <input
@@ -416,7 +416,7 @@ export default function ChatPanel() {
               }
             }}
             placeholder="Ask Xiaolee anything…"
-            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-gray-800 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:border-fuchsia-300 focus:shadow-[0_14px_34px_-14px_rgba(147,51,234,0.3)] disabled:opacity-60 transition-all duration-200"
+            className="w-full pl-10 md:pl-11 pr-3 md:pr-4 py-3 md:py-3.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-gray-800 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:border-fuchsia-300 focus:shadow-[0_14px_34px_-14px_rgba(147,51,234,0.3)] disabled:opacity-60 transition-all duration-200"
             disabled={loading}
           />
         </div>
@@ -428,7 +428,7 @@ export default function ChatPanel() {
             }
           }}
           disabled={!message.trim() || loading}
-          className="btn-primary flex items-center justify-center gap-2 px-4 md:px-6 py-3.5 rounded-2xl text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.96]"
+          className="btn-primary flex items-center justify-center gap-2 px-4 md:px-6 py-3 md:py-3.5 rounded-2xl text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.96] shrink-0"
         >
           {loading ? (
             <span className="w-[18px] h-[18px] border-2 border-white/40 border-t-white rounded-full animate-spin" />

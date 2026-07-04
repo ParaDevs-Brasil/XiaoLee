@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Video from './Video';
 
-export default function Pfp({ pfp, loop }: { pfp: string; loop: boolean }) {
+export default function Pfp({ pfp, loop, objectPosition = "center" }: { pfp: string; loop: boolean; objectPosition?: string }) {
     const [activeSrc, setActiveSrc] = useState(pfp);
     const [pendingSrc, setPendingSrc] = useState<string | null>(null);
     const [activeVisible, setActiveVisible] = useState(true);
@@ -55,7 +55,7 @@ export default function Pfp({ pfp, loop }: { pfp: string; loop: boolean }) {
                 ref={activeRef}
                 src={`/${activeSrc}`}
                 className="absolute inset-0 w-full h-full object-cover rounded-[calc(1.5rem-4px)] transition-opacity duration-250"
-                style={{ opacity: activeVisible ? 1 : 0 }}
+                style={{ opacity: activeVisible ? 1 : 0, objectPosition }}
                 autoPlay
                 muted
                 playsInline
@@ -69,7 +69,7 @@ export default function Pfp({ pfp, loop }: { pfp: string; loop: boolean }) {
                     ref={pendingRef}
                     src={`/${pendingSrc}`}
                     className="absolute inset-0 w-full h-full object-cover rounded-[calc(1.5rem-4px)]"
-                    style={{ opacity: 0 }}
+                    style={{ opacity: 0, objectPosition }}
                     autoPlay
                     muted
                     playsInline

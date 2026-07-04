@@ -1,6 +1,7 @@
 import React from "react";
 import { XiaoleeBubble } from "@/components/landing/primitives";
 import { IconCheck } from "@/components/icons";
+import MiniAvatar from "@/components/chat/MiniAvatar";
 
 type ChatHeaderProps = {
   authenticated: boolean;
@@ -8,11 +9,17 @@ type ChatHeaderProps = {
 
 export default function ChatHeader({ authenticated }: ChatHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b border-pink-100/60 shrink-0 bg-white/60">
-      <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between gap-2 px-3 md:px-5 py-2.5 md:py-3 border-b border-pink-100/60 shrink-0 bg-white/60">
+      <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
         <div className="relative">
-          <XiaoleeBubble size={38} />
-          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white" />
+          {/* Below lg the AnimePanel is hidden, so the live avatar plays here */}
+          <span className="lg:hidden">
+            <MiniAvatar size={40} />
+          </span>
+          <span className="hidden lg:block">
+            <XiaoleeBubble size={38} />
+          </span>
+          <span className="absolute -bottom-0.5 -right-0.5 z-10 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white" />
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -29,9 +36,12 @@ export default function ChatHeader({ authenticated }: ChatHeaderProps) {
       </div>
 
       {authenticated && (
-        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1">
+        <span
+          className="flex items-center gap-1.5 shrink-0 text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1"
+          title="Authenticated"
+        >
           <IconCheck size={10} sw={3} />
-          Authenticated
+          <span className="hidden sm:inline">Authenticated</span>
         </span>
       )}
     </div>
