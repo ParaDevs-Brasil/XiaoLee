@@ -4,12 +4,25 @@
 
 /* ── Design tokens (desbloqueados para o app inteiro) ──────────────────────── */
 
-/* Variável de cor semântica: ink = texto escuro de contraste */
-:root { --ink: #3a2b41; }
+/* Paleta neutra + acento único (04 jul) — acento só em botão primário,
+   avatar e destaques; o resto neutro */
+:root {
+  --ink: #1a1917;          /* texto primário */
+  --ink-2: #6b6862;        /* texto secundário */
+  --ink-3: #9a968f;        /* texto muted / metadados */
+  --bg: #f6f4f1;           /* fundo do app */
+  --card: #ffffff;         /* cards */
+  --border: #ece9e4;       /* bordas */
+  --accent: #d81b78;       /* marca */
+  --accent-hover: #c0166a;
+  --accent-soft: #fdf0f6;  /* fundo suave do acento */
+  --success: #1f8a5b;
+  --danger: #c23a3a;
+}
 
-/* Texto gradiente fúcsia → purple (identidade visual principal) */
+/* Texto de destaque da marca (antes gradiente; agora acento sólido) */
 .text-grad {
-  background-image: linear-gradient(105deg, #ec4899, #d946ef 45%, #9333ea);
+  background-image: linear-gradient(105deg, var(--accent), var(--accent));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -34,7 +47,7 @@
 .ring-soft {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 12px 40px -18px rgba(192, 38, 211, 0.35);
+    0 12px 40px -18px rgba(26, 25, 23, 0.18);
 }
 
 /* Scroll reveal — opacity 0 → 1 + translateY ao entrar na viewport */
@@ -57,23 +70,23 @@
 }
 .lift:hover {
   transform: translateY(-6px);
-  box-shadow: 0 26px 50px -24px rgba(147, 51, 234, 0.45);
+  box-shadow: 0 26px 50px -24px rgba(26, 25, 23, 0.22);
 }
 
-/* Botão primário (gradiente fúcsia) */
+/* Botão primário (acento sólido da marca) */
 .btn-primary {
-  background-image: linear-gradient(105deg, #f472b6, #d946ef 50%, #a855f7);
+  background-image: linear-gradient(105deg, var(--accent), var(--accent));
   box-shadow:
-    0 12px 30px -10px rgba(217, 70, 239, 0.55),
-    0 2px 0 rgba(255, 255, 255, 0.4) inset;
+    0 10px 26px -12px rgba(216, 27, 120, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.25) inset;
   transition: filter 0.25s ease, transform 0.25s ease;
 }
-.btn-primary:hover { filter: brightness(1.04); transform: translateY(-1px); }
+.btn-primary:hover { filter: brightness(0.94); transform: translateY(-1px); }
 
 /* ── Níveis de elevação (hierarquia de sombras) ──────────────────────────── */
 .shadow-e1 { box-shadow: 0 1px 2px rgba(58, 43, 65, 0.05); }
 .shadow-e2 { box-shadow: 0 2px 8px -2px rgba(58, 43, 65, 0.09), 0 1px 2px rgba(58, 43, 65, 0.04); }
-.shadow-e3 { box-shadow: 0 14px 34px -14px rgba(147, 51, 234, 0.28), 0 2px 6px -2px rgba(58, 43, 65, 0.06); }
+.shadow-e3 { box-shadow: 0 14px 34px -14px rgba(26, 25, 23, 0.16), 0 2px 6px -2px rgba(26, 25, 23, 0.06); }
 
 /* Mensagem entrando no chat — fade + slide sutil */
 @keyframes msg-in {
@@ -95,8 +108,8 @@
 }
 .suggestion-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(217, 70, 239, 0.35);
-  box-shadow: 0 10px 24px -12px rgba(217, 70, 239, 0.35);
+  border-color: rgba(216, 27, 120, 0.35);
+  box-shadow: 0 10px 24px -12px rgba(26, 25, 23, 0.14);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -110,35 +123,35 @@
 :root {
   --font-sans: 'Quicksand', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
-  /* Gradientes de Fundo */
-  --bg-gradient-start: #fdf2f8; /* pink-50 */
-  --bg-gradient-middle: #faf5ff; /* purple-50 */
-  --bg-gradient-end: #eff6ff; /* blue-50 */
-  
-  /* Cores de Texto */
-  --text-primary: #1f2937; /* gray-800 */
-  --text-secondary: #6b7280; /* gray-500 */
-  --text-accent: #ec4899; /* pink-500 */
-  --text-placeholder: #f472b6; /* pink-400 com 70% opacidade */
-  --text-kawaii: #e879f9; /* fuchsia-400 */
+  /* Gradientes de Fundo — fundo neutro sólido */
+  --bg-gradient-start: #f6f4f1;
+  --bg-gradient-middle: #f6f4f1;
+  --bg-gradient-end: #f6f4f1;
 
-  /* Cores de Navbar */
-  --navbar-bg-start: rgba(251, 207, 232, 0.8); /* pink-200/80 */
-  --navbar-bg-middle: rgba(233, 213, 255, 0.7); /* purple-200/70 */
-  --navbar-bg-end: rgba(219, 234, 254, 0.8); /* blue-200/80 */
-  --navbar-border: rgba(251, 207, 232, 0.4); /* pink-200/40 */
-  --navbar-text-gradient-start: #ec4899; /* pink-500 */
-  --navbar-text-gradient-middle: #a855f7; /* purple-500 */
-  --navbar-text-gradient-end: #3b82f6; /* blue-500 */
+  /* Cores de Texto */
+  --text-primary: #1a1917;
+  --text-secondary: #6b6862;
+  --text-accent: #d81b78;
+  --text-placeholder: #9a968f;
+  --text-kawaii: #d81b78;
+
+  /* Cores de Navbar — neutra, borda sutil */
+  --navbar-bg-start: rgba(255, 255, 255, 0.88);
+  --navbar-bg-middle: rgba(255, 255, 255, 0.88);
+  --navbar-bg-end: rgba(255, 255, 255, 0.88);
+  --navbar-border: #ece9e4;
+  --navbar-text-gradient-start: #1a1917;
+  --navbar-text-gradient-middle: #6b6862;
+  --navbar-text-gradient-end: #1a1917;
 
   /* Cores de Botões */
-  --btn-primary-bg-start: #f472b6; /* pink-400 */
-  --btn-primary-bg-middle: #ec4899; /* pink-500 */
-  --btn-primary-bg-end: #a855f7; /* purple-500 */
-  --btn-primary-hover-bg-start: #ec4899;
-  --btn-primary-hover-bg-middle: #d946ef;
-  --btn-primary-hover-bg-end: #8b5cf6;
-  --btn-primary-ring: rgba(251, 146, 60, 0.5); /* pink-300/50 */
+  --btn-primary-bg-start: #d81b78;
+  --btn-primary-bg-middle: #d81b78;
+  --btn-primary-bg-end: #d81b78;
+  --btn-primary-hover-bg-start: #c0166a;
+  --btn-primary-hover-bg-middle: #c0166a;
+  --btn-primary-hover-bg-end: #c0166a;
+  --btn-primary-ring: rgba(216, 27, 120, 0.35);
   --btn-primary-text: #ffffff;
 
   --btn-secondary-bg-start: #60a5fa; /* blue-400 */
@@ -200,18 +213,18 @@
   --chat-action-giggle-hover: #9333ea; /* purple-600 */
 
   /* Cores do Input */
-  --input-bg: rgba(255, 255, 255, 0.6);
-  --input-border: rgba(251, 207, 232, 0.5);
-  --input-focus-border: rgba(244, 114, 182, 0.5);
-  --input-focus-ring: rgba(251, 146, 60, 0.3);
-  --input-text: #374151;
-  --input-placeholder-text: rgba(244, 114, 182, 0.7);
-  --input-icon: #f472b6; /* pink-400 */
+  --input-bg: #ffffff;
+  --input-border: #ece9e4;
+  --input-focus-border: rgba(216, 27, 120, 0.45);
+  --input-focus-ring: rgba(216, 27, 120, 0.25);
+  --input-text: #1a1917;
+  --input-placeholder-text: #9a968f;
+  --input-icon: #d81b78;
 
   /* Scrollbar */
-  --scrollbar-track-bg: #fdf2f8;
-  --scrollbar-thumb-bg: #a855f7;
-  --scrollbar-thumb-hover-bg: #9333ea;
+  --scrollbar-track-bg: #f6f4f1;
+  --scrollbar-thumb-bg: #cfcbc4;
+  --scrollbar-thumb-hover-bg: #b7b3ab;
 
   /* PFP */
   --pfp-border-start: #f472b6; /* pink-400 */
@@ -230,9 +243,9 @@
 
   /* Modal */
   --modal-bg-start: #ffffff;
-  --modal-bg-middle: #faf5ff;
-  --modal-bg-end: #fdf2f8;
-  --modal-border: rgba(216, 180, 254, 0.5); /* purple-300/50 */
+  --modal-bg-middle: #ffffff;
+  --modal-bg-end: #ffffff;
+  --modal-border: #ece9e4;
   --modal-header-title-start: #a855f7;
   --modal-header-title-middle: #ec4899;
   --modal-header-title-end: #f97316;
@@ -270,7 +283,7 @@
   --transaction-item-pending-border: rgba(252, 211, 77, 0.5); /* yellow-300/50 */
 
   /* Main Content Background */
-  --main-bg: #e9a7f1; /* Light theme has no main background, shows body gradient */
+  --main-bg: #f6f4f1;
 }
 
 .dark {

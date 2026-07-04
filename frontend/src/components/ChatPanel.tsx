@@ -229,7 +229,7 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="w-full lg:col-span-7 h-full min-h-0 rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-e2 flex flex-col overflow-hidden">
+    <div className="w-full lg:col-span-7 h-full min-h-0 rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-e2 flex flex-col overflow-hidden">
 
       {/* Header */}
       <ChatHeader authenticated={authStatus?.status === "active"} />
@@ -267,9 +267,9 @@ export default function ChatPanel() {
                 <XiaoleeBubble size={28} />
               </div>
               <div className="max-w-[85%] md:max-w-[70%]">
-                <div className="bg-white border border-pink-100 rounded-2xl rounded-bl-md px-4 py-2.5 shadow-e1">
+                <div className="bg-white border border-[var(--border)] rounded-2xl rounded-bl-md px-4 py-2.5 shadow-e1">
                   {msg.response === TYPING_SENTINEL ? (
-                    <div className="flex items-center gap-2 py-1 text-fuchsia-400">
+                    <div className="flex items-center gap-2 py-1 text-[var(--accent)]">
                       <span className="typing-dot" />
                       <span className="typing-dot" />
                       <span className="typing-dot" />
@@ -330,7 +330,7 @@ export default function ChatPanel() {
                         className={`px-3 py-1.5 text-xs rounded-xl font-bold transition-all duration-200 ${
                           authLoading[index]
                             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white hover:from-fuchsia-600 hover:to-purple-700"
+                            : "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
                         }`}
                       >
                         {authLoading[index] ? "Verifying…" : "Verify"}
@@ -338,7 +338,7 @@ export default function ChatPanel() {
 
                       <button
                         onClick={() => window.open('https://x.com/XiaoLeeDefai', '_blank')}
-                        className="px-3 py-1.5 text-xs font-bold text-fuchsia-600 bg-fuchsia-50 border border-fuchsia-100 hover:bg-fuchsia-100 rounded-xl transition-all duration-200"
+                        className="px-3 py-1.5 text-xs font-bold text-[var(--accent)] bg-[var(--accent-soft)] border border-[var(--border)] hover:bg-[#fbe3ef] rounded-xl transition-all duration-200"
                       >
                         DM @Xiaolee
                       </button>
@@ -393,9 +393,9 @@ export default function ChatPanel() {
       </div>
 
       {/* Message Input */}
-      <div className="flex items-center gap-2 px-2.5 sm:px-3 md:px-5 pt-2.5 md:pt-4 pb-[calc(0.625rem+env(safe-area-inset-bottom))] md:pb-4 border-t border-pink-100/60 shrink-0 bg-white/50">
+      <div className="flex items-center gap-2 px-2.5 sm:px-3 md:px-5 pt-2.5 md:pt-4 pb-[calc(0.625rem+env(safe-area-inset-bottom))] md:pb-4 border-t border-[var(--border)] shrink-0 bg-white/50">
         <div className="relative flex-1">
-          <span className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 text-fuchsia-400 pointer-events-none">
+          <span className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 text-[var(--accent)] pointer-events-none">
             <IconSpark size={16} />
           </span>
           <input
@@ -416,7 +416,7 @@ export default function ChatPanel() {
               }
             }}
             placeholder="Ask Xiaolee anything…"
-            className="w-full pl-10 md:pl-11 pr-3 md:pr-4 py-3 md:py-3.5 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-gray-800 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:border-fuchsia-300 focus:shadow-[0_14px_34px_-14px_rgba(147,51,234,0.3)] disabled:opacity-60 transition-all duration-200"
+            className="w-full pl-10 md:pl-11 pr-3 md:pr-4 py-3 md:py-3.5 rounded-2xl border border-[var(--border)] bg-white text-sm font-medium text-gray-800 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-[rgba(216,27,120,0.45)] focus:shadow-[0_14px_34px_-14px_rgba(216,27,120,0.25)] disabled:opacity-60 transition-all duration-200"
             disabled={loading}
           />
         </div>

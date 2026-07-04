@@ -61,9 +61,9 @@ export default function EmptyState({ onSuggestion }: EmptyStateProps) {
             <Link
               key={action.title}
               href={action.href}
-              className="suggestion-card flex items-center gap-3 px-4 py-3 rounded-xl border border-pink-100 bg-white shadow-e1 text-left"
+              className="suggestion-card flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--border)] bg-white shadow-e1 text-left"
             >
-              <span className="shrink-0 w-9 h-9 rounded-lg bg-fuchsia-50 text-fuchsia-500 flex items-center justify-center">
+              <span className="shrink-0 w-9 h-9 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center">
                 {action.icon}
               </span>
               <span className="min-w-0">
@@ -75,9 +75,9 @@ export default function EmptyState({ onSuggestion }: EmptyStateProps) {
             <button
               key={action.title}
               onClick={() => onSuggestion(action.message)}
-              className="suggestion-card flex items-center gap-3 px-4 py-3 rounded-xl border border-pink-100 bg-white shadow-e1 text-left cursor-pointer"
+              className="suggestion-card flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--border)] bg-white shadow-e1 text-left cursor-pointer"
             >
-              <span className="shrink-0 w-9 h-9 rounded-lg bg-fuchsia-50 text-fuchsia-500 flex items-center justify-center">
+              <span className="shrink-0 w-9 h-9 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center">
                 {action.icon}
               </span>
               <span className="min-w-0">
@@ -95,7 +95,7 @@ export default function EmptyState({ onSuggestion }: EmptyStateProps) {
           <button
             key={text}
             onClick={() => onSuggestion(text)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-100 bg-purple-50/60 text-xs font-medium text-purple-700 hover:bg-purple-100 hover:border-purple-200 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-white text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] hover:border-[rgba(216,27,120,0.25)] transition-colors cursor-pointer"
           >
             <IconChat size={12} />
             {text}

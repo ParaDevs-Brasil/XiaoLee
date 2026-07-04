@@ -7,7 +7,6 @@ import Transacoes from "./Transacoes";
 import Historico from "./Historico";
 import Wallet from "./Wallet";
 import EvmWallet from "./EvmWallet";
-import { ThemeToggle } from "./ThemeToggle";
 import { TypeUserData } from "@/interfaces";
 import UserData from "../UserData";
 import dynamic from "next/dynamic";
@@ -25,20 +24,20 @@ function LangToggle() {
       <button
         onClick={() => setLang(lang === "en" ? "pt" : "en")}
         aria-label="Switch language"
-        className="min-[400px]:hidden shrink-0 px-2 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-sm transition-all duration-200 active:scale-95"
+        className="min-[400px]:hidden shrink-0 px-2 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-[var(--accent)] text-white shadow-sm transition-all duration-200 active:scale-95"
       >
         {lang === "en" ? "EN" : "PT"}
       </button>
 
-      <div className="hidden min-[400px]:flex items-center gap-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl p-0.5 shrink-0">
+      <div className="hidden min-[400px]:flex items-center gap-0.5 bg-black/5 border border-[var(--navbar-border)] rounded-xl p-0.5 shrink-0">
         {(["en", "pt"] as Language[]).map((l) => (
           <button
             key={l}
             onClick={() => setLang(l)}
             className={`px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
               lang === l
-                ? "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-sm"
-                : "text-white/70 hover:text-white hover:bg-white/10"
+                ? "bg-[var(--accent)] text-white shadow-sm"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5"
             }`}
           >
             {l === "en" ? "EN" : "PT"}
@@ -137,10 +136,10 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="bg-gradient-to-r from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-b-2 border-[var(--navbar-border)] shadow-xl px-2 py-2.5 sm:p-3 md:p-4 sticky top-0 z-20 overflow-visible">
+      <nav className="bg-gradient-to-r from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-b border-[var(--navbar-border)] shadow-sm px-2 py-2.5 sm:p-3 md:p-4 sticky top-0 z-20 overflow-visible">
         <div className="container mx-auto flex justify-between items-center relative z-[10000] gap-1.5 sm:gap-2">
           <div className="flex items-center shrink-0">
-            <Link href="/" className="text-base md:text-2xl font-bold bg-gradient-to-r from-[var(--navbar-text-gradient-start)] via-[var(--navbar-text-gradient-middle)] to-[var(--navbar-text-gradient-end)] bg-clip-text text-transparent hover:scale-105 transition-transform whitespace-nowrap">
+            <Link href="/" className="text-base md:text-2xl font-bold text-[var(--text-accent)] hover:scale-105 transition-transform whitespace-nowrap">
               <span className="hidden sm:inline">XiaoleeChat ✨</span>
               <span className="sm:hidden">Xiaolee ✨</span>
             </Link>
@@ -151,25 +150,25 @@ export default function Navbar() {
             <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5">
               <Link
                 href="/campaigns"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 rounded-lg md:rounded-xl px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 rounded-lg md:rounded-xl px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${
                   pathname === '/campaigns'
-                    ? 'bg-[var(--input-bg)] text-fuchsia-600 shadow-e1'
-                    : 'text-[var(--text-secondary)] hover:bg-white/40 hover:text-fuchsia-600'
+                    ? 'bg-white text-[var(--text-primary)] shadow-e1'
+                    : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
                 }`}
               >
-                <RocketLaunchIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0 text-fuchsia-500" />
+                <RocketLaunchIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
                 <span className="hidden lg:inline">{t('navbar.campaigns')}</span>
               </Link>
 
               <Link
                 href="/traction"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 rounded-lg md:rounded-xl px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 rounded-lg md:rounded-xl px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${
                   pathname === '/traction'
-                    ? 'bg-[var(--input-bg)] text-sky-600 shadow-e1'
-                    : 'text-[var(--text-secondary)] hover:bg-white/40 hover:text-sky-600'
+                    ? 'bg-white text-[var(--text-primary)] shadow-e1'
+                    : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
                 }`}
               >
-                <CurrencyDollarIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0 text-sky-500" />
+                <CurrencyDollarIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
                 <span className="hidden lg:inline">Traction</span>
               </Link>
 
@@ -177,10 +176,10 @@ export default function Navbar() {
                 href="/notifications"
                 title={t('navbar.notifications')}
                 aria-label={t('navbar.notifications')}
-                className={`inline-flex items-center justify-center rounded-lg md:rounded-xl transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:h-10 sm:w-10 md:h-11 md:w-11 ${
+                className={`inline-flex items-center justify-center rounded-lg md:rounded-xl transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:h-10 sm:w-10 md:h-11 md:w-11 ${
                   pathname === '/notifications'
-                    ? 'bg-[var(--input-bg)] text-purple-600 shadow-e1'
-                    : 'text-[var(--text-secondary)] hover:bg-white/40 hover:text-purple-600'
+                    ? 'bg-white text-[var(--text-primary)] shadow-e1'
+                    : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
                 }`}
               >
                 <BellIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
@@ -188,7 +187,7 @@ export default function Navbar() {
 
               <Link
                 href="/dashboard"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl btn-primary px-0 sm:px-3 md:px-5 text-[11px] md:text-sm font-bold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${pathname === '/dashboard' ? 'ring-2 ring-white/70' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl btn-primary px-0 sm:px-3 md:px-5 text-[11px] md:text-sm font-bold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${pathname === '/dashboard' ? 'ring-2 ring-[rgba(216,27,120,0.3)]' : ''}`}
               >
                 <ChartBarIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
                 <span className="hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
@@ -201,9 +200,9 @@ export default function Navbar() {
               <div className="relative" data-dropdown>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl bg-white/40 border border-white/50 px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold text-[var(--text-primary)] hover:bg-white/60 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 backdrop-blur-sm active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11"
+                  className="inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl bg-white border border-[var(--navbar-border)] px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold text-[var(--text-primary)] hover:bg-black/5 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] backdrop-blur-sm active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11"
                 >
-                  <div className="w-5 h-5 md:w-6 md:h-6 bg-gradient-to-br from-pink-400 to-purple-500 text-white rounded-full flex items-center justify-center shrink-0">
+                  <div className="w-5 h-5 md:w-6 md:h-6 bg-[var(--accent)] text-white rounded-full flex items-center justify-center shrink-0">
                     <UserIcon className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden="true" />
                   </div>
                   <span className="hidden lg:inline">
@@ -435,15 +434,10 @@ export default function Navbar() {
             )}
             
             <LangToggle />
-            <ThemeToggle />
+            {/* ThemeToggle suspenso — só tema claro até a paleta escura ficar pronta */}
           </div>
         </div>
 
-        {/* Floating emoji decorations - Hidden on mobile */}
-        <div className="hidden md:block absolute top-2 left-20 text-lg animate-float cursor-none">🌸</div>
-        <div className="hidden md:block absolute bottom-4 right-16 text-sm animate-sparkle delay-700 cursor-none">
-          ✨
-        </div>
       </nav>
       
      

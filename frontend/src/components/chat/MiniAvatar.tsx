@@ -21,7 +21,7 @@ export default function MiniAvatar({ size = 40 }: { size?: number }) {
 
   return (
     <span
-      className="relative block shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-md bg-pink-50"
+      className="relative block shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-md bg-[var(--accent-soft)]"
       style={{ width: size, height: size }}
     >
       {/* Zoom toward the face — source videos frame the full upper body */}

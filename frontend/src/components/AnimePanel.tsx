@@ -32,15 +32,15 @@ export default function AnimePanel() {
 
   return (
     // Desktop only — below lg the live avatar lives inside the chat header (MiniAvatar)
-    <div className="hidden lg:flex w-full lg:col-span-3 h-full min-h-0 rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-e2 flex-col overflow-hidden">
+    <div className="hidden lg:flex w-full lg:col-span-3 h-full min-h-0 rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-e2 flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-pink-100/60 shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] shrink-0">
         <div>
           <h3 className="text-sm font-bold text-grad">Xiaolee</h3>
           <p className="text-xs text-gray-500 mt-0.5">Your DeFi companion</p>
         </div>
-        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--success)] bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
           Online
         </span>
       </div>
@@ -48,13 +48,13 @@ export default function AnimePanel() {
       {/* Avatar — locked to the source video aspect (~480x650) so the full
           upper body is always in frame; sized by available height, centered */}
       <div className="flex-1 min-h-0 p-3 flex items-center justify-center">
-        <div className="breath relative h-full max-w-full aspect-[48/65] rounded-2xl overflow-hidden border border-pink-100 bg-pink-50/40 shadow-e1">
+        <div className="breath relative h-full max-w-full aspect-[48/65] rounded-2xl overflow-hidden border border-[var(--border)] bg-[var(--accent-soft)] shadow-e1">
           <Pfp pfp={currentPfp} loop={shouldLoop} objectPosition="50% 0%" />
         </div>
       </div>
 
       {/* Character info */}
-      <div className="px-4 py-3 border-t border-pink-100/60 shrink-0 space-y-2">
+      <div className="px-4 py-3 border-t border-[var(--border)] shrink-0 space-y-2">
         <p className="text-xs text-gray-600 leading-relaxed">
           Always ready to help with swaps, campaigns and payments.
         </p>
