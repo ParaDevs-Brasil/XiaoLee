@@ -107,21 +107,21 @@ const Historico: React.FC<HistoricoProps> = ({ shouldOpen = false, onClose }) =>
           onClick={closeModal}
         >
           <div
-            className={`relative bg-white rounded-3xl shadow-2xl border border-pink-100 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col transition-all duration-300 transform ${
+            className={`relative bg-white rounded-3xl shadow-e3 border border-[var(--border)] max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col transition-all duration-300 transform ${
               animateIn ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"
             }`}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-6 pt-6 pb-4 border-b border-pink-100/60">
+            <div className="px-6 pt-6 pb-4 border-b border-[var(--border)]">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-400 to-fuchsia-500 flex items-center justify-center text-white shadow-sm">
+                  <div className="w-10 h-10 rounded-2xl bg-[var(--accent)] flex items-center justify-center text-white shadow-e1">
                     <IconBook />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-gray-800">Chat History</h2>
-                    <p className="text-sm text-gray-500">Your conversations with Xiaolee</p>
+                    <h2 className="text-lg font-bold text-[var(--ink)]">Chat History</h2>
+                    <p className="text-sm text-[var(--ink-2)]">Your conversations with Xiaolee</p>
                   </div>
                 </div>
 
@@ -129,13 +129,13 @@ const Historico: React.FC<HistoricoProps> = ({ shouldOpen = false, onClose }) =>
                   <button
                     onClick={handleRefresh}
                     disabled={isRefreshing}
-                    className="p-2 hover:bg-pink-50 rounded-xl transition-colors disabled:opacity-50 text-gray-400 hover:text-fuchsia-500"
+                    className="p-2 hover:bg-[var(--accent-soft)] rounded-xl transition-colors disabled:opacity-50 text-[var(--ink-3)] hover:text-[var(--accent)]"
                   >
                     <IconRefresh spinning={isRefreshing} />
                   </button>
                   <button
                     onClick={closeModal}
-                    className="p-2 hover:bg-pink-50 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
+                    className="p-2 hover:bg-black/5 rounded-xl transition-colors text-[var(--ink-3)] hover:text-[var(--ink)]"
                   >
                     <IconClose />
                   </button>
@@ -150,8 +150,8 @@ const Historico: React.FC<HistoricoProps> = ({ shouldOpen = false, onClose }) =>
                     onClick={() => setFilter(value)}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
                       filter === value
-                        ? "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-sm"
-                        : "bg-pink-50 text-gray-600 hover:bg-pink-100 border border-pink-100"
+                        ? "bg-[var(--accent)] text-white shadow-e1"
+                        : "bg-[var(--bg)] text-[var(--ink-2)] hover:bg-[var(--accent-soft)] border border-[var(--border)]"
                     }`}
                   >
                     <Icon />
@@ -168,9 +168,9 @@ const Historico: React.FC<HistoricoProps> = ({ shouldOpen = false, onClose }) =>
             <div className="flex-1 overflow-y-auto p-5 space-y-3">
               {displayed.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="text-pink-200 mb-4"><IconInbox /></div>
-                  <h3 className="text-base font-bold text-gray-600 mb-1">No messages yet</h3>
-                  <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+                  <div className="text-[var(--ink-3)] mb-4"><IconInbox /></div>
+                  <h3 className="text-base font-bold text-[var(--ink-2)] mb-1">No messages yet</h3>
+                  <p className="text-sm text-[var(--ink-3)] max-w-xs leading-relaxed">
                     Start chatting with Xiaolee to see your conversation history here.
                   </p>
                 </div>
@@ -182,8 +182,8 @@ const Historico: React.FC<HistoricoProps> = ({ shouldOpen = false, onClose }) =>
                       {/* Avatar */}
                       <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
                         isUser
-                          ? "bg-gradient-to-br from-pink-400 to-fuchsia-500 text-white"
-                          : "bg-gradient-to-br from-violet-400 to-purple-500 text-white"
+                          ? "bg-[var(--accent)] text-white"
+                          : "bg-[var(--ink)] text-white"
                       }`}>
                         {isUser ? <IconUser /> : <IconBot />}
                       </div>
@@ -192,8 +192,8 @@ const Historico: React.FC<HistoricoProps> = ({ shouldOpen = false, onClose }) =>
                       <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-0.5`}>
                         <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
                           isUser
-                            ? "bg-gradient-to-br from-pink-500 to-fuchsia-500 text-white rounded-tr-sm"
-                            : "bg-violet-50 border border-violet-100 text-gray-700 rounded-tl-sm"
+                            ? "bg-[var(--accent)] text-white rounded-tr-sm"
+                            : "bg-[var(--bg)] border border-[var(--border)] text-[var(--ink)] rounded-tl-sm"
                         }`}>
                           {msg.content}
                         </div>
@@ -208,9 +208,9 @@ const Historico: React.FC<HistoricoProps> = ({ shouldOpen = false, onClose }) =>
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-3 border-t border-pink-100/60 bg-gradient-to-r from-pink-50/60 to-fuchsia-50/60">
-              <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 font-medium">
-                <span className="text-pink-300"><IconShield /></span>
+            <div className="px-6 py-3 border-t border-[var(--border)] bg-[var(--bg)]">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-[var(--ink-2)] font-medium">
+                <span className="text-[var(--accent)]"><IconShield /></span>
                 Secured by Xiaolee
               </div>
             </div>

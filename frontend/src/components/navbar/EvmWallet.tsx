@@ -107,14 +107,14 @@ const EvmWallet: React.FC<EvmWalletProps> = ({ shouldOpen = false, onClose }) =>
                 href="https://metamask.io/download/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-bold shadow hover:from-fuchsia-600 hover:to-purple-700 transition-all"
+                className="px-5 py-2.5 rounded-xl btn-primary text-white text-sm font-bold transition-all"
               >
                 {t("evm_wallet.install")} ↗
               </a>
             </div>
           ) : !address ? (
             <div className="flex flex-col items-center gap-4 text-center py-4">
-              <div className="w-14 h-14 rounded-2xl bg-fuchsia-50 border border-fuchsia-100 text-fuchsia-500 grid place-items-center text-2xl">
+              <div className="w-14 h-14 rounded-2xl bg-[var(--accent-soft)] border border-[var(--border)] text-[var(--accent)] grid place-items-center text-2xl">
                 Ξ
               </div>
               <p className="text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs">
@@ -123,7 +123,7 @@ const EvmWallet: React.FC<EvmWalletProps> = ({ shouldOpen = false, onClose }) =>
               <button
                 onClick={handleConnect}
                 disabled={connecting}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-bold shadow hover:from-fuchsia-600 hover:to-purple-700 disabled:opacity-50 transition-all"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl btn-primary text-white text-sm font-bold disabled:opacity-50 transition-all"
               >
                 {connecting && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
                 {connecting ? t("evm_wallet.connecting") : t("evm_wallet.connect")}
@@ -131,8 +131,8 @@ const EvmWallet: React.FC<EvmWalletProps> = ({ shouldOpen = false, onClose }) =>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-600">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--success)]">
+                <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
                 {t("evm_wallet.connected")}
               </div>
 
@@ -142,7 +142,7 @@ const EvmWallet: React.FC<EvmWalletProps> = ({ shouldOpen = false, onClose }) =>
                   <button
                     onClick={handleCopy}
                     title={t("evm_wallet.copy")}
-                    className="font-mono text-sm font-semibold text-[var(--text-primary)] hover:text-fuchsia-500 transition-colors"
+                    className="font-mono text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors"
                   >
                     {shortEvmAddress(address, 8, 6)} ⧉
                   </button>
@@ -150,7 +150,7 @@ const EvmWallet: React.FC<EvmWalletProps> = ({ shouldOpen = false, onClose }) =>
                 {chainName && (
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs text-[var(--text-secondary)]">{t("evm_wallet.network")}</span>
-                    <span className="text-xs font-bold text-sky-600 bg-sky-50 border border-sky-100 rounded-lg px-2 py-1">
+                    <span className="text-xs font-bold text-[var(--accent)] bg-[var(--accent-soft)] border border-[var(--border)] rounded-lg px-2 py-1">
                       {chainName}
                     </span>
                   </div>
@@ -161,7 +161,7 @@ const EvmWallet: React.FC<EvmWalletProps> = ({ shouldOpen = false, onClose }) =>
 
               <button
                 onClick={handleDisconnect}
-                className="self-start text-xs font-semibold text-red-400 hover:text-red-500 transition-colors"
+                className="self-start text-xs font-semibold text-[var(--danger)] hover:opacity-80 transition-colors"
               >
                 {t("evm_wallet.disconnect")}
               </button>

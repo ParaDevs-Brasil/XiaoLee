@@ -166,7 +166,7 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen =
           onClick={closeModal}
         >
           <div
-            className={`relative bg-gradient-to-br from-white via-pink-50 to-fuchsia-50 rounded-3xl shadow-2xl border-2 border-pink-200/70 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col transition-all duration-300 transform ${
+            className={`relative bg-white rounded-3xl shadow-e3 border border-[var(--border)] max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col transition-all duration-300 transform ${
               animateIn ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -175,17 +175,17 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen =
             <div className="absolute bottom-14 right-10 text-base animate-pulse pointer-events-none select-none z-0 opacity-50">💎</div>
 
             {/* ── Header ── */}
-            <div className="px-6 pt-6 pb-4 border-b border-pink-100/60">
+            <div className="px-6 pt-6 pb-4 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-400 to-fuchsia-500 shadow-md shadow-pink-200 flex items-center justify-center">
+                  <div className="w-11 h-11 rounded-2xl bg-[var(--accent)] text-white shadow-e2 flex items-center justify-center">
                     <IconTx />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent leading-tight">
+                    <h2 className="text-2xl font-extrabold text-[var(--ink)] leading-tight">
                       {t('transacoes.title')}
                     </h2>
-                    <p className="text-xs text-fuchsia-600 font-medium mt-0.5">
+                    <p className="text-xs text-[var(--ink-2)] font-medium mt-0.5">
                       {t('transacoes.subtitle')}
                     </p>
                   </div>
@@ -195,14 +195,14 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen =
                   <button
                     onClick={handleRefresh}
                     disabled={isRefreshing}
-                    className="p-2 rounded-xl text-fuchsia-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 transition-all duration-200 disabled:opacity-40"
+                    className="p-2 rounded-xl text-[var(--ink-3)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] transition-all duration-200 disabled:opacity-40"
                     title="Refresh"
                   >
                     <IconRefresh spinning={isRefreshing} />
                   </button>
                   <button
                     onClick={closeModal}
-                    className="p-2 rounded-xl text-pink-400 hover:text-pink-600 hover:bg-pink-50 transition-all duration-200"
+                    className="p-2 rounded-xl text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-black/5 transition-all duration-200"
                     title="Close"
                   >
                     <IconClose />
@@ -214,37 +214,37 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen =
             {/* ── Stats row ── */}
             <div className="grid grid-cols-3 gap-3 px-6 py-4">
               {[
-                { label: t('transacoes.tab_all'), value: allActivities.length, from: "from-pink-500", to: "to-fuchsia-500", bg: "from-pink-100 to-fuchsia-100", border: "border-pink-200" },
-                { label: t('transacoes.tab_swaps'), value: swapCount, from: "from-violet-500", to: "to-purple-500", bg: "from-violet-100 to-purple-100", border: "border-violet-200" },
-                { label: t('transacoes.tab_transactions'), value: txCount, from: "from-cyan-500", to: "to-blue-500", bg: "from-cyan-100 to-blue-100", border: "border-cyan-200" },
-              ].map(({ label, value, from, to, bg, border }) => (
-                <div key={label} className={`rounded-2xl bg-gradient-to-br ${bg} border ${border} p-3 text-center shadow-sm`}>
-                  <div className={`text-3xl font-black bg-gradient-to-r ${from} ${to} bg-clip-text text-transparent leading-none`}>
+                { label: t('transacoes.tab_all'), value: allActivities.length },
+                { label: t('transacoes.tab_swaps'), value: swapCount },
+                { label: t('transacoes.tab_transactions'), value: txCount },
+              ].map(({ label, value }) => (
+                <div key={label} className="rounded-2xl bg-[var(--bg)] border border-[var(--border)] p-3 text-center shadow-e1">
+                  <div className="text-3xl font-black text-[var(--accent)] leading-none">
                     {value}
                   </div>
-                  <div className="text-xs text-gray-700 mt-1 font-semibold">{label}</div>
+                  <div className="text-xs text-[var(--ink-2)] mt-1 font-semibold">{label}</div>
                 </div>
               ))}
             </div>
 
             {/* ── Tabs ── */}
             <div className="px-6 pb-3">
-              <div className="flex gap-2 p-1 bg-white border-2 border-pink-200 rounded-2xl shadow-sm">
+              <div className="flex gap-2 p-1 bg-white border border-[var(--border)] rounded-2xl shadow-e1">
                 {tabs.map(({ key, label, Icon, count }) => (
                   <button
                     key={key}
                     onClick={() => setActiveTab(key)}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                       activeTab === key
-                        ? "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-md shadow-pink-200"
-                        : "text-gray-700 hover:text-fuchsia-600 hover:bg-pink-50"
+                        ? "bg-[var(--accent)] text-white shadow-e2"
+                        : "text-[var(--ink-2)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
                     }`}
                   >
                     <Icon />
                     <span>{label}</span>
                     {count > 0 && (
                       <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                        activeTab === key ? "bg-white/30 text-white" : "bg-pink-100 text-pink-500"
+                        activeTab === key ? "bg-white/30 text-white" : "bg-[var(--accent-soft)] text-[var(--accent)]"
                       }`}>
                         {count}
                       </span>
@@ -264,14 +264,14 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen =
                       <div className="text-7xl mb-5">
                         {activeTab === "swaps" ? "🔄" : activeTab === "transactions" ? "💸" : "🐣"}
                       </div>
-                      <h3 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-fuchsia-500 bg-clip-text text-transparent mb-2">
+                      <h3 className="text-xl font-bold text-[var(--ink)] mb-2">
                         {activeTab === "swaps"
                           ? t('transacoes.empty_swaps')
                           : activeTab === "transactions"
                           ? t('transacoes.empty_transactions')
                           : t('transacoes.empty_all')}
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4">
+                      <p className="text-sm text-[var(--ink-2)] mb-4">
                         {t('transacoes.empty_sub')}
                       </p>
                       <div className="flex gap-2 text-lg">
@@ -294,14 +294,14 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen =
                       return (
                         <div
                           key={`${activity.type}-${activity.id}`}
-                          className="group rounded-2xl border border-pink-200 bg-white p-4 shadow-sm hover:shadow-md hover:border-fuchsia-300 hover:shadow-pink-100 transition-all duration-200 hover:-translate-y-0.5"
+                          className="group rounded-2xl border border-[var(--border)] bg-white p-4 shadow-e1 hover:shadow-e2 hover:border-[var(--accent)]/40 transition-all duration-200 hover:-translate-y-0.5"
                         >
                           <div className="flex items-start gap-3">
                             {/* Icon */}
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
                               isSwap
-                                ? "bg-gradient-to-br from-violet-100 to-purple-100 text-violet-500"
-                                : "bg-gradient-to-br from-cyan-100 to-blue-100 text-cyan-600"
+                                ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                                : "bg-black/5 text-[var(--ink-2)]"
                             }`}>
                               {isSwap ? <IconSwap /> : <IconTx />}
                             </div>
@@ -309,7 +309,7 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen =
                             {/* Body */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2 mb-1">
-                                <span className="font-semibold text-gray-900 text-sm truncate">
+                                <span className="font-semibold text-[var(--ink)] text-sm truncate">
                                   {isSwap
                                     ? `${swapData.transaction_type}: ${swapData.amount} ${swapData.token}`
                                     : `${txData.transaction_type}: ${txData.amount} ${txData.token_symbol}`}
@@ -325,25 +325,25 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen =
                               </div>
 
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs text-gray-500 font-medium">
+                                <span className="text-xs text-[var(--ink-3)] font-medium">
                                   {formatDate(activity.timestamp)}
                                 </span>
                                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
                                   isSwap
-                                    ? "bg-violet-50 text-violet-500 border-violet-100"
-                                    : "bg-cyan-50 text-cyan-600 border-cyan-100"
+                                    ? "bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--border)]"
+                                    : "bg-black/5 text-[var(--ink-2)] border-[var(--border)]"
                                 }`}>
                                   {isSwap ? t('transacoes.type_swap') : t('transacoes.type_transaction')}
                                 </span>
                               </div>
 
                               {isSwap && swapData.to_address && (
-                                <p className="text-xs text-gray-500 font-mono mt-1 truncate">
+                                <p className="text-xs text-[var(--ink-3)] font-mono mt-1 truncate">
                                   → {swapData.to_address}
                                 </p>
                               )}
                               {!isSwap && txData.sender_twitter_handle && (
-                                <p className="text-xs text-gray-600 font-medium mt-1">
+                                <p className="text-xs text-[var(--ink-2)] font-medium mt-1">
                                   @{txData.sender_twitter_handle} → @{txData.recipient_twitter_handle}
                                 </p>
                               )}
@@ -358,8 +358,8 @@ const Transacoes: React.FC<TransacoesProps> = ({ transactions = [], shouldOpen =
             </div>
 
             {/* ── Footer ── */}
-            <div className="px-6 py-3 border-t border-pink-100/60 bg-gradient-to-r from-pink-50/60 to-fuchsia-50/60">
-              <div className="flex items-center justify-center gap-1.5 text-xs text-fuchsia-500 font-semibold">
+            <div className="px-6 py-3 border-t border-[var(--border)] bg-[var(--bg)]">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-[var(--ink-2)] font-semibold">
                 <IconShield />
                 <span>{t('transacoes.secured')}</span>
                 <span>🌸</span>

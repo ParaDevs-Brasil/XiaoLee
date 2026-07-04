@@ -229,7 +229,7 @@ export default function Navbar() {
                     
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
-                <div className="absolute z-50 right-0 mt-2 w-56 md:w-64 origin-top-right rounded-2xl bg-gradient-to-br from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-2 border-[var(--navbar-border)] shadow-2xl overflow-hidden transition-all duration-200 animate-in fade-in-0 zoom-in-95">                    
+                <div className="absolute z-50 right-0 mt-2 w-56 md:w-64 origin-top-right rounded-2xl bg-white border border-[var(--border)] shadow-e3 overflow-hidden transition-all duration-200 animate-in fade-in-0 zoom-in-95">                    
                     {/* User Info Section */}
                     <div className="px-4 py-3 border-b border-[var(--navbar-border)]/30 backdrop-blur-sm">
                       <div className="flex items-center space-x-3">
@@ -248,12 +248,12 @@ export default function Navbar() {
                     </div>
 
                     {/* Menu Items */}
-                    <div className="py-2 bg-gradient-to-b from-[var(--navbar-bg-middle)]/50 to-[var(--navbar-bg-end)]/50 backdrop-blur-sm">
+                    <div className="py-2">
                       <div
                         onClick={() => {
                           handleWalletClick();
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -270,7 +270,7 @@ export default function Navbar() {
                         onClick={() => {
                           handleTransactionClick();
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,7 +287,7 @@ export default function Navbar() {
                         onClick={() => {
                           handleHistoryClick();
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -306,7 +306,7 @@ export default function Navbar() {
                           setShouldOpenEvmWallet(true);
                           setIsDropdownOpen(false);
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center font-bold">
                           Ξ
@@ -341,7 +341,7 @@ export default function Navbar() {
                           ) : (
                             <button
                               onClick={() => setShowTelegramLogin(true)}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-semibold shadow hover:from-blue-600 hover:to-cyan-600 transition-all"
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-[#2AABEE] text-white text-sm font-semibold shadow hover:bg-[#229ED9] transition-all"
                             >
                               <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/>
@@ -370,7 +370,7 @@ export default function Navbar() {
                           e.preventDefault();
                           handleWalletClick();
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -389,7 +389,7 @@ export default function Navbar() {
                           e.preventDefault();
                           handleWalletClick();
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
