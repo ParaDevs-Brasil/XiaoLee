@@ -28,7 +28,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
       <div 
-        className={`${sizeClasses[size]} border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin`}
+        className={`${sizeClasses[size]} border-4 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin`}
       />
       {text && (
         <p className={`mt-2 text-gray-600 ${textSizeClasses[size]} font-medium`}>
@@ -46,9 +46,9 @@ export const LoadingDots: React.FC<{ className?: string; text?: string }> = ({
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
       <div className="flex space-x-1">
-        <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-        <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-        <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+        <div className="w-2 h-2 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+        <div className="w-2 h-2 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+        <div className="w-2 h-2 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
       </div>
       {text && (
         <p className="mt-2 text-gray-600 text-sm font-medium">
@@ -65,7 +65,7 @@ export const LoadingPulse: React.FC<{ className?: string; text?: string }> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
-      <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-pulse"></div>
+      <div className="w-12 h-12 bg-[var(--accent-soft)] rounded-full animate-pulse"></div>
       {text && (
         <p className="mt-2 text-gray-600 text-base font-medium">
           {text}

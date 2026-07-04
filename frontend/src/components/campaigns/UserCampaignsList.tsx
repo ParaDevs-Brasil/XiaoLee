@@ -26,7 +26,7 @@ interface UserCampaignCardProps {
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   enrolled:       { label: 'Inscrito',   bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100' },
-  tasks_verified: { label: 'Verificado', bg: 'bg-violet-50',  text: 'text-violet-600',  border: 'border-violet-100' },
+  tasks_verified: { label: 'Verificado', bg: 'bg-emerald-50',  text: 'text-[var(--success)]',  border: 'border-emerald-100' },
   paid:           { label: 'Claimed',    bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
 };
 
@@ -42,7 +42,7 @@ export const UserCampaignCard: React.FC<UserCampaignCardProps> = ({ campaign, cl
   const statusLabel = statusLabels[currentStatus] ?? cfg.label;
 
   return (
-    <div className={`rounded-xl border border-pink-100 bg-white/70 backdrop-blur-sm p-4 hover:shadow-sm transition-shadow duration-150 ${className}`}>
+    <div className={`rounded-xl border border-[var(--border)] bg-white p-4 hover:shadow-sm transition-shadow duration-150 ${className}`}>
       <div className="flex items-start justify-between gap-3 mb-2">
         <h3 className="text-base font-bold text-gray-900 leading-tight flex-1 min-w-0">{campaign.name}</h3>
         <span className={`shrink-0 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
@@ -56,8 +56,8 @@ export const UserCampaignCard: React.FC<UserCampaignCardProps> = ({ campaign, cl
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600 font-medium">{t('user_campaigns.reward')}</span>
-          <span className="text-base font-black text-fuchsia-600">{campaign.reward_per_participant}</span>
-          <span className="text-xs font-bold text-fuchsia-500 bg-fuchsia-50 px-2 py-0.5 rounded-full">{campaign.reward_token}</span>
+          <span className="text-base font-black text-[var(--accent)]">{campaign.reward_per_participant}</span>
+          <span className="text-xs font-bold text-[var(--accent)] bg-[var(--accent-soft)] px-2 py-0.5 rounded-full">{campaign.reward_token}</span>
         </div>
         {campaign.tasks_verified_at && (
           <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
@@ -83,8 +83,8 @@ export const UserCampaignsList: React.FC<UserCampaignsListProps> = ({
   const listTitle = title ?? t('user_campaigns.title');
   if (campaigns.length === 0) {
     return (
-      <div className={`rounded-2xl border border-pink-100 bg-white/60 p-8 text-center ${className}`}>
-        <div className="w-10 h-10 rounded-2xl bg-pink-50 border border-pink-100 flex items-center justify-center mx-auto mb-3 text-pink-300">
+      <div className={`rounded-2xl border border-[var(--border)] bg-white p-8 text-center ${className}`}>
+        <div className="w-10 h-10 rounded-2xl bg-[var(--accent-soft)] border border-[var(--border)] flex items-center justify-center mx-auto mb-3 text-[var(--accent)]">
           <IconTarget />
         </div>
         <h3 className="text-sm font-bold text-gray-600 mb-1">{t('user_campaigns.empty_title')}</h3>
@@ -96,7 +96,7 @@ export const UserCampaignsList: React.FC<UserCampaignsListProps> = ({
   return (
     <div className={className}>
       <div className="flex items-center gap-2 mb-3 px-1">
-        <span className="text-fuchsia-400"><IconTarget /></span>
+        <span className="text-[var(--accent)]"><IconTarget /></span>
         <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest">{listTitle}</h2>
       </div>
       <div className="space-y-3">

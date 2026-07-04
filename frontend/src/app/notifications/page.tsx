@@ -24,17 +24,17 @@ export default function NotificationsPage() {
 
   return (
     <ThemeProviderWrapper>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-fuchsia-100 transition-colors duration-500">
+      <div className="min-h-screen bg-[var(--main-bg)] transition-colors duration-500">
         <Navbar />
 
         <main className="container mx-auto px-4 py-10 max-w-2xl">
 
           {/* ── Header ── */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-400 to-fuchsia-500 shadow-lg shadow-pink-200 mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--accent)] shadow-lg mb-4">
               <span className="text-2xl">🔔</span>
             </div>
-            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
+            <h1 className="text-3xl font-extrabold text-[var(--text-primary)] mb-2 leading-tight">
               {t('notifications.title')}
             </h1>
             <p className="text-base text-gray-600 max-w-sm mx-auto leading-relaxed">
@@ -45,9 +45,9 @@ export default function NotificationsPage() {
           {/* ── Stats Row ── */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: t('notifications.total'),     value: notifications.length, color: 'from-pink-500 to-fuchsia-500', bg: 'from-pink-50 to-fuchsia-50', border: 'border-pink-200' },
-              { label: t('notifications.delivered'), value: deliveredCount, color: 'text-emerald-600', solid: true, bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200' },
-              { label: t('notifications.pending'),   value: pendingCount, color: 'text-amber-600', solid: true, bg: 'from-amber-50 to-orange-50', border: 'border-amber-200' },
+              { label: t('notifications.total'),     value: notifications.length, color: 'text-[var(--text-primary)]', solid: true, bg: 'from-white to-white', border: 'border-[var(--border)]' },
+              { label: t('notifications.delivered'), value: deliveredCount, color: 'text-[var(--success)]', solid: true, bg: 'from-white to-white', border: 'border-[var(--border)]' },
+              { label: t('notifications.pending'),   value: pendingCount, color: 'text-amber-600', solid: true, bg: 'from-white to-white', border: 'border-[var(--border)]' },
             ].map(({ label, value, color, solid, bg, border }) => (
               <div
                 key={label}
@@ -62,20 +62,20 @@ export default function NotificationsPage() {
           </div>
 
           {/* ── Session Context ── */}
-          <div className="rounded-2xl border border-pink-200 bg-white p-4 mb-6 shadow-sm">
-            <div className="text-xs font-bold uppercase tracking-widest text-fuchsia-500 mb-3">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-4 mb-6 shadow-sm">
+            <div className="text-xs font-bold uppercase tracking-widest text-[var(--accent)] mb-3">
               {t('notifications.devnet_context')}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm text-gray-600 font-semibold shrink-0">{t('notifications.session')}</span>
-                <span className="text-xs font-mono text-gray-700 bg-pink-50 border border-pink-200 rounded-lg px-2 py-1 truncate max-w-[200px]" title={sessionId || ''}>
+                <span className="text-xs font-mono text-gray-700 bg-[var(--main-bg)] border border-[var(--border)] rounded-lg px-2 py-1 truncate max-w-[200px]" title={sessionId || ''}>
                   {sessionId ? truncate(sessionId, 12) : <span className="text-gray-400 italic">{t('notifications.not_initialized')}</span>}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm text-gray-600 font-semibold shrink-0">{t('notifications.wallet')}</span>
-                <span className="text-xs font-mono text-gray-700 bg-purple-50 border border-purple-200 rounded-lg px-2 py-1 truncate max-w-[200px]" title={walletPublicKey || ''}>
+                <span className="text-xs font-mono text-gray-700 bg-[var(--main-bg)] border border-[var(--border)] rounded-lg px-2 py-1 truncate max-w-[200px]" title={walletPublicKey || ''}>
                   {walletPublicKey ? truncate(walletPublicKey, 12) : <span className="text-gray-400 italic">{t('notifications.phantom_not_connected')}</span>}
                 </span>
               </div>
@@ -83,16 +83,16 @@ export default function NotificationsPage() {
           </div>
 
           {/* ── List Section ── */}
-          <div className="rounded-2xl border border-pink-200 bg-white shadow-lg overflow-hidden">
+          <div className="rounded-2xl border border-[var(--border)] bg-white shadow-lg overflow-hidden">
             {/* List Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div>
                 <h2 className="text-lg font-bold text-gray-800">{t('notifications.receipts_title')}</h2>
                 <p className="text-sm text-gray-600">{t('notifications.receipts_sub')}</p>
               </div>
               <button
                 onClick={refetch}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white text-xs font-semibold shadow-md shadow-pink-200 hover:shadow-pink-300 hover:scale-105 active:scale-95 transition-all duration-200"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
               >
                 <span>↺</span>
                 Refresh
@@ -116,7 +116,7 @@ export default function NotificationsPage() {
             {/* Empty State */}
             {!loading && !error && notifications.length === 0 && (
               <div className="px-6 py-16 flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-100 to-fuchsia-100 flex items-center justify-center mb-5 shadow-inner">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--accent-soft)] flex items-center justify-center mb-5">
                   <span className="text-3xl">🔕</span>
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 mb-1">{t('notifications.empty_title')}</h3>
@@ -125,7 +125,7 @@ export default function NotificationsPage() {
                 </p>
                 <Link
                   href="/campaigns"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-bold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
                 >
                   {t('notifications.explore_campaigns')} 🚀
                 </Link>
@@ -134,11 +134,11 @@ export default function NotificationsPage() {
 
             {/* Notification List */}
             {!loading && notifications.length > 0 && (
-              <div className="divide-y divide-pink-50">
+              <div className="divide-y divide-[var(--border)]">
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className="px-5 py-4 hover:bg-pink-50/40 transition-colors duration-150"
+                    className="px-5 py-4 hover:bg-[var(--main-bg)] transition-colors duration-150"
                   >
                     <div className="flex items-start gap-3">
                       {/* Status dot */}
@@ -170,9 +170,9 @@ export default function NotificationsPage() {
 
                         {/* Receipt signature */}
                         {notification.related_signature && (
-                          <div className="rounded-lg bg-purple-50 border border-purple-100 px-3 py-2 mb-2">
-                            <div className="text-xs text-fuchsia-400 font-bold uppercase tracking-wider mb-0.5">Receipt</div>
-                            <div className="text-xs font-mono text-purple-600 break-all">{notification.related_signature}</div>
+                          <div className="rounded-lg bg-[var(--accent-soft)] border border-[var(--border)] px-3 py-2 mb-2">
+                            <div className="text-xs text-[var(--accent)] font-bold uppercase tracking-wider mb-0.5">Receipt</div>
+                            <div className="text-xs font-mono text-[var(--text-secondary)] break-all">{notification.related_signature}</div>
                           </div>
                         )}
 
@@ -197,7 +197,7 @@ export default function NotificationsPage() {
                               }
                             }}
                             disabled={isAckLoading(notification.id)}
-                            className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-white text-xs font-bold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                            className="inline-flex items-center px-3 py-1.5 rounded-xl bg-[var(--success)] text-white text-xs font-bold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                           >
                             {isAckLoading(notification.id) ? '...' : t('notifications.ack')}
                           </button>

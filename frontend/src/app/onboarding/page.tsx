@@ -59,17 +59,17 @@ export default function OnboardingPage() {
 
   return (
     <ThemeProviderWrapper>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-fuchsia-100 transition-colors duration-500">
+      <div className="min-h-screen bg-[var(--main-bg)] transition-colors duration-500">
         <Navbar />
 
         <main className="container mx-auto px-4 py-12 max-w-md">
 
           {/* ── Header ──────────────────────────────────────────────── */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-fuchsia-400 to-purple-500 text-white shadow-lg mb-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--accent)] text-white shadow-lg mb-4">
               <IconDollar className="w-5 h-5" />
             </div>
-            <h1 className="text-2xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent leading-tight mb-2">
+            <h1 className="text-2xl font-extrabold text-[var(--text-primary)] leading-tight mb-2">
               {t("onboarding.title")}
             </h1>
             <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
@@ -79,12 +79,12 @@ export default function OnboardingPage() {
 
           {/* ── Form state ──────────────────────────────────────────── */}
           {(step === "form" || step === "loading") && (
-            <form onSubmit={handleSubmit} className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm p-6 flex flex-col gap-5">
+            <form onSubmit={handleSubmit} className="rounded-2xl border border-[var(--border)] bg-white shadow-sm p-6 flex flex-col gap-5">
 
               {/* Handle */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-                  <span className="text-fuchsia-400"><IconUser className="w-5 h-5" /></span>
+                  <span className="text-[var(--accent)]"><IconUser className="w-5 h-5" /></span>
                   {t("onboarding.handle_label")}
                 </label>
                 <div className="relative">
@@ -96,7 +96,7 @@ export default function OnboardingPage() {
                     placeholder={t("onboarding.handle_placeholder")}
                     required
                     disabled={step === "loading"}
-                    className="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:border-fuchsia-300 disabled:opacity-60 transition"
+                    className="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-[rgba(216,27,120,0.45)] disabled:opacity-60 transition"
                   />
                 </div>
               </div>
@@ -104,7 +104,7 @@ export default function OnboardingPage() {
               {/* EVM Wallet */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-                  <span className="text-fuchsia-400"><IconWallet className="w-5 h-5" /></span>
+                  <span className="text-[var(--accent)]"><IconWallet className="w-5 h-5" /></span>
                   {t("onboarding.wallet_label")}
                 </label>
                 <div className="flex gap-2">
@@ -115,14 +115,14 @@ export default function OnboardingPage() {
                     placeholder={t("onboarding.wallet_placeholder")}
                     required
                     disabled={step === "loading"}
-                    className="flex-1 min-w-0 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-mono text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:border-fuchsia-300 disabled:opacity-60 transition"
+                    className="flex-1 min-w-0 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-mono text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-[rgba(216,27,120,0.45)] disabled:opacity-60 transition"
                   />
                   {hasWallet && (
                     <button
                       type="button"
                       onClick={handleConnectWallet}
                       disabled={connecting || step === "loading"}
-                      className="shrink-0 px-3 py-2 rounded-xl border border-fuchsia-200 bg-fuchsia-50 text-fuchsia-600 text-xs font-bold hover:bg-fuchsia-100 disabled:opacity-50 transition"
+                      className="shrink-0 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--accent-soft)] text-[var(--accent)] text-xs font-bold hover:bg-[#fbe3ef] disabled:opacity-50 transition"
                     >
                       {connecting ? t("onboarding.connecting") : t("onboarding.step1_label")}
                     </button>
@@ -130,7 +130,7 @@ export default function OnboardingPage() {
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {t("onboarding.wallet_hint_no_wallet")}{" "}
-                  <span className="text-fuchsia-500 font-semibold">{t("onboarding.wallet_hint_coming")}</span>
+                  <span className="text-[var(--accent)] font-semibold">{t("onboarding.wallet_hint_coming")}</span>
                 </p>
               </div>
 
@@ -138,7 +138,7 @@ export default function OnboardingPage() {
               <button
                 type="submit"
                 disabled={step === "loading" || !handle.trim() || !walletId.trim()}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-bold shadow-lg hover:from-fuchsia-600 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-fuchsia-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[var(--accent)] text-white text-sm font-bold shadow-lg hover:bg-[var(--accent-hover)] focus:outline-none focus:ring-4 focus:ring-[rgba(216,27,120,0.25)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 {step === "loading" ? (
                   <>
@@ -158,7 +158,7 @@ export default function OnboardingPage() {
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t("onboarding.what_next")}</p>
                 {[t("onboarding.next_1"), t("onboarding.next_2"), t("onboarding.next_3")].map((s, i) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-gray-500">
-                    <span className="w-4 h-4 rounded-full bg-fuchsia-100 text-fuchsia-500 flex items-center justify-center font-bold shrink-0 mt-0.5 text-[10px]">
+                    <span className="w-4 h-4 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center font-bold shrink-0 mt-0.5 text-[10px]">
                       {i + 1}
                     </span>
                     {s}
@@ -200,7 +200,7 @@ export default function OnboardingPage() {
 
               <Link
                 href="/traction"
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-bold shadow-lg hover:from-fuchsia-600 hover:to-purple-700 transition-all duration-200 hover:scale-[1.02]"
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[var(--accent)] text-white text-sm font-bold shadow-lg hover:bg-[var(--accent-hover)] transition-all duration-200 hover:scale-[1.02]"
               >
                 <IconActivity className="w-4 h-4" />
                 {t("onboarding.success_cta")}
@@ -208,7 +208,7 @@ export default function OnboardingPage() {
 
               <button
                 onClick={() => { setStep("form"); setHandle(""); setWalletId(""); setResult(null); }}
-                className="text-xs text-gray-400 hover:text-fuchsia-500 transition-colors"
+                className="text-xs text-gray-400 hover:text-[var(--accent)] transition-colors"
               >
                 {t("onboarding.register_another")}
               </button>

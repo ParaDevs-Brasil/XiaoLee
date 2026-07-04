@@ -76,7 +76,7 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
             value={formData.title}
             onChange={handleInputChange}
             required
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-transparent"
             placeholder="Ex: Launch Campaign"
           />
         </div>
@@ -92,7 +92,7 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
             onChange={handleInputChange}
             required
             rows={3}
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-transparent"
             placeholder="Describe the campaign objectives..."
           />
         </div>
@@ -107,7 +107,7 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
             value={formData.campaign_type}
             onChange={handleInputChange}
             required
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-transparent"
           >
             <option value="airdrop">Airdrop</option>
             <option value="engagement">Engagement</option>
@@ -125,7 +125,7 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
             name="profile_to_follow"
             value={formData.profile_to_follow}
             onChange={handleInputChange}
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-transparent"
             placeholder="Ex: @xiaolee_official"
           />
         </div>
@@ -140,7 +140,7 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
             name="tweet_id_to_engage"
             value={formData.tweet_id_to_engage}
             onChange={handleInputChange}
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-transparent"
             placeholder="1234567890123456789"
           />
         </div>
@@ -156,7 +156,7 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
             value={formData.reward_token}
             onChange={handleInputChange}
             required
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-transparent"
             placeholder="Ex: USDC, ETH, BTC, MATIC, etc."
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -177,7 +177,7 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
             required
             min="0.01"
             step="0.01"
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-transparent"
             placeholder="1.0"
           />
         </div>
@@ -194,14 +194,14 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
             onChange={handleInputChange}
             required
             min="1"
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-transparent"
             placeholder="100"
           />
         </div>
 
         {/* Resumo dos Custos */}
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200">
-          <h3 className="font-semibold text-purple-800 mb-2">💰 Cost Summary</h3>
+        <div className="bg-[var(--accent-soft)] p-4 rounded-xl border border-[var(--border)]">
+          <h3 className="font-semibold text-[var(--text-primary)] mb-2">💰 Cost Summary</h3>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span>Reward per participant:</span>
@@ -211,8 +211,8 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
               <span>Maximum participants:</span>
               <span className="font-medium">{formData.max_participants}</span>
             </div>
-            <div className="border-t border-purple-200 pt-2 mt-2">
-              <div className="flex justify-between font-bold text-purple-800">
+            <div className="border-t border-[var(--border)] pt-2 mt-2">
+              <div className="flex justify-between font-bold text-[var(--text-primary)]">
                 <span>Total required:</span>
                 <span>{totalCost.toFixed(2)} {formData.reward_token}</span>
               </div>
@@ -238,7 +238,7 @@ export default function CreateCampaignForm({ onSuccess, onCancel , onError }: Cr
             className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-200 ${
               isCreating
                 ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transform hover:scale-105'
+                : 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transform hover:scale-105'
             }`}
           >
             {isCreating ? (

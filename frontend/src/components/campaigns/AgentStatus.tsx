@@ -46,7 +46,7 @@ const STATUS_COLOR: Record<AgentRunStatus, string> = {
   pending: 'bg-amber-50 text-amber-600 border-amber-200',
   running: 'bg-blue-50 text-blue-600 border-blue-200',
   completed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  max_steps: 'bg-purple-50 text-purple-600 border-purple-200',
+  max_steps: 'bg-[var(--main-bg)] text-[var(--text-secondary)] border-[var(--border)]',
   budget_exhausted: 'bg-orange-50 text-orange-600 border-orange-200',
   failed: 'bg-red-50 text-red-600 border-red-200',
 };
@@ -77,11 +77,11 @@ export default function AgentStatus({
   const handleStart = () => startAgent(campaignId, campaignBudget, rewardPerCreator);
 
   return (
-    <div className="mt-3 rounded-xl border border-fuchsia-100 bg-fuchsia-50/40 p-3">
+    <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--accent-soft)] p-3">
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-fuchsia-500"><IconBot /></span>
+          <span className="text-[var(--accent)]"><IconBot /></span>
           <span className="text-xs font-bold text-gray-700">Agente IA</span>
           <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${STATUS_COLOR[status]}`}>
             {(status === 'pending' || status === 'running') && <IconSpinner />}
@@ -95,7 +95,7 @@ export default function AgentStatus({
           {data && (
             <button
               onClick={() => setExpanded(v => !v)}
-              className="text-[10px] font-semibold text-fuchsia-500 hover:text-fuchsia-700 transition-colors"
+              className="text-[10px] font-semibold text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
             >
               {expanded ? 'Ocultar' : 'Detalhes'}
             </button>
@@ -104,7 +104,7 @@ export default function AgentStatus({
             <button
               onClick={isTerminal(status) ? () => { reset(); } : handleStart}
               disabled={isRunning}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-fuchsia-500 hover:bg-fuchsia-600 disabled:opacity-50 text-white text-[11px] font-bold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white text-[11px] font-bold transition-colors"
             >
               <IconBot />
               {status === 'idle' ? 'Executar Agente' : 'Executar Novamente'}
@@ -126,7 +126,7 @@ export default function AgentStatus({
 
       {/* Summary stats (after run started) */}
       {data && status !== 'idle' && (
-        <div className="flex items-center gap-4 mt-2 pt-2 border-t border-fuchsia-100">
+        <div className="flex items-center gap-4 mt-2 pt-2 border-t border-[var(--border)]">
           <div className="flex items-center gap-1 text-[11px] text-gray-500">
             <IconCoin />
             <span className="font-bold text-gray-700">{data.total_paid_usdc.toFixed(2)} USDC</span>
@@ -158,7 +158,7 @@ export default function AgentStatus({
 
       {/* Expandable: steps + payments */}
       {expanded && data && (
-        <div className="mt-3 pt-3 border-t border-fuchsia-100 space-y-3">
+        <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-3">
 
           {/* Payments */}
           {data.payments.length > 0 && (
@@ -183,7 +183,7 @@ export default function AgentStatus({
               <div className="space-y-1 max-h-36 overflow-y-auto">
                 {data.steps.slice(-6).map((s) => (
                   <div key={s.step} className="flex items-start gap-2 text-[10px] text-gray-500">
-                    <span className="shrink-0 font-bold text-fuchsia-400">#{s.step}</span>
+                    <span className="shrink-0 font-bold text-[var(--accent)]">#{s.step}</span>
                     <span className="font-mono text-gray-600">{s.tool_name}</span>
                     {'error' in s.tool_result && (
                       <span className="text-red-400 ml-auto truncate max-w-[100px]">{String(s.tool_result.error)}</span>
