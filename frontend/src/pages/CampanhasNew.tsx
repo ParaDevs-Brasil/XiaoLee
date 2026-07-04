@@ -7,6 +7,7 @@ import useUserCampaigns from '@/hooks/useUserCampaigns';
 import useNotifications from '@/hooks/useNotifications';
 
 import UserData from '@/components/UserData';
+import { connectEvmWallet, getStoredEvmAddress, isEvmWalletInstalled } from '@/lib/evmWallet';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import CreateCampaignForm from '@/components/campaigns/CreateCampaignForm';
@@ -84,10 +85,10 @@ export default function Campaigns() {
   useEffect(() => {
     const sessionId = UserData.getOrCreateDevnetSession();
     setIsCampaignReady(!!sessionId);
-    // Only auto-sync Phantom if no authenticated session already exists
+    // Only auto-sync a previously connected EVM wallet if no authenticated session exists
     const hasAuth = sessionId?.startsWith('tg_session_') || sessionId?.startsWith('google_session_');
     if (!hasAuth) {
-      const maybeWallet = (window as Window & { solana?: { publicKey?: { toString: () => string } } }).solana?.publicKey?.toString();
+      const maybeWallet = getStoredEvmAddress();
       if (maybeWallet) {
         setWalletAddress(maybeWallet);
         UserData.setDevnetWalletSession(maybeWallet);
@@ -105,19 +106,17 @@ export default function Campaigns() {
       toast.success('Sessão autenticada sincronizada.');
       return;
     }
-    // Otherwise try Phantom for on-chain operations
-    const provider = (window as Window & { solana?: { isPhantom?: boolean; publicKey?: { toString: () => string }; connect?: () => Promise<{ publicKey: { toString: () => string } }> } }).solana;
-    if (!provider?.connect) {
+    // Otherwise try an injected EVM wallet (MetaMask etc.) for on-chain identity
+    if (!isEvmWalletInstalled()) {
       toast.info('Sem carteira detectada. Continuando com sessão local.');
       const fallback = UserData.getOrCreateDevnetSession();
       setIsCampaignReady(!!fallback);
       return;
     }
     try {
-      const resp = await provider.connect();
-      const pubkey = resp.publicKey.toString();
-      UserData.setDevnetWalletSession(pubkey);
-      setWalletAddress(pubkey);
+      const address = await connectEvmWallet();
+      UserData.setDevnetWalletSession(address);
+      setWalletAddress(address);
       setIsCampaignReady(true);
       await refetchUserCampaigns();
       toast.success('Wallet conectada para campanhas.');

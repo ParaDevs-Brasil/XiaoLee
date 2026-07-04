@@ -285,5 +285,22 @@
     "confirming": "Confirmando…",
     "error_handle": "Informe um @handle válido",
     "error_wallet": "Não foi possível conectar a carteira. Tente novamente."
+  },
+  "evm_wallet": {
+    "title": "Carteira EVM",
+    "subtitle": "Arc · Circle · USDC · x402",
+    "not_installed": "Nenhuma carteira EVM detectada. Instale a MetaMask (ou outra compatível) para continuar.",
+    "install": "Instalar MetaMask",
+    "connect": "Conectar Carteira",
+    "connecting": "Conectando…",
+    "connected": "Conectada",
+    "address": "Endereço",
+    "network": "Rede",
+    "copy": "Copiar endereço",
+    "copied": "Endereço copiado!",
+    "disconnect": "Desconectar",
+    "session_linked": "Carteira vinculada à sua sessão de campanhas.",
+    "connect_error": "Não foi possível conectar a carteira.",
+    "hint": "Esta carteira te identifica nas campanhas e recebe os pagamentos em USDC."
   }
 }

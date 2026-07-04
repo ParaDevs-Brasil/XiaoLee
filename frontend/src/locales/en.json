@@ -285,5 +285,22 @@
     "confirming": "Confirming…",
     "error_handle": "Enter a valid @handle",
     "error_wallet": "Could not connect wallet. Try again."
+  },
+  "evm_wallet": {
+    "title": "EVM Wallet",
+    "subtitle": "Arc · Circle · USDC · x402",
+    "not_installed": "No EVM wallet detected. Install MetaMask (or any compatible wallet) to continue.",
+    "install": "Install MetaMask",
+    "connect": "Connect Wallet",
+    "connecting": "Connecting…",
+    "connected": "Connected",
+    "address": "Address",
+    "network": "Network",
+    "copy": "Copy address",
+    "copied": "Address copied!",
+    "disconnect": "Disconnect",
+    "session_linked": "Wallet linked to your campaign session.",
+    "connect_error": "Could not connect wallet.",
+    "hint": "This wallet identifies you in campaigns and receives USDC payouts."
   }
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "../../components/navbar/Navbar";
 import { ThemeProviderWrapper } from "@/providers/ThemeProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { registerCreator, CreatorRegisterResult } from "@/api/api";
+import { connectEvmWallet, isEvmWalletInstalled } from "@/lib/evmWallet";
 import { IconUser, IconWallet, IconCheck, IconDollar, IconArrow, IconActivity } from "@/components/icons";
 
 type Step = "form" | "loading" | "success" | "error";
@@ -17,6 +18,24 @@ export default function OnboardingPage() {
   const [walletId, setWalletId] = useState("");
   const [result, setResult] = useState<CreatorRegisterResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [connecting, setConnecting] = useState(false);
+  const [hasWallet, setHasWallet] = useState(false);
+
+  useEffect(() => {
+    setHasWallet(isEvmWalletInstalled());
+  }, []);
+
+  const handleConnectWallet = async () => {
+    setConnecting(true);
+    try {
+      const address = await connectEvmWallet();
+      setWalletId(address);
+    } catch {
+      setErrorMsg(t("onboarding.error_wallet"));
+    } finally {
+      setConnecting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,15 +107,27 @@ export default function OnboardingPage() {
                   <span className="text-fuchsia-400"><IconWallet className="w-5 h-5" /></span>
                   {t("onboarding.wallet_label")}
                 </label>
-                <input
-                  type="text"
-                  value={walletId}
-                  onChange={(e) => setWalletId(e.target.value)}
-                  placeholder={t("onboarding.wallet_placeholder")}
-                  required
-                  disabled={step === "loading"}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-mono text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:border-fuchsia-300 disabled:opacity-60 transition"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={walletId}
+                    onChange={(e) => setWalletId(e.target.value)}
+                    placeholder={t("onboarding.wallet_placeholder")}
+                    required
+                    disabled={step === "loading"}
+                    className="flex-1 min-w-0 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-mono text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:border-fuchsia-300 disabled:opacity-60 transition"
+                  />
+                  {hasWallet && (
+                    <button
+                      type="button"
+                      onClick={handleConnectWallet}
+                      disabled={connecting || step === "loading"}
+                      className="shrink-0 px-3 py-2 rounded-xl border border-fuchsia-200 bg-fuchsia-50 text-fuchsia-600 text-xs font-bold hover:bg-fuchsia-100 disabled:opacity-50 transition"
+                    >
+                      {connecting ? t("onboarding.connecting") : t("onboarding.step1_label")}
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {t("onboarding.wallet_hint_no_wallet")}{" "}
                   <span className="text-fuchsia-500 font-semibold">{t("onboarding.wallet_hint_coming")}</span>

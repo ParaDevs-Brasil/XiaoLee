@@ -6,7 +6,7 @@ import { ChevronDownIcon, UserIcon, RocketLaunchIcon, BellIcon, ChartBarIcon, Cu
 import Transacoes from "./Transacoes";
 import Historico from "./Historico";
 import Wallet from "./Wallet";
-import StellarWallet from "./StellarWallet";
+import EvmWallet from "./EvmWallet";
 import { ThemeToggle } from "./ThemeToggle";
 import { TypeUserData } from "@/interfaces";
 import UserData from "../UserData";
@@ -58,7 +58,7 @@ export default function Navbar() {
   const [shouldOpenTransactions, setShouldOpenTransactions] = useState(false);
   const [shouldOpenHistory, setShouldOpenHistory] = useState(false);
   const [shouldOpenWallet, setShouldOpenWallet] = useState(false);
-  const [shouldOpenStellarWallet, setShouldOpenStellarWallet] = useState(false);
+  const [shouldOpenEvmWallet, setShouldOpenEvmWallet] = useState(false);
   const pathname = usePathname();
 
   
@@ -294,20 +294,20 @@ export default function Navbar() {
                         </div>
                       </div>
 
-                      {/* Stellar Wallet */}
+                      {/* EVM Wallet */}
                       <div
                         onClick={() => {
-                          setShouldOpenStellarWallet(true);
+                          setShouldOpenEvmWallet(true);
                           setIsDropdownOpen(false);
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-indigo-500/10 hover:to-purple-500/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center font-bold">
-                          ✦
+                          Ξ
                         </div>
                         <div className="text-left">
-                          <div className="font-semibold">Stellar Wallet</div>
-                          <div className="text-xs text-[var(--navbar-text-gradient-middle)]/70">Freighter · SEP-10 · SEP-24 · x402</div>
+                          <div className="font-semibold">EVM Wallet</div>
+                          <div className="text-xs text-[var(--navbar-text-gradient-middle)]/70">Arc · Circle · USDC · x402</div>
                         </div>
                       </div>
 
@@ -472,10 +472,10 @@ export default function Navbar() {
             />
           : null}
 
-          {shouldOpenStellarWallet ?
-            <StellarWallet
-              shouldOpen={shouldOpenStellarWallet}
-              onClose={() => setShouldOpenStellarWallet(false)}
+          {shouldOpenEvmWallet ?
+            <EvmWallet
+              shouldOpen={shouldOpenEvmWallet}
+              onClose={() => setShouldOpenEvmWallet(false)}
             />
           : null}
         </>
