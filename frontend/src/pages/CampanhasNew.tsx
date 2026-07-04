@@ -7,6 +7,7 @@ import useUserCampaigns from '@/hooks/useUserCampaigns';
 import useNotifications from '@/hooks/useNotifications';
 
 import UserData from '@/components/UserData';
+import { connectEvmWallet, getStoredEvmAddress, isEvmWalletInstalled } from '@/lib/evmWallet';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import CreateCampaignForm from '@/components/campaigns/CreateCampaignForm';
@@ -84,10 +85,10 @@ export default function Campaigns() {
   useEffect(() => {
     const sessionId = UserData.getOrCreateDevnetSession();
     setIsCampaignReady(!!sessionId);
-    // Only auto-sync Phantom if no authenticated session already exists
+    // Only auto-sync a previously connected EVM wallet if no authenticated session exists
     const hasAuth = sessionId?.startsWith('tg_session_') || sessionId?.startsWith('google_session_');
     if (!hasAuth) {
-      const maybeWallet = (window as Window & { solana?: { publicKey?: { toString: () => string } } }).solana?.publicKey?.toString();
+      const maybeWallet = getStoredEvmAddress();
       if (maybeWallet) {
         setWalletAddress(maybeWallet);
         UserData.setDevnetWalletSession(maybeWallet);
@@ -105,19 +106,17 @@ export default function Campaigns() {
       toast.success('Sessão autenticada sincronizada.');
       return;
     }
-    // Otherwise try Phantom for on-chain operations
-    const provider = (window as Window & { solana?: { isPhantom?: boolean; publicKey?: { toString: () => string }; connect?: () => Promise<{ publicKey: { toString: () => string } }> } }).solana;
-    if (!provider?.connect) {
+    // Otherwise try an injected EVM wallet (MetaMask etc.) for on-chain identity
+    if (!isEvmWalletInstalled()) {
       toast.info('Sem carteira detectada. Continuando com sessão local.');
       const fallback = UserData.getOrCreateDevnetSession();
       setIsCampaignReady(!!fallback);
       return;
     }
     try {
-      const resp = await provider.connect();
-      const pubkey = resp.publicKey.toString();
-      UserData.setDevnetWalletSession(pubkey);
-      setWalletAddress(pubkey);
+      const address = await connectEvmWallet();
+      UserData.setDevnetWalletSession(address);
+      setWalletAddress(address);
       setIsCampaignReady(true);
       await refetchUserCampaigns();
       toast.success('Wallet conectada para campanhas.');
@@ -145,21 +144,21 @@ export default function Campaigns() {
   };
 
   const handleJoinCampaign = async (campaignId: number) => {
-    if (!isCampaignReady) { toast.error('Sessão Devnet não inicializada. Atualize e tente novamente.'); return; }
+    if (!isCampaignReady) { toast.error('Sessão Testnet não inicializada. Atualize e tente novamente.'); return; }
     const result = await joinCampaign(campaignId);
     if (result.success) { toast.success(result.message); handleRefresh(); await refetchUserCampaigns(); await UserData.fetchData(); }
     else { toast.error(result.error); }
   };
 
   const handleVerifyTasks = async (campaignId: number) => {
-    if (!isCampaignReady) { toast.error('Sessão Devnet não inicializada. Atualize e tente novamente.'); return; }
+    if (!isCampaignReady) { toast.error('Sessão Testnet não inicializada. Atualize e tente novamente.'); return; }
     const result = await verifyTasks(campaignId);
     if (result.success) { toast.success(result.message); await refetchUserCampaigns(); await UserData.fetchData(); }
     else { toast.warning(result.message); }
   };
 
   const handleClaimReward = async (campaignId: number) => {
-    if (!isCampaignReady) { toast.error('Sessão Devnet não inicializada. Atualize e tente novamente.'); return; }
+    if (!isCampaignReady) { toast.error('Sessão Testnet não inicializada. Atualize e tente novamente.'); return; }
     const result = await claimReward(campaignId);
     if (result.success) {
       const receiptSuffix = result.claim_receipt_id ? ` Receipt: ${result.claim_receipt_id}` : '';
@@ -194,7 +193,7 @@ export default function Campaigns() {
           </div>
           <h2 className="text-base font-bold text-gray-700 mb-2">Erro ao carregar campanhas</h2>
           <p className="text-sm text-gray-400 mb-5">{error}</p>
-          <button onClick={handleRefresh} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white text-sm font-semibold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all">
+          <button onClick={handleRefresh} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-semibold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all">
             <IconRefresh /> Tentar novamente
           </button>
         </div>
@@ -208,7 +207,7 @@ export default function Campaigns() {
 
         {/* ── Header ──────────────────────────────────────────────────── */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
+          <h1 className="text-3xl font-extrabold text-[var(--text-primary)] mb-2 leading-tight">
             {t('campaigns.title')}
           </h1>
           <p className="text-base text-gray-600 max-w-xs mx-auto leading-relaxed">
@@ -242,7 +241,7 @@ export default function Campaigns() {
               Login
             </Link>
           ) : (
-            <button onClick={handleConnectDevnetWallet} className="shrink-0 px-4 py-2 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-sm font-bold transition-colors">
+            <button onClick={handleConnectDevnetWallet} className="shrink-0 px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-bold transition-colors">
               Sync Wallet
             </button>
           )}
@@ -252,7 +251,7 @@ export default function Campaigns() {
         <div className="mb-6">
           <button
             onClick={() => setShowCreateForm(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 via-fuchsia-500 to-purple-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:shadow-pink-300 hover:scale-105 active:scale-95 transition-all duration-200"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
           >
             <IconPlus />
             {t('campaigns.create_campaign')}
@@ -268,13 +267,13 @@ export default function Campaigns() {
 
         {/* ── Recent Rewards (Notifications) ──────────────────────────── */}
         {(notifications.length > 0 || notificationsLoading || notificationsError) && (
-          <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm mb-6 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100/60">
+          <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm mb-6 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-2">
-                <span className="text-fuchsia-400"><IconBell /></span>
+                <span className="text-[var(--accent)]"><IconBell /></span>
                 <h2 className="text-sm font-bold text-gray-700">{t('campaigns.recent_rewards')}</h2>
               </div>
-              <button onClick={refetchNotifications} className="text-xs font-semibold text-fuchsia-500 hover:text-fuchsia-700 transition-colors">
+              <button onClick={refetchNotifications} className="text-xs font-semibold text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
                 Atualizar
               </button>
             </div>
@@ -291,7 +290,7 @@ export default function Campaigns() {
                     <div key={notification.id} className={`rounded-xl border px-4 py-3 ${
                       notification.status === 'delivered'
                         ? 'border-emerald-100 bg-emerald-50/50'
-                        : 'border-pink-100 bg-white'
+                        : 'border-[var(--border)] bg-white'
                     }`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
@@ -339,8 +338,8 @@ export default function Campaigns() {
 
         {/* ── Campaign List ────────────────────────────────────────────── */}
         {campaigns.length === 0 ? (
-          <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm p-12 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-pink-50 border border-pink-100 flex items-center justify-center mx-auto mb-4 text-pink-300">
+          <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm p-12 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--accent-soft)] border border-[var(--border)] flex items-center justify-center mx-auto mb-4 text-[var(--accent)]">
               <IconMegaphone />
             </div>
             <h2 className="text-sm font-bold text-gray-600 mb-1">Nenhuma campanha ativa</h2>
@@ -348,7 +347,7 @@ export default function Campaigns() {
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-400 to-fuchsia-500 text-white text-sm font-semibold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-semibold shadow-sm hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 transition-all"
             >
               {refreshing ? <LoadingSpinner size="sm" /> : <IconRefresh />}
               {refreshing ? t('campaigns.refreshing') : t('campaigns.refresh')}
@@ -359,12 +358,12 @@ export default function Campaigns() {
             {/* List header */}
             <div className="flex items-center justify-between mb-4 px-1">
               <p className="text-sm font-bold text-gray-600 uppercase tracking-widest">
-                <span className="text-fuchsia-500">{campaigns.length}</span> campanha{campaigns.length !== 1 ? 's' : ''} ativa{campaigns.length !== 1 ? 's' : ''}
+                <span className="text-[var(--accent)]">{campaigns.length}</span> campanha{campaigns.length !== 1 ? 's' : ''} ativa{campaigns.length !== 1 ? 's' : ''}
               </p>
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-fuchsia-500 font-semibold transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[var(--accent)] font-semibold transition-colors disabled:opacity-50"
               >
                 <IconRefresh />
                 {refreshing ? t('campaigns.refreshing') : t('campaigns.refresh')}
@@ -391,20 +390,20 @@ export default function Campaigns() {
         )}
 
         {/* ── Footer ──────────────────────────────────────────────────── */}
-        <div className="mt-10 rounded-2xl border border-pink-100 bg-white/60 backdrop-blur-sm p-5">
+        <div className="mt-10 rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-fuchsia-400"><IconTarget /></span>
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Como funciona — Devnet</h3>
+            <span className="text-[var(--accent)]"><IconTarget /></span>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Como funciona — Testnet</h3>
           </div>
           <ol className="space-y-2">
             {[
               'Participe de uma campanha e complete as etapas exigidas.',
               'Verifique as tasks para desbloquear o claim de reward.',
-              'Reivindique o reward usando sua identidade de sessão Devnet.',
+              'Reivindique o reward usando sua identidade de sessão Testnet.',
               'Atualize para sincronizar o status mais recente das campanhas.',
             ].map((step, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
-                <span className="w-4 h-4 rounded-full bg-fuchsia-50 border border-fuchsia-100 text-fuchsia-400 font-bold flex items-center justify-center shrink-0 text-[10px]">
+                <span className="w-4 h-4 rounded-full bg-[var(--accent-soft)] border border-[var(--border)] text-[var(--accent)] font-bold flex items-center justify-center shrink-0 text-[10px]">
                   {i + 1}
                 </span>
                 {step}

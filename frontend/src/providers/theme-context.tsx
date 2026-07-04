@@ -13,20 +13,20 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
 const STORAGE_KEY = 'xiaolee-theme'
 
+// Tema escuro suspenso até ganhar uma variante da paleta neutra (pós-Lepton).
+// Forçamos claro e ignoramos preferência salva/sistema para evitar UI quebrada.
 function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark'
-  const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
-  if (stored === 'dark' || stored === 'light') return stored
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return 'light'
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark')
+  const [theme, setThemeState] = useState<Theme>('light')
 
   useEffect(() => {
     const initial = getInitialTheme()
     setThemeState(initial)
     document.documentElement.classList.toggle('dark', initial === 'dark')
+    localStorage.setItem(STORAGE_KEY, initial)
   }, [])
 
   function setTheme(next: Theme) {

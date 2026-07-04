@@ -16,7 +16,7 @@ const IconReceipt = () => (
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   enrolled:       { label: 'Inscrito',   bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100' },
-  tasks_verified: { label: 'Verificado', bg: 'bg-violet-50',  text: 'text-violet-600',  border: 'border-violet-100' },
+  tasks_verified: { label: 'Verificado', bg: 'bg-emerald-50',  text: 'text-[var(--success)]',  border: 'border-emerald-100' },
   paid:           { label: 'Claimed',    bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
 };
 
@@ -27,13 +27,13 @@ export const UserCampaignCard: React.FC<UserCampaignCardProps> = ({
   const cfg = statusConfig[currentStatus] ?? { label: currentStatus, bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-100' };
 
   return (
-    <div className="rounded-xl border border-pink-100 bg-white/70 backdrop-blur-sm hover:shadow-sm transition-shadow duration-150">
+    <div className="rounded-xl border border-[var(--border)] bg-white hover:shadow-sm transition-shadow duration-150">
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-pink-100/60">
+      <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-[var(--border)]">
         <div className="min-w-0">
           <h3 className="text-sm font-bold text-gray-800 leading-tight truncate">{campaign.name}</h3>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400">{campaign.campaign_type}</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">{campaign.campaign_type}</span>
         </div>
         <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
           {currentStatus === 'paid' && <IconCheck />}
@@ -49,8 +49,8 @@ export const UserCampaignCard: React.FC<UserCampaignCardProps> = ({
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs text-gray-400">Reward</span>
           <div className="flex items-center gap-1">
-            <span className="text-sm font-black text-fuchsia-600">{campaign.reward_per_participant}</span>
-            <span className="text-xs font-bold text-fuchsia-500 bg-fuchsia-50 px-1.5 py-0.5 rounded-full">{campaign.reward_token}</span>
+            <span className="text-sm font-black text-[var(--accent)]">{campaign.reward_per_participant}</span>
+            <span className="text-xs font-bold text-[var(--accent)] bg-[var(--accent-soft)] px-1.5 py-0.5 rounded-full">{campaign.reward_token}</span>
           </div>
         </div>
 

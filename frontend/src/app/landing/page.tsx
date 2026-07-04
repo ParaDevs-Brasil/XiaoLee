@@ -4,9 +4,9 @@ import { Nav, Hero, Metrics } from "@/components/landing/Hero";
 import { Pillars, SayItGrid, HowItWorks, Campaigns, Token, Channels, FinalCTA, Footer } from "@/components/landing/Sections";
 
 export const metadata: Metadata = {
-  title: "Xiaolee — Talk to your money on Stellar",
+  title: "Xiaolee — Talk to your money on Arc",
   description:
-    "Xiaolee is a conversational AI agent for Stellar. Swap, send, earn and pay by chatting — non-custodial, no wallets to configure, no slippage to learn.",
+    "Xiaolee is a conversational AI agent for Arc, Circle's USDC-native chain. Swap, send, earn and pay by chatting — non-custodial, no wallets to configure, no slippage to learn.",
 };
 
 export default function LandingPage() {

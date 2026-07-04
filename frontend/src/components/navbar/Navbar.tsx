@@ -3,11 +3,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from 'react-toastify';
 import { ChevronDownIcon, UserIcon, RocketLaunchIcon, BellIcon, ChartBarIcon, CurrencyDollarIcon } from "@heroicons/react/24/outline";
+import { IconSpark } from "@/components/icons";
 import Transacoes from "./Transacoes";
 import Historico from "./Historico";
 import Wallet from "./Wallet";
-import StellarWallet from "./StellarWallet";
-import { ThemeToggle } from "./ThemeToggle";
+import EvmWallet from "./EvmWallet";
 import { TypeUserData } from "@/interfaces";
 import UserData from "../UserData";
 import dynamic from "next/dynamic";
@@ -20,21 +20,32 @@ const Web3AuthButton = dynamic(() => import("../Web3AuthButton"), { ssr: false }
 function LangToggle() {
   const { lang, setLang } = useLanguage();
   return (
-    <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl p-0.5">
-      {(["en", "pt"] as Language[]).map((l) => (
-        <button
-          key={l}
-          onClick={() => setLang(l)}
-          className={`px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-            lang === l
-              ? "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white shadow-sm"
-              : "text-white/70 hover:text-white hover:bg-white/10"
-          }`}
-        >
-          {l === "en" ? "EN" : "PT"}
-        </button>
-      ))}
-    </div>
+    <>
+      {/* Very narrow screens: single button showing the current language; tap switches */}
+      <button
+        onClick={() => setLang(lang === "en" ? "pt" : "en")}
+        aria-label="Switch language"
+        className="min-[400px]:hidden shrink-0 px-2 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-[var(--accent)] text-white shadow-sm transition-all duration-200 active:scale-95"
+      >
+        {lang === "en" ? "EN" : "PT"}
+      </button>
+
+      <div className="hidden min-[400px]:flex items-center gap-0.5 bg-black/5 border border-[var(--navbar-border)] rounded-xl p-0.5 shrink-0">
+        {(["en", "pt"] as Language[]).map((l) => (
+          <button
+            key={l}
+            onClick={() => setLang(l)}
+            className={`px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+              lang === l
+                ? "bg-[var(--accent)] text-white shadow-sm"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5"
+            }`}
+          >
+            {l === "en" ? "EN" : "PT"}
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -47,7 +58,7 @@ export default function Navbar() {
   const [shouldOpenTransactions, setShouldOpenTransactions] = useState(false);
   const [shouldOpenHistory, setShouldOpenHistory] = useState(false);
   const [shouldOpenWallet, setShouldOpenWallet] = useState(false);
-  const [shouldOpenStellarWallet, setShouldOpenStellarWallet] = useState(false);
+  const [shouldOpenEvmWallet, setShouldOpenEvmWallet] = useState(false);
   const pathname = usePathname();
 
   
@@ -126,52 +137,68 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="bg-gradient-to-r from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-b-2 border-[var(--navbar-border)] shadow-xl p-3 md:p-4 sticky top-0 z-20 overflow-visible">
-        <div className="container mx-auto flex justify-between items-center relative z-[10000] gap-2">
+      <nav className="bg-gradient-to-r from-[var(--navbar-bg-start)] via-[var(--navbar-bg-middle)] to-[var(--navbar-bg-end)] backdrop-blur-sm border-b border-[var(--navbar-border)] shadow-sm px-2 py-2.5 sm:p-3 md:p-4 sticky top-0 z-20 overflow-visible">
+        <div className="container mx-auto flex justify-between items-center relative z-[10000] gap-1.5 sm:gap-2">
           <div className="flex items-center shrink-0">
-            <Link href="/" className="text-base md:text-2xl font-bold bg-gradient-to-r from-[var(--navbar-text-gradient-start)] via-[var(--navbar-text-gradient-middle)] to-[var(--navbar-text-gradient-end)] bg-clip-text text-transparent hover:scale-105 transition-transform whitespace-nowrap">
-              <span className="hidden sm:inline">XiaoleeChat ✨</span>
-              <span className="sm:hidden">Xiaolee ✨</span>
+            {/* Logo — mesmo da landing: "Xiao" escuro + "lee" no acento + faísca */}
+            <Link href="/" className="flex items-center gap-1 hover:scale-105 transition-transform whitespace-nowrap">
+              <span
+                className="text-2xl md:text-[32px] text-[var(--text-primary)]"
+                style={{ fontFamily: "var(--font-candice), cursive" }}
+              >
+                Xiao<span className="text-grad">lee</span>
+              </span>
+              <IconSpark size={13} className="text-[var(--accent)] -translate-y-1.5" />
             </Link>
           </div>
           
-          <div className="flex items-center justify-end flex-1 gap-1 md:gap-3">
-            {/* Navigation Buttons */}
-            <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex items-center justify-end flex-1 gap-0.5 sm:gap-1 md:gap-3">
+            {/* Navigation — quiet links with palette accents; Dashboard is the single primary CTA */}
+            <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5">
               <Link
                 href="/campaigns"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/campaigns' ? 'ring-4 ring-pink-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 rounded-lg md:rounded-xl px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${
+                  pathname === '/campaigns'
+                    ? 'bg-white text-[var(--text-primary)] shadow-e1'
+                    : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
+                }`}
               >
-                <RocketLaunchIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.campaigns').slice(0,4)}</span>
-                <span className="font-semibold hidden lg:inline">{t('navbar.campaigns')}</span>
-              </Link>
-
-              <Link
-                href="/notifications"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/notifications' ? 'ring-4 ring-cyan-300 scale-105' : ''}`}
-              >
-                <BellIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.notifications').slice(0,5)}</span>
-                <span className="font-semibold hidden lg:inline">{t('navbar.notifications')}</span>
-              </Link>
-
-              <Link
-                href="/dashboard"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/dashboard' ? 'ring-4 ring-purple-300 scale-105' : ''}`}
-              >
-                <ChartBarIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
-                <span className="font-semibold hidden lg:inline">{t('navbar.dashboard')}</span>
+                <RocketLaunchIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
+                <span className="hidden lg:inline">{t('navbar.campaigns')}</span>
               </Link>
 
               <Link
                 href="/traction"
-                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-white shadow-lg hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-300 border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px] ${pathname === '/traction' ? 'ring-4 ring-emerald-300 scale-105' : ''}`}
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 rounded-lg md:rounded-xl px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${
+                  pathname === '/traction'
+                    ? 'bg-white text-[var(--text-primary)] shadow-e1'
+                    : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
+                }`}
               >
-                <CurrencyDollarIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
-                <span className="font-semibold hidden sm:inline lg:hidden whitespace-nowrap">Live</span>
-                <span className="font-semibold hidden lg:inline">Traction</span>
+                <CurrencyDollarIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
+                <span className="hidden lg:inline">Traction</span>
+              </Link>
+
+              <Link
+                href="/notifications"
+                title={t('navbar.notifications')}
+                aria-label={t('navbar.notifications')}
+                className={`inline-flex items-center justify-center rounded-lg md:rounded-xl transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:h-10 sm:w-10 md:h-11 md:w-11 ${
+                  pathname === '/notifications'
+                    ? 'bg-white text-[var(--text-primary)] shadow-e1'
+                    : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <BellIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
+              </Link>
+
+              <Link
+                href="/dashboard"
+                className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl btn-primary px-0 sm:px-3 md:px-5 text-[11px] md:text-sm font-bold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${pathname === '/dashboard' ? 'ring-2 ring-[rgba(216,27,120,0.3)]' : ''}`}
+              >
+                <ChartBarIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
+                <span className="hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
+                <span className="hidden lg:inline">{t('navbar.dashboard')}</span>
               </Link>
             </div>
 
@@ -180,9 +207,9 @@ export default function Navbar() {
               <div className="relative" data-dropdown>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-2xl bg-gradient-to-r from-[var(--btn-primary-bg-start)] via-[var(--btn-primary-bg-middle)] to-[var(--btn-primary-bg-end)] px-0 sm:px-3 md:px-6 text-[11px] md:text-sm font-semibold text-[var(--btn-primary-text)] shadow-lg hover:from-[var(--btn-primary-hover-bg-start)] hover:via-[var(--btn-primary-hover-bg-middle)] hover:to-[var(--btn-primary-hover-bg-end)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--btn-primary-ring)] border-white/20 backdrop-blur-sm hover:scale-105 active:scale-95 w-9 h-9 sm:w-auto sm:h-10 md:h-[52px]"
+                  className="inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl bg-white border border-[var(--navbar-border)] px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold text-[var(--text-primary)] hover:bg-black/5 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] backdrop-blur-sm active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11"
                 >
-                  <div className="w-4 h-4 md:w-5 md:h-5 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                  <div className="w-5 h-5 md:w-6 md:h-6 bg-[var(--accent)] text-white rounded-full flex items-center justify-center shrink-0">
                     <UserIcon className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden="true" />
                   </div>
                   <span className="hidden lg:inline">
@@ -206,7 +233,7 @@ export default function Navbar() {
                     {/* User Info Section */}
                     <div className="px-4 py-3 border-b border-[var(--navbar-border)]/30 backdrop-blur-sm">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold">
+                        <div className="w-10 h-10 bg-[var(--accent)] rounded-full flex items-center justify-center text-white font-bold">
                           {userData.user_info?.twitter_handle?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div>
@@ -228,7 +255,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                           </svg>
@@ -245,7 +272,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                           </svg>
@@ -262,7 +289,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
@@ -273,20 +300,20 @@ export default function Navbar() {
                         </div>
                       </div>
 
-                      {/* Stellar Wallet */}
+                      {/* EVM Wallet */}
                       <div
                         onClick={() => {
-                          setShouldOpenStellarWallet(true);
+                          setShouldOpenEvmWallet(true);
                           setIsDropdownOpen(false);
                         }}
-                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-indigo-500/10 hover:to-purple-500/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
+                        className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 w-8 h-8 rounded-lg flex items-center justify-center font-bold">
-                          ✦
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center font-bold">
+                          Ξ
                         </div>
                         <div className="text-left">
-                          <div className="font-semibold">Stellar Wallet</div>
-                          <div className="text-xs text-[var(--navbar-text-gradient-middle)]/70">Freighter · SEP-10 · SEP-24 · x402</div>
+                          <div className="font-semibold">EVM Wallet</div>
+                          <div className="text-xs text-[var(--navbar-text-gradient-middle)]/70">Arc · Circle · USDC · x402</div>
                         </div>
                       </div>
 
@@ -345,7 +372,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
@@ -364,7 +391,7 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-gradient-to-r hover:from-[var(--btn-primary-hover-bg-start)]/10 hover:to-[var(--btn-primary-hover-bg-end)]/10 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-300 w-8 h-8 rounded-lg flex items-center justify-center">
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                           </svg>
@@ -384,7 +411,7 @@ export default function Navbar() {
                           onClick={handleLogout}
                           className="group flex w-full items-center px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50/30 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                         >
-                          <div className="mr-3 bg-red-100 dark:bg-red-900/50 text-red-500 w-8 h-8 rounded-lg flex items-center justify-center">
+                          <div className="mr-3 bg-red-100 dark:bg-red-900/50 text-red-500 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
@@ -414,21 +441,10 @@ export default function Navbar() {
             )}
             
             <LangToggle />
-            <ThemeToggle />
+            {/* ThemeToggle suspenso — só tema claro até a paleta escura ficar pronta */}
           </div>
         </div>
 
-        {/* Floating emoji decorations - Hidden on mobile */}
-        <div className="hidden md:block absolute top-2 left-20 text-lg animate-float cursor-none">🌸</div>
-        <div className="hidden md:block absolute top-6 right-32 text-sm animate-sparkle delay-200 cursor-none">
-          ✨
-        </div>
-        <div className="hidden md:block absolute bottom-2 left-1/4 text-xs animate-gentle-bounce delay-500 cursor-none">
-          💫
-        </div>
-        <div className="hidden md:block absolute bottom-4 right-16 text-sm animate-sparkle delay-700 cursor-none">
-          🌟
-        </div>
       </nav>
       
      
@@ -457,10 +473,10 @@ export default function Navbar() {
             />
           : null}
 
-          {shouldOpenStellarWallet ?
-            <StellarWallet
-              shouldOpen={shouldOpenStellarWallet}
-              onClose={() => setShouldOpenStellarWallet(false)}
+          {shouldOpenEvmWallet ?
+            <EvmWallet
+              shouldOpen={shouldOpenEvmWallet}
+              onClose={() => setShouldOpenEvmWallet(false)}
             />
           : null}
         </>

@@ -46,14 +46,14 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
   const spotsLeft = campaign.max_participants - (campaign.completed_participants || 0);
 
   return (
-    <div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
 
       {/* Card Header */}
-      <div className="px-5 py-4 border-b border-pink-100/60">
+      <div className="px-5 py-4 border-b border-[var(--border)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-base font-bold text-gray-900 leading-tight mb-1.5">{campaign.name}</h3>
-            <span className="text-xs font-bold uppercase tracking-widest text-fuchsia-500 bg-fuchsia-50 border border-fuchsia-200 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)] bg-[var(--accent-soft)] border border-[var(--border)] px-2.5 py-0.5 rounded-full">
               {campaign.campaign_type}
             </span>
           </div>
@@ -108,11 +108,11 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
 
       {/* Reward */}
       <div className="px-5 pb-3">
-        <div className="flex items-center justify-between rounded-xl border border-pink-100 bg-pink-50/60 px-4 py-2.5">
+        <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--accent-soft)] px-4 py-2.5">
           <span className="text-sm text-gray-600 font-semibold">{t('campaign_card.reward_per_participant')}</span>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-black text-fuchsia-600">{campaign.reward_per_participant}</span>
-            <span className="text-sm font-bold text-fuchsia-500 bg-fuchsia-100 px-2.5 py-0.5 rounded-full">{campaign.reward_token}</span>
+            <span className="text-xl font-black text-[var(--accent)]">{campaign.reward_per_participant}</span>
+            <span className="text-sm font-bold text-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-0.5 rounded-full">{campaign.reward_token}</span>
           </div>
         </div>
       </div>
@@ -120,12 +120,12 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
       {/* Tasks required */}
       {(campaign.profile_to_follow || campaign.tweet_id_to_engage) && (
         <div className="px-5 pb-3">
-          <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-3">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--main-bg)] p-3">
             <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-violet-400"><IconList /></span>
-              <span className="text-sm font-bold text-violet-700 uppercase tracking-wider">{t('campaign_card.required_tasks')}</span>
+              <span className="text-[var(--text-secondary)]"><IconList /></span>
+              <span className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t('campaign_card.required_tasks')}</span>
             </div>
-            <div className="space-y-1 text-sm text-violet-700">
+            <div className="space-y-1 text-sm text-[var(--text-secondary)]">
               {campaign.profile_to_follow && (
                 <div>{t('campaign_card.follow')} <a className="underline font-medium" target="_blank" rel="noreferrer" href={`https://x.com/${campaign.profile_to_follow.replace(/^@/, '')}`}>{campaign.profile_to_follow}</a></div>
               )}
@@ -222,7 +222,7 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
 
       {/* Footer meta */}
       <div className="px-5 pb-4 pt-0">
-        <div className="flex justify-between items-center text-xs text-gray-500 font-medium border-t border-pink-100/60 pt-3">
+        <div className="flex justify-between items-center text-xs text-gray-500 font-medium border-t border-[var(--border)] pt-3">
           <span>@{campaign.creator_twitter_user_id}</span>
           <span>{new Date(campaign.created_at).toLocaleDateString()}</span>
         </div>

@@ -70,7 +70,7 @@ function getEventMeta(title: string): {
   if (t.includes("swap"))
     return { Icon: IconRefresh, accent: "text-blue-500 bg-blue-50 border-blue-100",           label: "Swap" };
   if (t.includes("campaign") || t.includes("campanha"))
-    return { Icon: IconTarget,  accent: "text-fuchsia-500 bg-fuchsia-50 border-fuchsia-100",  label: "Campaign" };
+    return { Icon: IconTarget,  accent: "text-[var(--accent)] bg-[var(--accent-soft)] border-[var(--border)]",  label: "Campaign" };
   return   { Icon: IconBell,    accent: "text-gray-400 bg-gray-50 border-gray-100",           label: "Info" };
 }
 
@@ -136,7 +136,7 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
     return (
       <div className="flex flex-col gap-2.5 animate-pulse">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-14 rounded-xl bg-pink-50 border border-pink-100" />
+          <div key={i} className="h-14 rounded-xl bg-[var(--main-bg)] border border-[var(--border)]" />
         ))}
       </div>
     );
@@ -164,7 +164,7 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
   if (allItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center">
-        <div className="text-pink-200 mb-3"><IconInbox /></div>
+        <div className="text-[var(--text-placeholder)] mb-3"><IconInbox /></div>
         <p className="text-xs font-semibold text-gray-500">{t('activity_feed.empty_title')}</p>
         <p className="text-xs text-gray-400 mt-1 max-w-xs leading-relaxed">
           {t('activity_feed.empty_sub')}
@@ -183,8 +183,8 @@ export default function ActivityFeed({ maxItems = 5 }: ActivityFeedProps) {
             key={item.key}
             className={`
               relative rounded-xl border transition-colors duration-150
-              hover:bg-pink-50/40
-              ${item.isPending ? "border-pink-100 bg-white" : "border-emerald-100 bg-emerald-50/30"}
+              hover:bg-[var(--main-bg)]
+              ${item.isPending ? "border-[var(--border)] bg-white" : "border-emerald-100 bg-emerald-50/30"}
             `}
           >
             <div className="flex items-start gap-3 p-3">

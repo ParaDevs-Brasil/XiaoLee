@@ -15,13 +15,13 @@ type IC = ComponentType<IconProps>;
 export function Pillars() {
   const pillars: { icon: IC; tone: "fuchsia" | "purple" | "sky"; title: string; body: string; tags: string[] }[] = [
     { icon: IconChat, tone: "fuchsia", title: "Conversational DeFi",
-      body: "Swaps, balances and sends — all by message. “Trade 50 USDC for XLM” and Xiaolee quotes the best Stellar DEX path. You confirm, Freighter signs.",
-      tags: ["Path payments", "Live quotes", "@handle sends"] },
+      body: "Swaps, balances and sends — all by message. “Trade 50 USDC for EURC” and Xiaolee quotes the best route on Arc. You confirm, your wallet signs.",
+      tags: ["x402 payments", "Live quotes", "@handle sends"] },
     { icon: IconTarget, tone: "purple", title: "Creator campaigns",
-      body: "Creators post social tasks; fans complete them; Xiaolee verifies and pays out $XLEE, XLM or USDC straight to the wallet — no code, no custody, auditable on-chain.",
-      tags: ["Soroban receipts", "Join · Verify · Claim", "0.5% fee"] },
+      body: "Creators post social tasks; fans complete them; Xiaolee verifies and pays out $XLEE or USDC straight to the wallet — no code, no custody, auditable on-chain.",
+      tags: ["x402 receipts", "Join · Verify · Claim", "0.5% fee"] },
     { icon: IconBolt, tone: "sky", title: "Pix & LATAM gateway",
-      body: "On/off-ramp via EtherFuse. Enter with Pix, operate across Stellar DeFi, and cash out whenever — no exchange account, no international card.",
+      body: "On/off-ramp via EtherFuse. Enter with Pix, operate in USDC on Arc, and cash out whenever — no exchange account, no international card.",
       tags: ["Pix in/out", "Stablecoins", "No card needed"] },
   ];
   const tones: Record<string, string> = {
@@ -32,7 +32,7 @@ export function Pillars() {
   return (
     <section id="product" className="mx-auto max-w-[1180px] scroll-mt-24 px-4 py-16 sm:px-6">
       <SectionHead eyebrow={<><IconSpark size={13} /> What Xiaolee does</>} tone="pink"
-        title={<>One chat. The whole <span className="text-grad">Stellar economy.</span></>}
+        title={<>One chat. The whole <span className="text-grad">USDC economy.</span></>}
         sub="No dashboards to decode, no twelve tabs. Three things Xiaolee does the moment you say hello." />
       <div className="mt-12 grid gap-5 md:grid-cols-3">
         {pillars.map((p, i) => {
@@ -58,12 +58,12 @@ export function Pillars() {
 /* --------------------------- CONVERSATIONAL GRID ------------------------- */
 export function SayItGrid() {
   const rows: { icon: IC; say: string; get: string }[] = [
-    { icon: IconWallet, say: "What's in my wallet?", get: "142.3 XLM · 50 USDC · 0 XLEE" },
-    { icon: IconSwap, say: "Swap 50 USDC → XLM", get: "Best DEX path, you confirm" },
-    { icon: IconSend, say: "Send 10 XLM to @maria", get: "By @handle or G-address" },
+    { icon: IconWallet, say: "What's in my wallet?", get: "120 USDC · 45 EURC · 0 XLEE" },
+    { icon: IconSwap, say: "Swap 50 USDC → EURC", get: "Best route on Arc, you confirm" },
+    { icon: IconSend, say: "Send 10 USDC to @maria", get: "By @handle or 0x-address" },
     { icon: IconBolt, say: "Deposit R$100 via Pix", get: "EtherFuse on-ramp, instant" },
     { icon: IconTarget, say: "Join @artist's campaign", get: "Tasks tracked, reward queued" },
-    { icon: IconGlobe, say: "What's XLM in BRL?", get: "Live price, no app-switching" },
+    { icon: IconGlobe, say: "What's USDC in BRL?", get: "Live price, no app-switching" },
   ];
   return (
     <section className="relative overflow-hidden py-16">
@@ -97,10 +97,10 @@ export function SayItGrid() {
 /* ------------------------------ HOW IT WORKS ----------------------------- */
 export function HowItWorks() {
   const steps: { n: string; icon: IC; title: string; body: string }[] = [
-    { n: "01", icon: IconWallet, title: "Connect Freighter", body: "A one-tap SEP-10 challenge proves the wallet is yours. No private key ever reaches our backend." },
+    { n: "01", icon: IconWallet, title: "Connect your wallet", body: "A one-tap signature proves the wallet is yours. No private key ever reaches our backend." },
     { n: "02", icon: IconChat, title: "Just talk", body: "Ask in plain language — EN or PT, auto-detected. Xiaolee figures out the intent and the route." },
-    { n: "03", icon: IconShield, title: "Confirm in-wallet", body: "Xiaolee shows the quote, fee and path. Nothing moves until you sign it in Freighter yourself." },
-    { n: "04", icon: IconCheck, title: "Done, on-chain", body: "Settled on Stellar in seconds for fractions of a cent. A receipt lands in your in-app inbox." },
+    { n: "03", icon: IconShield, title: "Confirm in-wallet", body: "Xiaolee shows the quote, fee and path. Nothing moves until you sign it in your wallet yourself." },
+    { n: "04", icon: IconCheck, title: "Done, on-chain", body: "Settled on Arc in seconds for fractions of a cent. A receipt lands in your in-app inbox." },
   ];
   return (
     <section id="how" className="mx-auto max-w-[1180px] scroll-mt-24 px-4 py-16 sm:px-6">
@@ -168,7 +168,7 @@ function CampaignCardMock() {
         ))}
       </div>
       <button className="btn-primary mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[14.5px] font-bold text-white"><IconGift size={17} /> Claim 10 $XLEE</button>
-      <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[11.5px] font-medium text-gray-400"><IconCpu size={13} className="text-fuchsia-300" /> Settled on-chain via Soroban</div>
+      <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[11.5px] font-medium text-gray-400"><IconCpu size={13} className="text-fuchsia-300" /> Settled on-chain via x402</div>
     </div>
   );
 }
@@ -177,7 +177,7 @@ export function Campaigns() {
   const bullets: { icon: IC; t: string; b: string }[] = [
     { icon: IconGift, t: "Pay for verified engagement", b: "Fans follow, repost and comment — Xiaolee verifies, then releases the reward. You pay only when tasks check out." },
     { icon: IconLock, t: "Custodial-free for your fans", b: "No seed phrases to onboard. Custodial sessions via Google or Telegram let anyone claim, then graduate to self-custody." },
-    { icon: IconCpu, t: "Auditable on-chain", b: "Every distribution is recorded by the xiaolee_core Soroban contract. Creators and fans can verify without trusting us." },
+    { icon: IconCpu, t: "Auditable on-chain", b: "Every distribution is recorded on-chain by the XiaoLee payment contract. Creators and fans can verify without trusting us." },
   ];
   return (
     <section className="relative py-16">
@@ -187,7 +187,7 @@ export function Campaigns() {
           <Reveal delay={1}>
             <h2 className="mt-5 font-display text-[clamp(28px,4.4vw,46px)] font-extrabold leading-[1.08] tracking-[-0.02em] text-ink">Creator campaigns,<br /><span className="text-grad">real on-chain rewards.</span></h2>
           </Reveal>
-          <Reveal delay={2}><p className="mt-4 max-w-lg text-[17px] leading-relaxed text-gray-500">Set up a campaign in ten minutes. Your audience completes social tasks and gets paid in $XLEE, XLM or USDC — straight to the wallet, 40× cheaper than legacy creator platforms.</p></Reveal>
+          <Reveal delay={2}><p className="mt-4 max-w-lg text-[17px] leading-relaxed text-gray-500">Set up a campaign in ten minutes. Your audience completes social tasks and gets paid in $XLEE or USDC — straight to the wallet, 40× cheaper than legacy creator platforms.</p></Reveal>
           <div className="mt-8 space-y-5">
             {bullets.map((x, i) => {
               const Ic = x.icon;
@@ -211,10 +211,10 @@ export function Campaigns() {
 /* --------------------------------- TOKEN --------------------------------- */
 export function Token() {
   const rows = [
-    { k: "Standard", v: "Stellar Asset + SAC (SEP-41)" },
-    { k: "Network", v: "Stellar" },
+    { k: "Standard", v: "ERC-20 on Arc" },
+    { k: "Network", v: "Arc · Circle" },
     { k: "Transfer fee (burn)", v: "0.5% native" },
-    { k: "Rewards", v: "Distributed via Soroban" },
+    { k: "Rewards", v: "Distributed via x402" },
     { k: "Contract (mint)", v: "Awaiting mainnet deploy", mono: true },
   ];
   const feats: { icon: IC; t: string; b: string }[] = [
@@ -244,7 +244,7 @@ export function Token() {
         <div>
           <Reveal><Eyebrow tone="pink"><IconCoin size={13} /> Built for creators</Eyebrow></Reveal>
           <Reveal delay={1}><h2 className="mt-5 font-display text-[clamp(28px,4.4vw,46px)] font-extrabold leading-[1.08] tracking-[-0.02em] text-ink">Money that <span className="text-grad">can&apos;t be blocked.</span></h2></Reveal>
-          <Reveal delay={2}><p className="mt-4 max-w-lg text-[17px] leading-relaxed text-gray-500">$XLEE is a native Stellar Asset, so it has DEX liquidity the moment it&apos;s issued and distributes through an audited Soroban contract — no custom token risk.</p></Reveal>
+          <Reveal delay={2}><p className="mt-4 max-w-lg text-[17px] leading-relaxed text-gray-500">$XLEE is a standard ERC-20 on Arc, so it plugs into the USDC economy from day one and distributes through audited x402 nanopayments — no custom token risk.</p></Reveal>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {feats.map((f, i) => {
               const Ic = f.icon;
@@ -270,9 +270,9 @@ export function Channels() {
   const chans: { icon: IC; t: string; b: string; tag: string }[] = [
     { icon: IconX, t: "X / Twitter DM", b: "Where the creator economy already lives. DM Xiaolee and operate without leaving the timeline.", tag: "social-native" },
     { icon: IconTelegram, t: "Telegram", b: "Full conversational ops in your group or DMs — 100% operational today, onboarding and all.", tag: "live" },
-    { icon: IconChat, t: "Web app", b: "The full glass UI: chat, campaigns, dashboard and notifications — with Freighter built in.", tag: "freighter" },
+    { icon: IconChat, t: "Web app", b: "The full glass UI: chat, campaigns, dashboard and notifications — with wallet connect built in.", tag: "wallet" },
   ];
-  const stack = ["Freighter", "Horizon", "Soroban", "Stellar DEX", "SEP-10", "SEP-24", "x402", "EtherFuse"];
+  const stack = ["Arc", "Circle", "USDC", "EURC", "CCTP", "x402", "ERC-20", "EtherFuse"];
   return (
     <section id="dev" className="relative scroll-mt-24 py-16">
       <div className="mx-auto max-w-[1180px] px-4 sm:px-6">
@@ -300,7 +300,7 @@ export function Channels() {
           <div className="mt-10 flex flex-col items-center gap-4 rounded-3xl border border-white/70 glass px-6 py-6 shadow-sm sm:flex-row sm:justify-between">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-white"><IconStar size={18} /></span>
-              <span className="font-display text-[16px] font-bold text-ink">Built on Stellar</span>
+              <span className="font-display text-[16px] font-bold text-ink">Built on Arc</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2">
               {stack.map((s) => <span key={s} className="rounded-full border border-sky-100 bg-white/60 px-3 py-1.5 text-[12.5px] font-semibold text-sky-600">{s}</span>)}
@@ -342,7 +342,7 @@ export function Footer() {
   const t = useLandingT();
   const cols = [
     { h: "Product", links: ["Conversational DeFi", "Campaigns", "$XLEE", "Pix on-ramp"] },
-    { h: "Developers", links: ["Soroban contract", "API reference", "SEP-10 auth", "x402 payments"] },
+    { h: "Developers", links: ["Payment contract", "API reference", "Agent API", "x402 payments"] },
     { h: "Community", links: ["X / Twitter", "Telegram", "Discord", "GitHub"] },
   ];
   const socials: IC[] = [IconX, IconTelegram, IconDiscord, IconGithub];
@@ -374,7 +374,7 @@ export function Footer() {
         </div>
         <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-fuchsia-100/70 pt-6 sm:flex-row sm:items-center">
           <p className="max-w-2xl text-[12.5px] leading-relaxed text-gray-400">{t("footer.rights")}</p>
-          <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-sky-100 bg-white/70 px-3.5 py-1.5 text-[12.5px] font-bold text-sky-600 shadow-sm"><IconStar size={13} /> Built on Stellar</span>
+          <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-sky-100 bg-white/70 px-3.5 py-1.5 text-[12.5px] font-bold text-sky-600 shadow-sm"><IconStar size={13} /> Built on Arc</span>
         </div>
       </div>
     </footer>
