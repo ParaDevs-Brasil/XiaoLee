@@ -82,7 +82,7 @@ function QuoteCard() {
     <div className="msg-in mt-2 rounded-2xl border border-fuchsia-100 bg-white p-3.5 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-fuchsia-500">
-          <IconRoute size={15} /> Stellar DEX route
+          <IconRoute size={15} /> Arc swap route
         </div>
         <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-600">best path</span>
       </div>
@@ -95,12 +95,12 @@ function QuoteCard() {
           <span className="h-px flex-1 bg-fuchsia-100" /><IconSwap size={16} className="mx-1.5" /><span className="h-px flex-1 bg-fuchsia-100" />
         </div>
         <div className="text-center">
-          <div className="font-display text-[22px] font-extrabold leading-none text-grad-stellar">142.31</div>
-          <div className="mt-1 text-[12px] font-semibold text-gray-400">XLM</div>
+          <div className="font-display text-[22px] font-extrabold leading-none text-grad-stellar">45.90</div>
+          <div className="mt-1 text-[12px] font-semibold text-gray-400">EURC</div>
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-2.5 text-[12px] text-gray-500">
-        <span>Network fee</span><span className="font-mono font-semibold text-gray-700">0.00001 XLM</span>
+        <span>Network fee</span><span className="font-mono font-semibold text-gray-700">&lt; $0.01 USDC</span>
       </div>
     </div>
   );
@@ -125,12 +125,12 @@ function Bubble({ m }: { m: Msg }) {
         {m.kind === "quote" && <QuoteCard />}
         {m.kind === "confirm" && (
           <button className="msg-in mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-fuchsia-200 bg-fuchsia-50 px-3.5 py-2.5 text-[13.5px] font-bold text-fuchsia-600 shadow-sm transition hover:bg-fuchsia-100">
-            <IconShield size={15} /> Confirm in Freighter
+            <IconShield size={15} /> Confirm in your wallet
           </button>
         )}
         {m.kind === "success" && (
           <div className="msg-in mt-2 flex items-center gap-2 rounded-2xl rounded-bl-md border border-emerald-100 bg-emerald-50 px-3.5 py-2.5 text-[13.5px] font-semibold text-emerald-700 shadow-sm">
-            <IconCheck size={16} className="shrink-0" /> Sent · 142.31 XLM landed · tx <span className="font-mono">GD3…K9b</span>
+            <IconCheck size={16} className="shrink-0" /> Sent · 45.90 EURC landed · tx <span className="font-mono">0x3f…9b2</span>
           </div>
         )}
       </div>
@@ -139,9 +139,9 @@ function Bubble({ m }: { m: Msg }) {
 }
 
 const SCRIPT: Msg[] = [
-  { who: "user", kind: "text", text: "swap 50 USDC for XLM ✨" },
+  { who: "user", kind: "text", text: "swap 50 USDC for EURC ✨" },
   { who: "bot", kind: "typing" },
-  { who: "bot", kind: "text", text: "On it! Here's your best route on the Stellar DEX 💫" },
+  { who: "bot", kind: "text", text: "On it! Here's your best route on Arc 💫" },
   { who: "bot", kind: "quote" },
   { who: "bot", kind: "confirm" },
   { who: "bot", kind: "typing" },
@@ -184,10 +184,10 @@ function ChatSim() {
             <span className="relative"><XiaoleeBubble size={36} /><span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400" /></span>
             <div>
               <div className="flex items-center gap-1 text-[14px] font-bold text-ink">Xiaolee <IconSpark size={11} className="text-fuchsia-400" /></div>
-              <div className="text-[11px] font-medium text-emerald-500">online · Stellar testnet</div>
+              <div className="text-[11px] font-medium text-emerald-500">online · Arc testnet</div>
             </div>
           </div>
-          <div className="flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-bold text-sky-500"><IconStar size={11} /> XLM</div>
+          <div className="flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-bold text-sky-500"><IconStar size={11} /> USDC</div>
         </div>
         <div ref={scrollRef} className="flex h-[360px] flex-col justify-end gap-2.5 overflow-hidden px-4 py-4">
           {msgs.map((m) => <Bubble key={m._i} m={m} />)}

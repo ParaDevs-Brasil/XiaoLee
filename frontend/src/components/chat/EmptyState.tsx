@@ -24,7 +24,7 @@ const quickActions = [
     icon: <IconSwap size={18} />,
     title: "Make a swap",
     subtitle: "Exchange tokens by chat",
-    message: "I want to swap 10 XLM to USDC",
+    message: "I want to swap 10 USDC to EURC",
   },
   {
     icon: <IconWallet size={18} />,

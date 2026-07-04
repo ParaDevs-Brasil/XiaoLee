@@ -145,21 +145,21 @@ export default function Campaigns() {
   };
 
   const handleJoinCampaign = async (campaignId: number) => {
-    if (!isCampaignReady) { toast.error('Sessão Devnet não inicializada. Atualize e tente novamente.'); return; }
+    if (!isCampaignReady) { toast.error('Sessão Testnet não inicializada. Atualize e tente novamente.'); return; }
     const result = await joinCampaign(campaignId);
     if (result.success) { toast.success(result.message); handleRefresh(); await refetchUserCampaigns(); await UserData.fetchData(); }
     else { toast.error(result.error); }
   };
 
   const handleVerifyTasks = async (campaignId: number) => {
-    if (!isCampaignReady) { toast.error('Sessão Devnet não inicializada. Atualize e tente novamente.'); return; }
+    if (!isCampaignReady) { toast.error('Sessão Testnet não inicializada. Atualize e tente novamente.'); return; }
     const result = await verifyTasks(campaignId);
     if (result.success) { toast.success(result.message); await refetchUserCampaigns(); await UserData.fetchData(); }
     else { toast.warning(result.message); }
   };
 
   const handleClaimReward = async (campaignId: number) => {
-    if (!isCampaignReady) { toast.error('Sessão Devnet não inicializada. Atualize e tente novamente.'); return; }
+    if (!isCampaignReady) { toast.error('Sessão Testnet não inicializada. Atualize e tente novamente.'); return; }
     const result = await claimReward(campaignId);
     if (result.success) {
       const receiptSuffix = result.claim_receipt_id ? ` Receipt: ${result.claim_receipt_id}` : '';
@@ -394,13 +394,13 @@ export default function Campaigns() {
         <div className="mt-10 rounded-2xl border border-pink-100 bg-white/60 backdrop-blur-sm p-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-fuchsia-400"><IconTarget /></span>
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Como funciona — Devnet</h3>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Como funciona — Testnet</h3>
           </div>
           <ol className="space-y-2">
             {[
               'Participe de uma campanha e complete as etapas exigidas.',
               'Verifique as tasks para desbloquear o claim de reward.',
-              'Reivindique o reward usando sua identidade de sessão Devnet.',
+              'Reivindique o reward usando sua identidade de sessão Testnet.',
               'Atualize para sincronizar o status mais recente das campanhas.',
             ].map((step, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">

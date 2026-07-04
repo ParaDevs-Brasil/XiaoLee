@@ -10,8 +10,8 @@
   },
   "campaigns": {
     "title": "Campaigns",
-    "subtitle": "Join campaigns on Solana Devnet and earn real rewards.",
-    "session_active": "Devnet Session Active",
+    "subtitle": "Join campaigns on Arc Testnet and earn real rewards.",
+    "session_active": "Testnet Session Active",
     "guest_mode": "Guest Mode",
     "session_ready": "Ready to participate and collect rewards.",
     "session_connect": "Connect your wallet or authenticate via Chat.",
@@ -28,11 +28,11 @@
     "no_campaigns_sub": "New campaigns coming soon. Check back in a moment.",
     "confirm": "Confirm",
     "error_load": "Error loading campaigns",
-    "how_it_works": "How it works — Devnet",
+    "how_it_works": "How it works — Testnet",
     "steps": [
       "Join a campaign and complete the required steps.",
       "Verify tasks to unlock your reward claim.",
-      "Claim your reward using your Devnet session identity.",
+      "Claim your reward using your Testnet session identity.",
       "Refresh to sync the latest campaign status."
     ],
     "new_campaign": "New Campaign",
@@ -50,11 +50,11 @@
     "required_tasks": "Required tasks",
     "follow": "Follow:",
     "engage": "Engage:",
-    "no_session": "Devnet session not initialized",
+    "no_session": "Testnet session not initialized",
     "status_paid": "Reward already claimed.",
     "status_verified": "Tasks verified — ready to claim.",
     "status_enrolled": "Already enrolled in this campaign.",
-    "btn_waiting": "Waiting for Devnet Session",
+    "btn_waiting": "Waiting for Testnet Session",
     "btn_join": "Join",
     "btn_joining": "Joining...",
     "btn_verify": "Verify Tasks",
@@ -77,7 +77,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Global metrics of the XiaoLee economy registered on Solana Devnet.",
+    "subtitle": "Global metrics of the XiaoLee economy registered on Arc Testnet.",
     "stat_campaigns": "Campaigns",
     "stat_verified": "Verified",
     "stat_rewarded": "Rewarded",
@@ -89,20 +89,20 @@
     "recent_activity": "Recent Activity",
     "recent_activity_sub": "Claims and on-chain events",
     "architecture": "Decentralized Architecture",
-    "architecture_desc": "PDAs connect your Web2 identity (Twitter) to Web3 (Solana) securely, without centralized private keys.",
-    "footer": "Solana Devnet · MVP 2.0 · XiaoLee Core"
+    "architecture_desc": "Your Web2 identity (Twitter) is linked on-chain (Arc) securely, without centralized private keys.",
+    "footer": "Arc Testnet · MVP 2.0 · XiaoLee Core"
   },
   "notifications": {
     "title": "Notification Center",
-    "subtitle": "Campaign receipts and claim history from your Devnet session.",
+    "subtitle": "Campaign receipts and claim history from your Testnet session.",
     "total": "Total",
     "delivered": "Delivered",
     "pending": "Pending",
-    "devnet_context": "Devnet Context",
+    "devnet_context": "Testnet Context",
     "session": "Session",
     "wallet": "Wallet",
     "not_initialized": "not initialized",
-    "phantom_not_connected": "Phantom not connected",
+    "phantom_not_connected": "Wallet not connected",
     "receipts_title": "Receipts & Alerts",
     "receipts_sub": "Claims and operational notifications",
     "loading": "Loading notifications...",
@@ -111,7 +111,7 @@
     "explore_campaigns": "Explore Campaigns",
     "ack": "✓ Ack",
     "done": "✓ Done",
-    "footer": "XiaoLee ✨ · Devnet Session"
+    "footer": "XiaoLee ✨ · Testnet Session"
   },
   "activity_feed": {
     "just_now": "just now",
@@ -134,16 +134,16 @@
     "awaiting_deploy": "HTTP x402 · USDC",
     "fee_value": "~$0.10 / nanopayment",
     "standard_value": "USDC (ERC-20)",
-    "network_value": "Ethereum Sepolia"
+    "network_value": "Arc Testnet · Circle"
   },
   "user_stats": {
     "title": "Your Swaps (On-Chain)",
     "disconnected_title": "Wallet Disconnected",
-    "disconnected_sub": "Connect your Phantom Wallet and link your Twitter to see your on-chain stats.",
+    "disconnected_sub": "Connect your wallet and link your Twitter to see your on-chain stats.",
     "total_swaps": "Total Swaps",
     "volume_usdc": "USDC Volume",
-    "no_data": "No on-chain data found. Make your first swap to register your history on Solana!",
-    "connection_error": "Error connecting to Solana. Please try again in a moment."
+    "no_data": "No on-chain data found. Make your first swap to register your history on-chain!",
+    "connection_error": "Error connecting to the network. Please try again in a moment."
   },
   "wallet": {
     "title": "My Wallet",
@@ -250,9 +250,9 @@
     "subtitle": "Register once. The agent pays you USDC automatically for your content.",
     "handle_label": "Your @handle",
     "handle_placeholder": "yourcreatorhandle",
-    "wallet_label": "EVM Wallet (Sepolia)",
+    "wallet_label": "EVM Wallet",
     "wallet_placeholder": "0xYourWalletAddress",
-    "wallet_hint_no_wallet": "Don't have a Sepolia wallet?",
+    "wallet_hint_no_wallet": "Don't have an EVM wallet?",
     "wallet_hint_coming": "Get one via Circle App Kit — contact f0ntz",
     "submit": "Register as Creator",
     "submitting": "Registering…",
