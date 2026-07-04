@@ -14,6 +14,7 @@ Uso:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -206,41 +207,42 @@ class ClaudeAgentEngine:
 
             # Collect tool calls from this response
             tool_results: list[dict] = []
+            tool_blocks = [b for b in response.content if b.type == "tool_use"]
 
-            for block in response.content:
-                if block.type != "tool_use":
-                    continue
+            async def _execute(tool_name: str, tool_input: dict) -> dict:
+                executor = self.executors.get(tool_name)
+                if not executor:
+                    return {"error": f"Unknown tool: {tool_name}"}
+                try:
+                    return await executor(tool_input, context)
+                except Exception as exc:
+                    LOG.exception("[agent] executor %s raised: %s", tool_name, exc)
+                    return {"error": str(exc), "tool": tool_name}
 
+            # Tool calls do MESMO turno rodam em paralelo — o modelo já as emitiu como
+            # independentes, e payouts CCTP levam minutos cada (attestation da Circle):
+            # 2 payouts concorrentes ≈ latência de 1. Seguro porque os executores de
+            # pagamento RESERVAM orçamento atomicamente antes do rail (creator_pay_tools/
+            # cctp_tools) — sem isso, dois payouts passariam no check com o mesmo saldo.
+            results = await asyncio.gather(
+                *(_execute(b.name, dict(b.input)) for b in tool_blocks)
+            )
+
+            for block, tool_result in zip(tool_blocks, results):
                 step_count += 1
                 tool_name = block.name
                 tool_input = dict(block.input)
 
                 LOG.info(
-                    "[agent] step=%d tool=%s input=%s",
+                    "[agent] step=%d tool=%s input=%s result=%s",
                     step_count,
                     tool_name,
                     json.dumps(tool_input)[:200],
-                )
-
-                executor = self.executors.get(tool_name)
-                if executor:
-                    try:
-                        tool_result = await executor(tool_input, context)
-                    except Exception as exc:
-                        LOG.exception("[agent] executor %s raised: %s", tool_name, exc)
-                        tool_result = {"error": str(exc), "tool": tool_name}
-                else:
-                    tool_result = {"error": f"Unknown tool: {tool_name}"}
-
-                LOG.info(
-                    "[agent] step=%d tool=%s result=%s",
-                    step_count,
-                    tool_name,
                     json.dumps(tool_result)[:300],
                 )
 
                 # Track payments for the summary
-                if tool_name == "pay_creator_nanopayment" and "tx" in tool_result:
+                if tool_name in ("pay_creator_nanopayment", "payout_cross_chain_nanopayment") and "tx" in tool_result:
                     payments.append(
                         {
                             "creator_id": tool_input.get("to"),

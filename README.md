@@ -53,6 +53,18 @@ Expected response (`402 Payment Required`) — network/asset are nested inside `
 curl https://<URL>/v1/traction/stats
 ```
 
+```bash
+# CCTP cross-chain funding — bridge USDC de ETH-Sepolia para o Arc (Innovation 20%)
+# Em sandbox (ARC_SANDBOX=true) simula o fluxo E2E de 4 etapas sem tx real:
+#   Step 1/4: burning USDC on ETH-SEPOLIA
+#   Step 2/4: waiting for Circle attestation
+#   Step 3/4: minting USDC on ARC-TESTNET
+#   Step 4/4: confirmed
+curl -X POST https://<URL>/v1/arc/cctp/bridge \
+  -H "Content-Type: application/json" \
+  -d '{"amount_usdc": 10.0, "recipient": "0x<endereço_arc>"}'
+```
+
 `<URL>` = deploy público (Railway/staging) — preencher assim que o P1-04 estiver concluído.
 
 ---

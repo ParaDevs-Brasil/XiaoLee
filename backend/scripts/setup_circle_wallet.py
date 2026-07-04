@@ -34,7 +34,7 @@ from server.integrations.circle_crypto import entity_secret_ciphertext  # noqa: 
 
 load_dotenv(find_dotenv(usecwd=False))
 
-_W3S_SANDBOX = "https://api-sandbox.circle.com/v1/w3s"
+_W3S_SANDBOX = "https://api.circle.com/v1/w3s"
 _W3S_LIVE    = "https://api.circle.com/v1/w3s"
 
 

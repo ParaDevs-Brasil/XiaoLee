@@ -25,7 +25,9 @@ HORIZON_TESTNET = "https://horizon-testnet.stellar.org"
 HORIZON_MAINNET = "https://horizon.stellar.org"
 
 # Asset IDs conhecidos por rede
-USDC_TESTNET_ISSUER = "GAAXKLIMFWX7XLKVXGUVJI7X533OOZH2YS2RLMQVY3TP5QLXRRWXHDI5"
+# USDC testnet oficial da Circle (faucet.circle.com e CCTP V2 usam este issuer;
+# o antigo GAAXKLIM... era asset de anchor de teste da era SEP-24 — não é queimável no CCTP)
+USDC_TESTNET_ISSUER = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
 # USDC mainnet emitido pela Circle (asset oficial na Public Network)
 USDC_MAINNET_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"
 USDC_TESTNET = f"USDC:{USDC_TESTNET_ISSUER}"

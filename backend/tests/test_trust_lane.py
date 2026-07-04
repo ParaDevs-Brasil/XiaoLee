@@ -244,20 +244,16 @@ class TestArcNativeClient:
         arc = ArcNativeClient(sandbox=True)
         assert arc.address.startswith("0x")
 
-    def test_missing_rpc_raises_runtime_error(self):
-        """
-        Sem ARC_RPC_URL, _web3() deve lançar RuntimeError.
-        Se web3 não estiver instalado, o erro vem antes mas ainda é RuntimeError.
-        """
+    def test_missing_rpc_raises_runtime_error(self, monkeypatch):
+        """Sem ARC_RPC_URL (env isolado), _web3() deve lançar RuntimeError."""
+        monkeypatch.delenv("ARC_RPC_URL", raising=False)
         arc = ArcNativeClient(rpc_url="", sandbox=False)
         with pytest.raises(RuntimeError):
             arc._web3()
 
-    def test_missing_private_key_raises_runtime_error(self):
-        """
-        Sem ARC_AGENT_PRIVATE_KEY, _account() deve lançar RuntimeError.
-        Se web3 não estiver instalado, o erro vem antes mas ainda é RuntimeError.
-        """
+    def test_missing_private_key_raises_runtime_error(self, monkeypatch):
+        """Sem ARC_AGENT_PRIVATE_KEY (env isolado), _account() deve lançar RuntimeError."""
+        monkeypatch.delenv("ARC_AGENT_PRIVATE_KEY", raising=False)
         arc = ArcNativeClient(private_key="", sandbox=False)
         with pytest.raises(RuntimeError):
             arc._account()

@@ -33,7 +33,7 @@ from server.integrations.circle_crypto import entity_secret_ciphertext
 
 LOG = logging.getLogger(__name__)
 
-_W3S_SANDBOX = "https://api-sandbox.circle.com/v1/w3s"
+_W3S_SANDBOX = "https://api.circle.com/v1/w3s"
 _W3S_LIVE    = "https://api.circle.com/v1/w3s"
 
 _POLL_INTERVAL_S  = 2.5
@@ -46,6 +46,7 @@ _SANDBOX_USDC_TOKEN_IDS: dict[str, str] = {
     "AVAX-FUJI":    "e4f549f9-a910-59b1-b5cd-8f972871f5db",
     "ARB-SEPOLIA":  "1b88f684-f7e2-5c2c-ba03-eb9f5aab5a23",
     "BASE-SEPOLIA": "c11a2d52-5794-5d37-a4fe-b18e51ea2e0a",
+    "ARC-TESTNET":  "ef87c8c3-85de-598a-af50-c5135eecfa74",
 }
 
 
@@ -102,12 +103,11 @@ class ArcClient:
         if self._token_id:
             return self._token_id
 
-        if self.sandbox:
-            tid = _SANDBOX_USDC_TOKEN_IDS.get(self.blockchain, "")
-            if tid:
-                self._token_id = tid
-                return tid
-            # chain desconhecida no sandbox: cai para o fetch abaixo
+        # Consulta mapa conhecido primeiro (funciona em modo sandbox e live)
+        tid = _SANDBOX_USDC_TOKEN_IDS.get(self.blockchain, "")
+        if tid:
+            self._token_id = tid
+            return tid
 
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(
@@ -206,16 +206,13 @@ class ArcClient:
         )
 
         payload = {
-            "idempotencyKey":        idempotency_key,
+            "idempotencyKey":         idempotency_key,
             "entitySecretCiphertext": ciphertext,
-            "walletId":              self.wallet_id,
-            "tokenId":               token_id,
-            "destinationAddress":    to_address,
-            "amounts":               [f"{amount_usdc:.6f}"],
-            "fee": {
-                "type":   "level",
-                "config": {"feeLevel": "MEDIUM"},
-            },
+            "walletId":               self.wallet_id,
+            "tokenId":                token_id,
+            "destinationAddress":     to_address,
+            "amounts":                [f"{amount_usdc:.6f}"],
+            "feeLevel":               "MEDIUM",
         }
 
         async with httpx.AsyncClient(timeout=30) as client:

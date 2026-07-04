@@ -15,9 +15,12 @@ import logging
 from datetime import datetime, timezone
 from typing import AsyncIterator
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from database.database import get_db_session
+from database.repository import DatabaseRepository
 from server.integrations.circle_client import get_wallet, transfer_usdc
 from server.metrics import get_traction_snapshot, get_registered_creator_wallet, record_payment_settled, register_creator
 from server.schemas import CreatorRegisterRequest, PaymentSettledEvent, TractionSnapshot
@@ -63,14 +66,30 @@ def _validate_arc_secret(provided: str | None) -> None:
 async def payment_settled(
     event: PaymentSettledEvent,
     x_arc_secret: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db_session),
 ) -> dict:
     """
     Chamado pelo agente (f0ntz) quando um pagamento USDC é confirmado on-chain.
-    Registra métricas, persiste no feed e faz broadcast SSE para o dashboard.
+    Persiste no DB (sobrevive a restart), atualiza métricas in-memory e faz broadcast
+    SSE para o dashboard.
     """
     _validate_arc_secret(x_arc_secret)
 
     ts = event.ts or (datetime.now(timezone.utc).isoformat())
+
+    repo = DatabaseRepository(db)
+    db_is_new = await repo.create_settled_payment(
+        intent_id=event.intent_id,
+        creator_handle=event.creator,
+        amount_usdc=event.amount,
+        tx=event.tx,
+        latency_ms=event.latency_ms,
+        ts=ts,
+    )
+
+    if not db_is_new:
+        logger.warning("payment_settled duplicate | intent_id=%s — ignored", event.intent_id)
+        return {"ok": True, "recorded": None, "duplicate": True, "circle_transfer_id": None}
 
     is_new = record_payment_settled(
         intent_id=event.intent_id,
@@ -81,8 +100,9 @@ async def payment_settled(
     )
 
     if not is_new:
-        logger.warning("payment_settled duplicate | intent_id=%s — ignored", event.intent_id)
-        return {"ok": True, "recorded": None, "duplicate": True, "circle_transfer_id": None}
+        # DB já considerava novo (gravou agora) mas o estado in-memory já sabia dele —
+        # não deveria acontecer fora de uma corrida; segue o broadcast mesmo assim.
+        logger.warning("payment_settled | intent_id=%s já estava em memória mas não no DB", event.intent_id)
 
     broadcast_payload = {
         "intent_id": event.intent_id,

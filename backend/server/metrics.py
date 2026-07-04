@@ -114,6 +114,35 @@ def record_payment_settled(
         return True
 
 
+def hydrate_traction(rows: list[dict]) -> None:
+    """Reconstrói o estado in-memory de tração a partir do DB — chamado no boot do app
+    (lifespan), depois que `SettledPayment` é lido via repository.list_settled_payments().
+
+    `rows` precisa vir em ordem cronológica ascendente (mais antigo primeiro), cada item
+    com chaves: intent_id, amount_usdc, creator_handle, tx, latency_ms, ts.
+    """
+    global _usdc_total, _payment_count
+    with _lock:
+        for row in rows:
+            intent_id = row["intent_id"]
+            if intent_id in _processed_intent_ids:
+                continue
+            _processed_intent_ids.add(intent_id)
+            _usdc_total += row["amount_usdc"]
+            _payment_count += 1
+            _active_creators.add(row["creator_handle"].lstrip("@").lower())
+            _payment_latencies.append(row["latency_ms"])
+            _payment_feed.insert(0, {
+                "intent_id": intent_id,
+                "amount": round(row["amount_usdc"], 4),
+                "creator": row["creator_handle"],
+                "tx": row["tx"],
+                "ts": row["ts"],
+                "latency_ms": round(row["latency_ms"], 1),
+            })
+        del _payment_feed[_MAX_FEED:]
+
+
 def get_traction_snapshot() -> dict:
     """Retorna snapshot agregado das métricas de tração para o dashboard."""
     with _lock:

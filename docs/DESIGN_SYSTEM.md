@@ -8,7 +8,7 @@ Este documento detalha a linguagem visual, padrões e especificações técnicas
 
 ## 1. Princípios de Design
 
-1. **Elegância Limpa (Clean Elegance):** Menos ruído visual, mais respiro (whitespace). Remoção de gradientes pesados e bordas multicoloridas em favor de tons pastéis sutis e cards uniformes.
+1. **Elegância Limpa (Clean Elegance):** Menos ruído visual, mais respiro (whitespace). Cards de conteúdo (seção 3.2) usam tons pastéis sutis e bordas uniformes — mas fundo de página, botões e títulos **seguem usando gradiente de 3 cores de propósito** (`from-pink-500 via-fuchsia-500 to-purple-600`, texto via `bg-clip-text`) em todas as páginas do app. Isso não mudou na prática apesar do que uma versão anterior deste documento dizia — é a identidade visual atual, não um desvio a corrigir.
 2. **Tipografia Premium:** Uso da fonte **Inter** (sans-serif) para legibilidade, seriedade e modernidade.
 3. **Ícones Vetoriais SVG Inline:** Emojis de UI foram substituídos por SVGs inline customizados (stroke-based, `strokeWidth={1.8}`), garantindo consistência visual cross-platform sem dependência de biblioteca externa.
 4. **Paleta Unificada:** Todas as páginas compartilham a mesma base neutra quente com **um único acento de marca** (`#d81b78`), evitando que cada seção pareça um produto diferente. Regra de ouro: **acento só em botão primário, avatar e destaques — o resto neutro.**
@@ -19,16 +19,21 @@ Este documento detalha a linguagem visual, padrões e especificações técnicas
 
 ## 2. Tipografia
 
-A família tipográfica principal do projeto é a **Inter**.
+> **Correção (2026-07-01):** esta seção descrevia **Inter**, que nunca foi implementada — não há
+> nenhuma referência a "Inter" no código do frontend. A fonte real, carregada em `layout.tsx` via
+> `next/font/google` e usada em `--font-sans` (`globals.css`), é **Quicksand**.
 
-- **Font-family:** `'Inter', system-ui, -apple-system, sans-serif`
-- **Pesos (Weights):**
+A família tipográfica principal do projeto é a **Quicksand**.
+
+- **Font-family:** `'Quicksand', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
+- **Pesos disponíveis:** 300 (Light), 400 (Regular), 500 (Medium), 600 (Semi-Bold), 700 (Bold) — Quicksand não tem peso 900 (Black); títulos que precisam de mais peso visual usam `.font-display` (`globals.css`), que aplica `font-weight: 700` + `letter-spacing: -0.01em` por cima do 700 normal.
+- **Uso sugerido:**
   - Regular (400): Corpo de texto e descrições.
   - Medium (500): Subtítulos de seções, labels de UI.
   - Semi-Bold (600): Itens de navegação, botões secundários.
-  - Bold (700) / Black (900): Títulos principais (H1), valores numéricos (saldos, contadores).
+  - Bold (700) + `.font-display`: Títulos principais (H1), valores numéricos (saldos, contadores).
 
-**Ajustes de implementação:** A fonte é carregada via `next/font/google` no arquivo `layout.tsx`.
+**Ajustes de implementação:** A fonte é carregada via `next/font/google` no arquivo `layout.tsx` (`Quicksand`, variável `--font-quicksand`) e aplicada globalmente via `--font-sans` em `globals.css`.
 
 ---
 
