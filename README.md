@@ -124,7 +124,7 @@ XiaoLee não nasceu no hackathon. A tese Arc reaproveita uma plataforma madura �
 |---|---|---|---|
 | ![Tela do chat XiaoLee](chat.png) | ![Dashboard XiaoLee](dashboard.png) | ![Tela de campanhas XiaoLee](campaings.png) | ![Notificações XiaoLee](notifications.png) |
 
-> Screenshots do design premium com paleta pink/fuchsia/purple unificada. Toggle EN/PT disponível na Navbar.
+> Screenshots do design premium com paleta neutra quente + acento único de marca (#d81b78). Toggle EN/PT disponível na Navbar.
 
 ---
 

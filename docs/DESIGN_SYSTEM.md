@@ -1,8 +1,8 @@
 # XiaoLee Design System & Guidelines
 
-Atualizado em: **2026-05-09** — Revisão v3 (i18n EN/PT + correções de contraste)
+Atualizado em: **2026-07-04** — Revisão v4 (paleta neutra + acento único; sprint Arc Lepton)
 
-Este documento detalha a linguagem visual, padrões e especificações técnicas para a interface premium do XiaoLee, focada em transmitir uma estética moderna, limpa e sofisticada, alinhada aos melhores projetos DeFi do ecossistema Solana.
+Este documento detalha a linguagem visual, padrões e especificações técnicas para a interface premium do XiaoLee, focada em transmitir uma estética moderna, limpa e sofisticada, alinhada aos melhores produtos DeFi.
 
 ---
 
@@ -11,7 +11,7 @@ Este documento detalha a linguagem visual, padrões e especificações técnicas
 1. **Elegância Limpa (Clean Elegance):** Menos ruído visual, mais respiro (whitespace). Remoção de gradientes pesados e bordas multicoloridas em favor de tons pastéis sutis e cards uniformes.
 2. **Tipografia Premium:** Uso da fonte **Inter** (sans-serif) para legibilidade, seriedade e modernidade.
 3. **Ícones Vetoriais SVG Inline:** Emojis de UI foram substituídos por SVGs inline customizados (stroke-based, `strokeWidth={1.8}`), garantindo consistência visual cross-platform sem dependência de biblioteca externa.
-4. **Paleta Unificada:** Todas as páginas compartilham a mesma base pink/fuchsia/purple, evitando que cada seção pareça um produto diferente.
+4. **Paleta Unificada:** Todas as páginas compartilham a mesma base neutra quente com **um único acento de marca** (`#d81b78`), evitando que cada seção pareça um produto diferente. Regra de ouro: **acento só em botão primário, avatar e destaques — o resto neutro.**
 5. **Hierarquia Natural:** Títulos concisos, subtítulos em `text-gray-400`, valores em negrito — sem `animate-pulse` em textos, sem gradientes clip-text desnecessários.
 6. **Responsividade Tátil (Mobile-First):** `max-w-2xl mx-auto` como container padrão para mobile, `100dvh` para evitar sobreposição de teclado virtual.
 
@@ -34,43 +34,56 @@ A família tipográfica principal do projeto é a **Inter**.
 
 ## 3. Paleta de Cores
 
-A paleta principal é baseada em **Pink / Fuchsia / Purple** (estética kawaii premium), com acentos semânticos para estados.
+Paleta **neutra quente com acento único de marca** (revisão v4, 04 jul 2026). Os valores vivem como CSS custom properties em `frontend/src/app/globals.css` — nos componentes, use sempre os tokens (`var(--accent)`, `border-[var(--border)]`, etc.), nunca hex solto ou classes de cor do Tailwind (`pink-*`, `fuchsia-*`, `purple-*` estão proibidas fora da landing).
 
-### 3.1. Background Global
+> **Nota:** o modo escuro está suspenso até esta paleta ganhar uma variante escura (`theme-context.tsx` força `light`; toggle removido da Navbar).
 
-```css
-background: linear-gradient(to bottom right, #fdf2f8 /* pink-50 */, #faf5ff /* purple-50 */, #fdf4ff /* fuchsia-100 */);
-```
+### 3.1. Tokens Base
 
-Classe Tailwind: `bg-gradient-to-br from-pink-50 via-purple-50 to-fuchsia-100`
-
-### 3.2. Cards / Painéis
-
-| Elemento | Classes Tailwind | Uso |
+| Token | Hex | Uso |
 |---|---|---|
-| Card padrão | `bg-white/70 backdrop-blur-md border border-pink-100 rounded-2xl shadow-sm` | Todos os cards de conteúdo |
-| Card stat | `bg-{color}-50 border border-{color}-100 rounded-2xl` | Stats coloridas (pink, violet, emerald, amber) |
-| Input/monospace | `bg-gray-50 border border-gray-100 rounded-xl` | Endereços, hashes, código |
+| `--bg` / `--main-bg` | `#f6f4f1` | Fundo do app (sólido — sem gradientes de fundo) |
+| `--card` | `#ffffff` | Cards e painéis |
+| `--border` | `#ece9e4` | Todas as bordas |
+| `--ink` / `--text-primary` | `#1a1917` | Texto primário, títulos, valores |
+| `--ink-2` / `--text-secondary` | `#6b6862` | Texto secundário, descrições |
+| `--ink-3` / `--text-placeholder` | `#9a968f` | Muted: metadados, placeholders, timestamps |
 
-### 3.3. Textos
+### 3.2. Acento de Marca
 
-| Papel | Classe | Hex aproximado |
+| Token | Hex | Uso |
 |---|---|---|
-| Título principal | `bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent` | — |
-| Subtítulo / desc | `text-gray-400` | `#9ca3af` |
-| Corpo de texto | `text-gray-600` | `#4b5563` |
-| Label seção | `text-gray-500 uppercase tracking-widest text-xs font-bold` | — |
-| Valor de destaque | `text-gray-800 font-black` | `#1f2937` |
+| `--accent` | `#d81b78` | **Só** botão primário, avatar, logo e micro-destaques (ícones de seção, links ativos) |
+| `--accent-hover` | `#c0166a` | Hover do acento |
+| `--accent-soft` | `#fdf0f6` | Fundo suave: chips, moldura do avatar, ícones de sugestão |
 
-### 3.4. Cores Semânticas
+Contraste verificado: branco sobre `--accent` = **4.8:1** (AA). Regra de ouro: **acento só em botão primário, avatar e destaques — o resto neutro.**
 
-| Estado | Cor principal | Uso |
+### 3.3. Cores Semânticas
+
+| Estado | Token / Classe | Uso |
 |---|---|---|
-| Acento Brand | `text-fuchsia-500` / `text-fuchsia-400` | Ícones, links ativos, badges |
-| Sucesso / Entregue | `text-emerald-500`, `bg-emerald-50`, `border-emerald-100` | Status "delivered", botão ACK |
-| Pendente | `text-amber-500`, `bg-amber-50`, `border-amber-100` | Status "pending" |
-| Erro / Alerta | `text-red-600`, `bg-red-50`, `border-red-200` | Erros de API |
-| Info / Warning | `text-orange-600`, `bg-orange-50`, `border-orange-100` | Avisos não críticos |
+| Sucesso | `--success` `#1f8a5b` (+ `bg-emerald-50`, `border-emerald-100` como soft) | Badges Online/Verified, métricas de dinheiro (USDC pago, TVL, volume) |
+| Negativo / Erro | `--danger` `#c23a3a` (+ `bg-red-50`, `border-red-100`) | Erros de API, logout |
+| Pendente | `text-amber-600`, `bg-amber-50`, `border-amber-100` | Status "pending", latência degradada |
+
+### 3.4. Cards / Painéis
+
+| Elemento | Classes | Uso |
+|---|---|---|
+| Card padrão | `bg-white border border-[var(--border)] rounded-2xl shadow-sm` | Todos os cards de conteúdo |
+| Card stat | Branco + número colorido por **significado** (sucesso verde, acento p/ marca, resto neutro) | Métricas |
+| Input | `bg-white border border-[var(--border)]`; foco `ring-[rgba(216,27,120,0.35)]` | Formulários |
+| Chip suave | `bg-[var(--accent-soft)] border border-[var(--border)] text-[var(--accent)]` | Destaques leves (rail x402, CTA de criador) |
+
+### 3.5. Textos
+
+| Papel | Classe |
+|---|---|
+| Título principal | `text-[var(--text-primary)] font-extrabold` — **sem gradiente clip-text** |
+| Subtítulo / desc | `text-[var(--text-secondary)]` ou `text-gray-500` |
+| Label seção | `text-gray-500 uppercase tracking-widest text-xs font-bold` |
+| Valor de destaque | `text-[var(--text-primary)] font-black`; se for dinheiro/positivo, `text-[var(--success)]` |
 
 ---
 
@@ -97,7 +110,7 @@ const IconExample = () => (
 );
 ```
 
-**Por que inline e não biblioteca?** Evita bundle overhead, permite treeshaking natural do Next.js, e garante que a cor herde de `currentColor` (controlável via classes Tailwind como `text-fuchsia-400`).
+**Por que inline e não biblioteca?** Evita bundle overhead, permite treeshaking natural do Next.js, e garante que a cor herde de `currentColor` (controlável via tokens como `text-[var(--accent)]`).
 
 ### Tamanhos Padrão
 
@@ -126,8 +139,8 @@ const IconExample = () => (
 | Atividade Recente | Polyline tipo ECG |
 | Arquitetura / CPU | `IconCpu` (retângulo com linhas) |
 | Wallet-first (arch) | Shield |
-| Jupiter (arch) | Zap/relâmpago |
-| Helius (arch) | Wifi signal |
+| x402 (arch) | Zap/relâmpago |
+| Circle W3S (arch) | Wifi signal |
 | Reward (feed) | Trophy |
 | Swap (feed) | Refresh circular |
 | Campaign (feed) | Target |
@@ -154,10 +167,10 @@ Todos os cards seguem o mesmo padrão base, com variações de cor apenas nas bo
 
 ```tsx
 // Card padrão
-<div className="rounded-2xl border border-pink-100 bg-white/70 backdrop-blur-md shadow-sm p-5">
+<div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm p-5">
 
-// Card de stat colorido
-<div className="rounded-2xl border border-{color}-100 bg-{color}-50 p-4 text-center">
+// Card de stat — branco, número colorido por significado
+<div className="rounded-2xl border border-[var(--border)] bg-white p-4 text-center">
 ```
 
 **Proibido:** bordas gradiente (`bg-gradient-to-r ... p-[2px]`) nos cards de conteúdo — cria inconsistência visual e "caráter de IA".
@@ -175,15 +188,14 @@ Todos os cards seguem o mesmo padrão base, com variações de cor apenas nas bo
 
 ## 6. Navbar
 
-A Navbar utiliza ícones SVG inline para Camp, Alerts e Dash, com gradientes distintos por aba:
+A Navbar é neutra (fundo branco, borda `--navbar-border`); o único elemento no acento é o CTA Dashboard (`btn-primary`) e o logo:
 
-| Aba | Gradiente | Motivo |
+| Aba | Estilo | Motivo |
 |---|---|---|
-| Camp | `from-pink-400 via-fuchsia-500 to-purple-500` | Identidade principal brand |
-| Alerts | `from-cyan-400 to-blue-500` | Diferenciação visual — notificações |
-| Dash | `from-violet-500 to-indigo-600` | Dashboard / analytics |
+| Camp / Traction / Alerts | neutro (`text-[var(--text-secondary)]`; ativo `bg-white text-[var(--text-primary)] shadow-e1`) | Links quietos — não competem com o CTA |
+| Dash | `btn-primary` (acento sólido `--accent`) | Único CTA primário da Navbar |
 
-A diferença de cor no botão Alerts é intencional: cria distinção imediata para o usuário localizar notificações rapidamente sem ler o texto.
+Hierarquia: um único elemento chama atenção (Dashboard). Idioma ativo no LangToggle também usa o acento.
 
 ---
 
@@ -193,7 +205,7 @@ A diferença de cor no botão Alerts é intencional: cria distinção imediata p
 
 ### Estrutura da página:
 
-1. **Header** — Ícone box gradiente + título "Notification Center" + desc curta
+1. **Header** — Ícone box no acento sólido + título "Notification Center" + desc curta
 2. **Stats row** — Grid 3 colunas (Total / Entregues / Pendentes) com cores semânticas
 3. **Devnet Context** — Card compacto com session/wallet truncados (`truncate`)
 4. **Lista de notificações** — Card container com header (título + botão Refresh) e lista com `divide-y`
@@ -232,7 +244,7 @@ A diferença de cor no botão Alerts é intencional: cria distinção imediata p
 | Papel | Classe correta | Classe proibida |
 |---|---|---|
 | Subtítulo / descrição | `text-gray-400` | `text-gray-400/70` |
-| Rodapé de modal | `text-fuchsia-500 font-semibold` | `text-fuchsia-500/60` |
+| Rodapé de modal | `text-[var(--accent)] font-semibold` | `text-[var(--text-placeholder)]` |
 | Timestamp / meta | `text-gray-500 font-medium` | `text-gray-500/80` |
 | Corpo de item | `text-gray-600` | `text-gray-700/70` |
 
@@ -286,7 +298,7 @@ Componente pill localizado na Navbar, antes do ThemeToggle:
   {["en", "pt"].map((l) => (
     <button key={l} onClick={() => setLang(l)}
       className={lang === l
-        ? "bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white ..."
+        ? "bg-[var(--accent)] text-white ..."
         : "text-white/70 hover:text-white ..."}>
       {l === "en" ? "EN" : "PT"}
     </button>

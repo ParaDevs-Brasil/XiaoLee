@@ -1,5 +1,7 @@
 # Frontend Consistency Plan — Landing como Referência
 
+> **Atualização (2026-07-04):** a premissa "não é um rebrand / não mexer em cores" deste doc foi superada. A paleta foi trocada por decisão da Mari: base neutra quente (`#f6f4f1`/`#ffffff`/`#ece9e4`) com acento único `#d81b78` — aplicada em navbar, chat, dashboard, traction, campanhas, notificações e onboarding (landing pendente). Modo escuro suspenso até ganhar variante. Fonte da verdade: `docs/DESIGN_SYSTEM.md` v4 e os tokens em `frontend/src/app/globals.css`.
+
 Criado em: **2026-06-30**
 Status: proposta / aguardando execução
 Escopo: `frontend/` (Next.js 15 + React 19 + Tailwind 4)
