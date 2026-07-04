@@ -80,7 +80,7 @@ function StatCard({
         <Icon className="w-5 h-5" />
         <span className="text-xs font-bold uppercase tracking-widest">{label}</span>
       </div>
-      <div className="text-3xl font-black text-gray-800 leading-none">{value}</div>
+      <div className="text-3xl font-black text-[var(--text-primary)] leading-none">{value}</div>
       {sub && <div className="text-xs text-gray-500 font-medium">{sub}</div>}
     </div>
   );
@@ -92,11 +92,11 @@ function LatencyBar({ avg, p95 }: { avg: number; p95: number }) {
   const ok = avg < 500;
   return (
     <div className={`rounded-2xl border p-4 flex items-center gap-3 ${ok ? "border-emerald-100 bg-emerald-50" : "border-amber-100 bg-amber-50"}`}>
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${ok ? "text-emerald-500 bg-emerald-100" : "text-amber-500 bg-amber-100"}`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${ok ? "text-[var(--success)] bg-emerald-100" : "text-amber-500 bg-amber-100"}`}>
         <IconZap className="w-5 h-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className={`text-sm font-bold ${ok ? "text-emerald-700" : "text-amber-700"}`}>
+        <div className={`text-sm font-bold ${ok ? "text-[var(--success)]" : "text-amber-700"}`}>
           {ok ? t("traction.latency_ok") : t("traction.latency_degraded")}
           {" · "}
           <span className="font-black">{avg.toFixed(0)}ms avg</span>
@@ -104,7 +104,7 @@ function LatencyBar({ avg, p95 }: { avg: number; p95: number }) {
         </div>
         <div className="text-xs text-gray-500 mt-0.5">{t("traction.latency_sub")}</div>
       </div>
-      <div className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${ok ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}`}>
+      <div className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${ok ? "bg-[var(--success)] text-white" : "bg-amber-500 text-white"}`}>
         <IconCheck className="w-3 h-3" />
         {ok ? t("traction.latency_fast") : t("traction.latency_slow")}
       </div>
@@ -115,16 +115,16 @@ function LatencyBar({ avg, p95 }: { avg: number; p95: number }) {
 // ── Feed item ──────────────────────────────────────────────────────────────
 function FeedItem({ event, isNew }: { event: PaymentEvent; isNew: boolean }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 ${isNew ? "border-emerald-100 bg-emerald-50/60" : "border-pink-100 bg-white"}`}>
-      <div className="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-600">
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 ${isNew ? "border-emerald-100 bg-emerald-50/60" : "border-[var(--border)] bg-white"}`}>
+      <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 text-[var(--success)]">
         <IconDollar className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-700 truncate">
           Agent paid{" "}
-          <span className="text-emerald-600 font-black">${event.amount.toFixed(2)} USDC</span>
+          <span className="text-[var(--success)] font-black">${event.amount.toFixed(2)} USDC</span>
           {" to "}
-          <span className="text-fuchsia-600 font-bold">{event.creator}</span>
+          <span className="text-[var(--accent)] font-bold">{event.creator}</span>
         </p>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[10px] text-gray-400 font-mono truncate max-w-[120px]">{event.tx.slice(0, 14)}…</span>
@@ -214,7 +214,7 @@ export default function TractionPage() {
 
   return (
     <ThemeProviderWrapper>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-fuchsia-100 transition-colors duration-500">
+      <div className="min-h-screen bg-[var(--main-bg)] transition-colors duration-500">
         <Navbar />
 
         <main className="container mx-auto px-4 py-10 max-w-2xl lg:max-w-4xl">
@@ -222,10 +222,10 @@ export default function TractionPage() {
           {/* ── Header ──────────────────────────────────────────────── */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent leading-tight">
+              <h1 className="text-3xl font-extrabold text-[var(--text-primary)] leading-tight">
                 {t("traction.title")}
               </h1>
-              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${connected ? "bg-emerald-400 animate-pulse" : "bg-gray-300"}`} />
+              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${connected ? "bg-[var(--success)] animate-pulse" : "bg-gray-300"}`} />
             </div>
             <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
               {t("traction.subtitle")}
@@ -238,36 +238,36 @@ export default function TractionPage() {
               Icon={IconDollar}
               value={`$${formatUSDC(snap.total_usdc)}`}
               label={t("traction.usdc_paid")}
-              accent="text-emerald-600"
-              bg="bg-emerald-50"
-              border="border-emerald-100"
+              accent="text-[var(--success)]"
+              bg="bg-white"
+              border="border-[var(--border)]"
               sub={t("traction.usdc_paid_sub")}
             />
             <StatCard
               Icon={IconZap}
               value={String(snap.total_payments)}
               label={t("traction.payments")}
-              accent="text-violet-600"
-              bg="bg-violet-50"
-              border="border-violet-100"
+              accent="text-[var(--accent)]"
+              bg="bg-white"
+              border="border-[var(--border)]"
               sub={t("traction.payments_sub")}
             />
             <StatCard
               Icon={IconUsers}
               value={String(snap.active_creators)}
               label={t("traction.paid_creators")}
-              accent="text-fuchsia-600"
-              bg="bg-fuchsia-50"
-              border="border-fuchsia-100"
+              accent="text-[var(--text-secondary)]"
+              bg="bg-white"
+              border="border-[var(--border)]"
               sub={t("traction.paid_creators_sub")}
             />
             <StatCard
               Icon={IconUserPlus}
               value={String(snap.registered_creators)}
               label={t("traction.registered_creators")}
-              accent="text-pink-600"
-              bg="bg-pink-50"
-              border="border-pink-100"
+              accent="text-[var(--text-secondary)]"
+              bg="bg-white"
+              border="border-[var(--border)]"
               sub={t("traction.registered_creators_sub")}
             />
           </div>
@@ -280,10 +280,10 @@ export default function TractionPage() {
           {/* ── Creator CTA ─────────────────────────────────────────── */}
           <Link
             href="/onboarding"
-            className="flex items-center justify-between px-5 py-4 rounded-2xl border border-fuchsia-100 bg-gradient-to-r from-fuchsia-50 to-pink-50 hover:from-fuchsia-100 hover:to-pink-100 transition-all duration-200 group mb-4"
+            className="flex items-center justify-between px-5 py-4 rounded-2xl border border-[var(--border)] bg-[var(--accent-soft)] hover:bg-[#fbe3ef] transition-all duration-200 group mb-4"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-fuchsia-100 text-fuchsia-500 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-white text-[var(--accent)] border border-[var(--border)] flex items-center justify-center shrink-0">
                 <IconUserPlus className="w-4 h-4" />
               </div>
               <div>
@@ -291,24 +291,24 @@ export default function TractionPage() {
                 <p className="text-xs text-gray-500">{t("traction.cta_creator_sub")}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-xs font-bold text-fuchsia-500 group-hover:translate-x-1 transition-transform">
+            <div className="flex items-center gap-1 text-xs font-bold text-[var(--accent)] group-hover:translate-x-1 transition-transform">
               {t("traction.cta_creator_join")}
               <IconArrowRight />
             </div>
           </Link>
 
           {/* ── Live feed ───────────────────────────────────────────── */}
-          <div className="rounded-2xl border border-pink-100 bg-white shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-pink-100/60">
+          <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-2">
-                <span className="text-fuchsia-400"><IconActivity className="w-4 h-4" /></span>
+                <span className="text-[var(--accent)]"><IconActivity className="w-4 h-4" /></span>
                 <div>
                   <h2 className="text-sm font-bold text-gray-700">{t("traction.feed_title")}</h2>
                   <p className="text-xs text-gray-500">{t("traction.feed_sub")}</p>
                 </div>
               </div>
-              <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg ${connected ? "text-emerald-700 bg-emerald-50 border border-emerald-100" : "text-gray-500 bg-gray-50 border border-gray-100"}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-emerald-500" : "bg-gray-400"}`} />
+              <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg ${connected ? "text-[var(--success)] bg-emerald-50 border border-emerald-100" : "text-gray-500 bg-gray-50 border border-gray-100"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-[var(--success)]" : "bg-gray-400"}`} />
                 {connected ? t("traction.sse_live") : t("traction.polling")}
               </div>
             </div>
@@ -316,7 +316,7 @@ export default function TractionPage() {
             <div className="p-4 flex flex-col gap-2">
               {feed.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <div className="text-pink-200 mb-3"><IconInbox className="w-6 h-6" /></div>
+                  <div className="text-[var(--text-placeholder)] mb-3"><IconInbox className="w-6 h-6" /></div>
                   <p className="text-xs font-semibold text-gray-500">{t("traction.feed_empty")}</p>
                   <p className="text-xs text-gray-400 mt-1 max-w-xs">{t("traction.feed_empty_sub")}</p>
                 </div>
