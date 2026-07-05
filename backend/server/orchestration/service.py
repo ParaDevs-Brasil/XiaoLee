@@ -25,6 +25,15 @@ STELLAR_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
 # the executor, so Claude can't operate on an arbitrary address.
 STELLAR_AGENT_TOOLS = [
     {"type": "function", "function": {
+        "name": "arc_get_usdc_balance",
+        "description": (
+            "Consulta o saldo USDC on-chain da wallet EVM conectada do usuário na rede Arc. "
+            "Use quando o usuário perguntar o saldo da wallet EVM/Arc dele (0x…). "
+            "Não confundir com a treasury do agente."
+        ),
+        "parameters": {"type": "object", "properties": {}},
+    }},
+    {"type": "function", "function": {
         "name": "stellar_get_balance",
         "description": (
             "Consulta o saldo da carteira Stellar conectada do usuário (XLM e assets como USDC). "
@@ -63,6 +72,10 @@ _PLATFORM_CONTEXT = (
     "agent picks the right payout rail. NEVER say XiaoLee does not support EVM wallets — Arc IS an EVM chain "
     "and EVM is the primary rail. Stellar (Freighter, SEP-10, SEP-24, Stellar DEX swaps) remains a fully "
     "supported rail for swaps and anchor deposits on testnet. "
+    "GROUND YOURSELF ON THE CONNECTED WALLET: if the user has an EVM wallet connected, default every "
+    "answer to the Arc rail (USDC, campaigns, agent, x402); if only Stellar is connected, use the Stellar "
+    "rail; if NO wallet is connected, ASK which chain they prefer or point to the Connect Wallet button — "
+    "never assume Freighter/Stellar by default. "
     "Respond in the same language the user writes in (PT-BR or EN). "
     "Never execute transactions without explicit user confirmation."
 )
@@ -144,6 +157,40 @@ class OrchestrationService:
                 "É este endereço que identifica o usuário nas campanhas e recebe payouts USDC no Arc."
             )
         return ""
+
+    def _chains_ctx(self, evm_wallet: str | None, stellar_wallet: str | None) -> str:
+        """Contexto de chain ancorado na(s) wallet(s) REALMENTE conectada(s).
+
+        Regra de produto: EVM conectada → Arc é o trilho padrão da conversa; só Stellar →
+        trilho Stellar; nenhuma → PERGUNTAR a chain, nunca assumir Freighter por padrão.
+        """
+        if evm_wallet and stellar_wallet:
+            return (
+                f"WALLETS CONECTADAS: EVM {evm_wallet} (trilho principal — Arc) e "
+                f"Stellar {stellar_wallet} (Freighter/SEP-10). Contexto padrão da conversa: Arc/EVM "
+                "(USDC nativo, campanhas, agente autônomo, x402, transferências no chat). Use o trilho "
+                "Stellar apenas quando o usuário pedir swap XLM/USDC, anchor SEP-24 ou algo da Stellar."
+            )
+        if evm_wallet:
+            return (
+                f"WALLET CONECTADA: EVM {evm_wallet} — trilho Arc (USDC nativo da Circle). "
+                "NÃO há wallet Stellar conectada: não assuma Freighter nem ofereça saldo XLM/swap DEX como "
+                "padrão — se o usuário pedir algo da Stellar, avise que precisaria conectar a Freighter. "
+                "Foque no que a wallet dele já faz: transferir USDC no Arc pelo chat (você prepara e ele "
+                "assina), campanhas com payout do agente, x402, receber USDC."
+            )
+        if stellar_wallet:
+            return (
+                f"WALLET CONECTADA: Stellar {stellar_wallet} (Freighter, SEP-10). Operações disponíveis: "
+                "saldo XLM/USDC, swap via Stellar DEX, anchor SEP-24. O trilho principal da plataforma é o "
+                "Arc/EVM — se o usuário perguntar de Arc, USDC nativo ou campanhas, explique e sugira "
+                "conectar uma wallet EVM pelo Connect Wallet da navbar."
+            )
+        return (
+            "NENHUMA wallet conectada. NÃO assuma chain nenhuma: pergunte qual rede o usuário prefere "
+            "(Arc/EVM, Solana ou Stellar) ou aponte o botão Connect Wallet da navbar, que detecta qualquer "
+            "wallet compatível (MetaMask, Rabby, Phantom, Freighter). Não empurre a Freighter por padrão."
+        )
 
     def _is_stellar_context(self, text: str) -> bool:
         """Detect if the message refers to Stellar chain."""
@@ -259,6 +306,34 @@ class OrchestrationService:
             w in lowered for w in _arc_bridge_kw
         )
 
+        # Transferência USDC iniciada pelo usuário (assina na própria wallet EVM):
+        # verbo de envio + USDC + endereço de destino explícito na mensagem.
+        _send_verb = bool(re.search(r"\b(manda|mandar|enviar|envia|send|transferir|transfere)\b", lowered))
+        if _send_verb and "usdc" in lowered:
+            evm_dest = re.search(r"\b(0x[0-9a-fA-F]{40})\b", clean)
+            sol_dest = re.search(r"\b([1-9A-HJ-NP-Za-km-z]{32,44})\b", clean)
+            amount = self._extract_amount(clean)
+            if evm_dest:
+                return IntentResponse(
+                    action="evm_transfer_prepare",
+                    confidence=0.85,
+                    entities={"amount": amount or 0, "to_address": evm_dest.group(1), "dest_chain": "arc"},
+                )
+            if sol_dest and ("solana" in lowered or "sol " in lowered):
+                return IntentResponse(
+                    action="evm_transfer_prepare",
+                    confidence=0.85,
+                    entities={"amount": amount or 0, "to_address": sol_dest.group(1), "dest_chain": "solana"},
+                )
+            if "solana" in lowered or "stellar" in lowered:
+                # destino cross-chain sem endereço — pedir o endereço
+                return IntentResponse(
+                    action="evm_transfer_prepare",
+                    confidence=0.80,
+                    entities={"amount": amount or 0, "to_address": None,
+                              "dest_chain": "solana" if "solana" in lowered else "stellar"},
+                )
+
         if any(w in lowered for w in _arc_run_kw):
             campaign_id = self._extract_amount(clean)
             return IntentResponse(
@@ -354,16 +429,17 @@ class OrchestrationService:
     def _build_agentic_system_prompt(
         self, stellar_wallet: str | None, platform: str, evm_wallet: str | None = None
     ) -> str:
-        # Contexto de wallet cobre os dois trilhos: EVM (primário, Arc) e Stellar (swaps/anchor)
-        wallet_lines = []
+        # Contexto ancorado na wallet conectada: EVM → Arc-first; só Stellar → Stellar;
+        # nenhuma → perguntar a chain (nunca assumir Freighter).
+        wallet_ctx = self._chains_ctx(evm_wallet, stellar_wallet)
         evm_ctx = self._evm_wallet_ctx(evm_wallet)
         if evm_ctx:
-            wallet_lines.append(evm_ctx)
-        wallet_lines.append(self._stellar_wallet_ctx(stellar_wallet))
-        wallet_ctx = "\n".join(wallet_lines)
+            wallet_ctx = f"{wallet_ctx}\n{evm_ctx}"
         return (
-            f"{_PLATFORM_CONTEXT}\n{_STELLAR_CONTEXT}\n{wallet_ctx}\n\n"
+            f"{_PLATFORM_CONTEXT}\n{wallet_ctx}\n\n"
             "FERRAMENTAS DISPONÍVEIS:\n"
+            "- arc_get_usdc_balance: chame quando o usuário perguntar o saldo da wallet EVM/Arc dele — "
+            "retorna o USDC on-chain real.\n"
             "- stellar_get_balance: chame quando o usuário perguntar sobre o saldo dele (XLM/USDC na Stellar).\n"
             "- stellar_swap_quote: chame quando o usuário quiser trocar/swap ativos (ex: XLM↔USDC). "
             "Ela gera o quote e prepara a transação para o Freighter. Apresente o quote e diga que é só "
@@ -378,7 +454,9 @@ class OrchestrationService:
             "compatível: MetaMask, Rabby, Phantom, Freighter). Responda SEMPRE no idioma do usuário."
         )
 
-    def _make_stellar_executor(self, stellar_wallet: str | None, captured: Dict[str, Any]):
+    def _make_stellar_executor(
+        self, stellar_wallet: str | None, captured: Dict[str, Any], evm_wallet: str | None = None
+    ):
         """Build the tool executor closure for the agentic loop.
 
         Executes the real Stellar operations and captures the structured
@@ -386,6 +464,21 @@ class OrchestrationService:
         /chat response keeps its existing shape for the frontend.
         """
         async def executor(tool_name: str, tool_input: Dict[str, Any]) -> str:
+            if tool_name == "arc_get_usdc_balance":
+                if not evm_wallet:
+                    return json.dumps({"error": "no_evm_wallet",
+                                       "message": "Nenhuma wallet EVM conectada. Peça para conectar pelo Connect Wallet da navbar."})
+                try:
+                    from server.routes.arc_routes import read_arc_usdc_balance
+                    balance = await read_arc_usdc_balance(evm_wallet)
+                except Exception as exc:
+                    return json.dumps({"error": "arc_rpc_failed", "message": str(exc)})
+                captured["actions"].append("arc_balance")
+                captured["execution"] = {
+                    "chain": "arc", "wallet": evm_wallet, "usdc_balance": balance,
+                }
+                return json.dumps({"wallet": evm_wallet, "chain": "arc", "usdc_balance": balance})
+
             if tool_name == "stellar_get_balance":
                 if not stellar_wallet:
                     return json.dumps({"error": "no_wallet",
@@ -461,7 +554,7 @@ class OrchestrationService:
         captured: Dict[str, Any] = {"actions": [], "execution": None, "last_swap_args": {}}
 
         system_prompt = self._build_agentic_system_prompt(stellar_wallet, platform, evm_wallet=evm_wallet)
-        executor = self._make_stellar_executor(stellar_wallet, captured)
+        executor = self._make_stellar_executor(stellar_wallet, captured, evm_wallet=evm_wallet)
 
         result = await self.claude_engine.run(
             system_prompt=system_prompt,
@@ -507,8 +600,9 @@ class OrchestrationService:
         wallet_ctx = self._wallet_ctx(wallet_address, platform=platform)
         intent = arc_intent or await self.detect_intent(text, user_id, history=history)
 
-        # Override: if a wallet was found inline, always check balance.
-        if inline_wallet and intent.action not in ("check_balance",):
+        # Override: if a wallet was found inline, always check balance — EXCETO em
+        # transferência, onde o endereço na mensagem é o DESTINO, não a wallet do usuário.
+        if inline_wallet and intent.action not in ("check_balance", "evm_transfer_prepare"):
             from server.schemas import IntentResponse as _IR
             intent = _IR(action="check_balance", confidence=0.90, entities={"wallet": inline_wallet})
 
@@ -688,6 +782,84 @@ class OrchestrationService:
             )
             return {"intent": intent, "reply_text": reply, "execution": {"status": "redirect_stellar_dex"}}
 
+        # --- evm_transfer_prepare — usuário assina na PRÓPRIA wallet EVM (espelho do
+        # fluxo swap_xdr/Freighter): preparamos a tx ERC-20 e o front mostra o botão ---
+        if intent.action == "evm_transfer_prepare":
+            evm_wallet = self._extract_evm_wallet_from_note(text)
+            amount = float(intent.entities.get("amount") or 0)
+            dest = intent.entities.get("to_address")
+            dest_chain = intent.entities.get("dest_chain", "arc")
+
+            if dest_chain != "arc":
+                instruction = (
+                    f"{_PLATFORM_CONTEXT} "
+                    f"O usuário quer enviar {amount or 'X'} USDC da wallet EVM dele direto para uma wallet "
+                    f"{dest_chain}. O envio cross-chain assinado pela própria wallet do usuário ainda não está "
+                    "disponível no chat — hoje o trilho CCTP (burn no Arc → mint no destino) é executado pelo "
+                    "agente autônomo a partir da treasury, nos payouts de campanha. Explique isso honestamente "
+                    "e ofereça as alternativas: (1) transferência USDC direto no Arc para um endereço 0x, que "
+                    "ele assina na própria wallet agora mesmo; (2) participar de campanha e receber o payout "
+                    "cross-chain do agente na wallet dele. Máximo 4 frases."
+                )
+                reply = await self.gemini.generate_reply(
+                    instruction=instruction, user_text=clean_text, history=history
+                )
+                return {
+                    "intent": intent,
+                    "reply_text": reply,
+                    "execution": {"status": "bridge_from_user_unavailable", "dest_chain": dest_chain},
+                }
+
+            if not dest or amount <= 0:
+                instruction = (
+                    f"{_PLATFORM_CONTEXT} "
+                    "O usuário quer enviar USDC no Arc mas faltou o valor e/ou o endereço 0x de destino. "
+                    "Peça o que falta, num tom leve. Máximo 2 frases."
+                )
+                reply = await self.gemini.generate_reply(
+                    instruction=instruction, user_text=clean_text, history=history
+                )
+                return {"intent": intent, "reply_text": reply, "execution": {"status": "evm_transfer_missing_info"}}
+
+            if not settings.arc_usdc_address:
+                return {
+                    "intent": intent,
+                    "reply_text": "A transferência USDC no Arc está indisponível agora (ARC_USDC_ADDRESS não configurado). 😔",
+                    "execution": {"status": "evm_transfer_unconfigured"},
+                }
+
+            # calldata ERC-20 transfer(address,uint256) — USDC tem 6 decimais
+            amount_units = int(round(amount * 1_000_000))
+            calldata = (
+                "0xa9059cbb"
+                + dest[2:].lower().rjust(64, "0")
+                + format(amount_units, "x").rjust(64, "0")
+            )
+            execution = {
+                "status": "evm_tx_ready",
+                "chain": "arc",
+                "evm_tx": {"to": settings.arc_usdc_address, "data": calldata, "value": "0x0"},
+                "transfer": {"to": dest, "amount_usdc": amount, "token": "USDC"},
+                "from_wallet": evm_wallet,
+            }
+            instruction = (
+                f"{_PLATFORM_CONTEXT} "
+                f"Transação preparada: enviar {amount} USDC para {dest} na rede Arc. "
+                "Apresente um resumo curto (valor, destino encurtado, rede Arc, token USDC) e diga que é só "
+                "clicar no botão abaixo para assinar na wallet conectada — a XiaoLee NÃO tem acesso à chave "
+                "privada e nada é enviado sem a assinatura. Máximo 3 frases."
+            )
+            try:
+                reply = await self.gemini.generate_reply(
+                    instruction=instruction, user_text=clean_text, history=history
+                )
+            except Exception:
+                reply = (
+                    f"Transação pronta! 💸 {amount} USDC → `{dest[:10]}…{dest[-6:]}` na rede Arc. "
+                    "É só assinar na sua wallet no botão abaixo — eu não tenho acesso à sua chave privada."
+                )
+            return {"intent": intent, "reply_text": reply, "execution": execution}
+
         # --- run_campaign_agent / discover_creators / pay_creator ---
         if intent.action in ("run_campaign_agent", "discover_creators", "pay_creator", "check_budget"):
             campaign_id = intent.entities.get("campaign_id")
@@ -750,17 +922,13 @@ class OrchestrationService:
 
         # --- greeting ---
         if intent.action == "greeting":
-            stellar_greeting = (
-                f"O usuário tem a Stellar wallet {stellar_wallet} conectada via Freighter."
-                if stellar_wallet
-                else "O usuário ainda não conectou a carteira Freighter."
-            )
+            evm_wallet_note = self._extract_evm_wallet_from_note(text)
             instruction = (
                 f"{_PLATFORM_CONTEXT} "
-                f"{stellar_greeting} "
+                f"{self._chains_ctx(evm_wallet_note, stellar_wallet)} "
                 "O usuário está te cumprimentando. Dê as boas-vindas com a personalidade completa da XiaoLee. "
-                "Mencione brevemente 1-2 coisas que você pode fazer: saldo Stellar, swap via DEX, "
-                "depósito via âncora SEP-24, ou ganhar $XLEE em campanhas. "
+                "Mencione brevemente 1-2 coisas que você pode fazer PARA A WALLET/CHAIN dele (contexto acima); "
+                "se não houver wallet, convide a conectar pelo Connect Wallet ou pergunte a chain preferida. "
                 "Seja calorosa, concisa — máximo 2 a 3 frases."
             )
             reply = await self.gemini.generate_reply(
@@ -769,11 +937,11 @@ class OrchestrationService:
             return {"intent": intent, "reply_text": reply, "execution": {"status": "greeting"}}
 
         # --- help / general fallback ---
-        stellar_ctx = self._stellar_wallet_ctx(stellar_wallet)
+        evm_wallet_note = self._extract_evm_wallet_from_note(text)
         instruction = (
-            f"{_PLATFORM_CONTEXT} {stellar_ctx} "
-            "Responda a pergunta do usuário de forma natural. "
-            "Se for sobre Stellar, DeFi, XiaoLee, campanhas, Freighter, SEP-10, SEP-24, x402 ou crypto em geral "
+            f"{_PLATFORM_CONTEXT} {self._chains_ctx(evm_wallet_note, stellar_wallet)} "
+            "Responda a pergunta do usuário de forma natural, ancorada na wallet/chain do contexto acima. "
+            "Se for sobre Arc, Circle, USDC, campanhas, agente, CCTP, x402, Stellar ou crypto em geral "
             "— seja precisa e útil. "
             "Se for completamente fora do tema, redirecione gentilmente para o que você pode ajudar."
         )

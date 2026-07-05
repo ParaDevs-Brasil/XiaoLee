@@ -4,6 +4,8 @@ import Video from "./Video";
 import UserData from "./UserData";
 import handleAuth, { AuthStatus } from "@/hooks/useAuth";
 import { signTransactionXdr, submitToHorizon } from "@/utils/stellar";
+import { sendEvmTransaction, shortEvmAddress } from "@/lib/evmWallet";
+import { explorerTxUrl } from "@/lib/chains";
 import { IconSend, IconCheck, IconSpark } from "@/components/icons";
 import { XiaoleeBubble } from "@/components/landing/primitives";
 import ChatHeader from "@/components/chat/ChatHeader";
@@ -19,6 +21,9 @@ type SwapExecution = {
     source_amount: number;
     destination_amount: number;
   };
+  // Transferência USDC no Arc preparada pelo backend — assinada na wallet EVM conectada
+  evm_tx?: { to: string; data: string; value?: string } | null;
+  transfer?: { to: string; amount_usdc: number; token: string };
   [key: string]: unknown;
 };
 
@@ -58,6 +63,8 @@ export default function ChatPanel() {
   const [authLoading, setAuthLoading] = useState<{[key: number]: boolean}>({});
   const [swapSigning, setSwapSigning] = useState<{[key: number]: boolean}>({});
   const [swapTxHash, setSwapTxHash] = useState<{[key: number]: string}>({});
+  const [evmTxSigning, setEvmTxSigning] = useState<{[key: number]: boolean}>({});
+  const [evmTxHash, setEvmTxHash] = useState<{[key: number]: string}>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -88,16 +95,21 @@ export default function ChatPanel() {
 
     const loadExistingChatHistory = () => {
       const chatHistory = UserData.getChatHistory();
-      if (chatHistory.length > 0) {
-        const existingMessages: MessageType[] = chatHistory.map(chat => ({
+      if (chatHistory.length === 0) return;
+      setMsgs(prev => {
+        // Não sobrescrever conversa viva: o histórico não carrega `execution`
+        // (swap_xdr/evm_tx), então recarregá-lo por cima apagaria os botões de
+        // assinatura recém-preparados. Só hidrata quando há mais no histórico
+        // do que em memória (carga inicial pós-auth ou sync de outra sessão).
+        if (prev.length >= chatHistory.length) return prev;
+        return chatHistory.map(chat => ({
           sent: chat.user_message.content,
           response: chat.assistant_response.content,
           hasCode: false,
           code: "",
-          time: formatTime(chat.user_message.timestamp)
+          time: formatTime(chat.user_message.timestamp),
         }));
-        setMsgs(existingMessages);
-      }
+      });
     };
 
     checkInitialAuthStatus();
@@ -154,6 +166,25 @@ export default function ChatPanel() {
       alert(`Erro ao assinar swap: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSwapSigning(prev => ({ ...prev, [messageIndex]: false }));
+    }
+  };
+
+  // Espelho do handleSignSwap para o trilho Arc/EVM: assina a tx preparada pelo
+  // backend na wallet EVM conectada (mesmo provider EIP-6963 da conexão).
+  const handleSignEvmTx = async (messageIndex: number, tx: { to: string; data: string; value?: string }) => {
+    setEvmTxSigning(prev => ({ ...prev, [messageIndex]: true }));
+    try {
+      const hash = await sendEvmTransaction(tx);
+      setEvmTxHash(prev => ({ ...prev, [messageIndex]: hash }));
+      setMsgs(prev => {
+        const updated = [...prev];
+        updated[messageIndex] = { ...updated[messageIndex], execution: { ...updated[messageIndex].execution, evm_tx: null } };
+        return updated;
+      });
+    } catch (err) {
+      alert(`Erro ao assinar transação: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setEvmTxSigning(prev => ({ ...prev, [messageIndex]: false }));
     }
   };
 
@@ -295,6 +326,45 @@ export default function ChatPanel() {
                       >
                         {swapSigning[index] ? "Signing…" : "Sign with Freighter"}
                       </button>
+                    </div>
+                  )}
+
+                  {/* EVM tx signing button — appears when AI prepared an Arc/USDC transfer */}
+                  {msg.execution?.evm_tx && msg.response !== TYPING_SENTINEL && (
+                    <div className="mt-3 space-y-2">
+                      {msg.execution.transfer && (
+                        <p className="text-xs text-fuchsia-600 font-mono">
+                          {msg.execution.transfer.amount_usdc} {msg.execution.transfer.token} → {shortEvmAddress(msg.execution.transfer.to, 8, 6)} · Arc
+                        </p>
+                      )}
+                      <button
+                        onClick={() => handleSignEvmTx(index, msg.execution!.evm_tx!)}
+                        disabled={evmTxSigning[index]}
+                        className="px-4 py-2 text-xs font-bold rounded-xl btn-primary text-white hover:opacity-90 disabled:opacity-50 transition-all"
+                      >
+                        {evmTxSigning[index] ? "Signing…" : "Sign with your wallet"}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Tx hash after successful EVM transfer */}
+                  {evmTxHash[index] && (
+                    <div className="mt-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs space-y-1">
+                      <p className="font-bold text-emerald-700 flex items-center gap-1">
+                        <IconCheck size={12} sw={3} />
+                        USDC transfer sent on Arc
+                      </p>
+                      <p className="font-mono text-emerald-600 break-all">{evmTxHash[index]}</p>
+                      {explorerTxUrl(evmTxHash[index], "arc") && (
+                        <a
+                          href={explorerTxUrl(evmTxHash[index], "arc")!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block mt-1 text-blue-600 hover:underline font-semibold"
+                        >
+                          View on Arc explorer ↗
+                        </a>
+                      )}
                     </div>
                   )}
 

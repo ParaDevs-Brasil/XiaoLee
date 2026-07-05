@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { WalletProps } from "@/interfaces";
 import { useModal } from "@/hooks/useModal";
+import api from "@/api/api";
+import { getStoredConnectedWallet } from "@/lib/walletProviders";
 import {
   clearStoredEvmAddress,
   connectEvmWallet,
@@ -20,19 +22,32 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
   const [isConnecting, setIsConnecting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  // Saldo USDC on-chain no Arc (lido pelo backend via RPC) — null = indisponível
+  const [arcUsdc, setArcUsdc] = useState<number | null>(null);
 
   const loadChain = useCallback(async () => {
     setChainName(await getEvmChainName());
   }, []);
 
   useEffect(() => {
-    const saved = getStoredEvmAddress();
+    // Wallet universal (Connect Wallet) tem prioridade; chave EVM legada como fallback
+    const connected = getStoredConnectedWallet();
+    const saved = connected?.address?.startsWith("0x") ? connected.address : getStoredEvmAddress();
     if (saved) setAddress(saved);
   }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && address) loadChain();
   }, [isOpen, address, loadChain]);
+
+  useEffect(() => {
+    if (!isOpen || !address || !address.startsWith("0x")) return;
+    setArcUsdc(null);
+    api
+      .get<{ usdc_balance: number }>(`/v1/arc/balance/${address}`)
+      .then((resp) => setArcUsdc(resp.data.usdc_balance))
+      .catch(() => setArcUsdc(null));
+  }, [isOpen, address]);
 
   const handleConnect = async () => {
     if (!isEvmWalletInstalled()) {
@@ -138,10 +153,12 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
             {address ? (
               <>
                 <p className="text-5xl font-bold text-[var(--accent)]">
-                  ${totalUSD.toFixed(2)}
+                  ${((arcUsdc ?? 0) + totalUSD).toFixed(2)}
                 </p>
                 <p className="text-sm text-[var(--ink-2)] mt-1">
-                  Recompensas XiaoLee{chainName ? ` · ${chainName}` : ""}
+                  {arcUsdc != null
+                    ? `${arcUsdc.toFixed(2)} USDC no Arc${totalUSD > 0 ? " + recompensas" : ""}`
+                    : `Recompensas XiaoLee${chainName ? ` · ${chainName}` : ""}`}
                 </p>
               </>
             ) : (
@@ -186,6 +203,22 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
               <h3 className="text-xl font-semibold text-[var(--ink)] flex items-center gap-2">
                 💎 Your Tokens
               </h3>
+
+              {/* USDC on-chain no Arc */}
+              {arcUsdc != null && (
+                <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] hover:border-[var(--accent)]/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[var(--accent-soft)] text-[var(--accent)] rounded-lg flex items-center justify-center text-lg">$</div>
+                      <div>
+                        <p className="font-semibold text-[var(--ink)]">USDC</p>
+                        <p className="text-xs text-[var(--ink-2)]">Arc Testnet · on-chain</p>
+                      </div>
+                    </div>
+                    <p className="font-semibold text-[var(--ink)]">{arcUsdc.toFixed(2)} USDC</p>
+                  </div>
+                </div>
+              )}
 
               {/* Campaign reward tokens */}
               {rewardTokens.map((tokenData) => (

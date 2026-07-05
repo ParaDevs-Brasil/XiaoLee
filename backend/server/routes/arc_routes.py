@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from server.integrations.arc_client import ArcClient
@@ -86,6 +86,144 @@ async def get_agent_balance():
         raise HTTPException(status_code=503, detail=str(exc))
 
     return {"usdc_balance": balance, "sandbox": arc.sandbox}
+
+
+@router.get("/chain-config")
+async def get_chain_config(request: Request):
+    """Config da chain Arc para a wallet (wallet_switchEthereumChain / addEthereumChain).
+
+    rpcUrls aponta para o NOSSO proxy (/v1/arc/rpc), não para o RPC autenticado do
+    Canteen: a MetaMask fala com o RPC direto do navegador para estimar fee/saldo, e o
+    RPC do Canteen (com token na URL) não é utilizável pelo browser — daí "Network fee:
+    Unavailable". O proxy repassa com o token server-side.
+    """
+    if not settings.arc_chain_id:
+        raise HTTPException(status_code=503, detail="ARC_CHAIN_ID not configured")
+    proxy_url = str(request.base_url).rstrip("/") + "/v1/arc/rpc"
+    return {
+        "chainIdHex": hex(settings.arc_chain_id),
+        "chainId": settings.arc_chain_id,
+        "chainName": "Arc Testnet",
+        "rpcUrls": [proxy_url],
+        "blockExplorerUrls": ["https://testnet.arcscan.app"],
+        "nativeCurrency": {"name": "USDC", "symbol": "USDC", "decimals": 18},
+    }
+
+
+@router.post("/rpc")
+async def arc_rpc_proxy(request: Request):
+    """Proxy JSON-RPC para o RPC do Arc (Canteen), adicionando o token server-side.
+
+    A wallet do usuário (MetaMask/Rabby) usa esta URL como RPC da rede Arc, então
+    consegue estimar fee, ler saldo e enviar tx sem precisar do RPC autenticado
+    (que não é alcançável/utilizável pelo navegador)."""
+    if not settings.arc_rpc_url:
+        raise HTTPException(status_code=503, detail="ARC_RPC_URL not configured")
+    import httpx
+
+    try:
+        body = await request.body()
+        async with httpx.AsyncClient(timeout=20) as client:
+            upstream = await client.post(
+                settings.arc_rpc_url,
+                content=body,
+                headers={"Content-Type": "application/json"},
+            )
+        return Response(
+            content=upstream.content,
+            status_code=upstream.status_code,
+            media_type="application/json",
+        )
+    except Exception as exc:
+        LOG.warning("arc rpc proxy failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"arc rpc proxy failed: {exc}")
+
+
+@router.get("/gas-fees")
+async def get_gas_fees():
+    """Fee EIP-1559 atual do Arc para a wallet incluir na tx.
+
+    Wallets (MetaMask/Rabby) mostram "Network fee: Unavailable" e travam a
+    assinatura quando não conseguem estimar o fee numa testnet custom. Com
+    maxFeePerGas/maxPriorityFeePerGas explícitos no payload, elas não precisam estimar.
+    """
+    if not settings.arc_rpc_url:
+        raise HTTPException(status_code=503, detail="ARC_RPC_URL not configured")
+    try:
+        import asyncio
+
+        def _read() -> dict:
+            from web3 import Web3
+
+            w3 = Web3(Web3.HTTPProvider(settings.arc_rpc_url, request_kwargs={"timeout": 15}))
+            blk = w3.eth.get_block("latest")
+            base = blk.get("baseFeePerGas") or w3.eth.gas_price
+            try:
+                priority = w3.eth.max_priority_fee
+            except Exception:
+                priority = int(2e9)  # 2 gwei fallback
+            # margem: cobre 2 subidas de base fee + priority
+            max_fee = base * 2 + priority
+            return {"maxFeePerGas": max_fee, "maxPriorityFeePerGas": priority}
+
+        fees = await asyncio.to_thread(_read)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"arc fee read failed: {exc}")
+
+    return {
+        "maxFeePerGasHex": hex(fees["maxFeePerGas"]),
+        "maxPriorityFeePerGasHex": hex(fees["maxPriorityFeePerGas"]),
+        "maxFeePerGas": fees["maxFeePerGas"],
+        "maxPriorityFeePerGas": fees["maxPriorityFeePerGas"],
+    }
+
+
+@router.get("/balance/{address}")
+async def get_address_balance(address: str):
+    """Saldo USDC on-chain de QUALQUER endereço 0x no Arc (leitura direta no RPC).
+
+    Usado pela tela XiaoLee Wallet e pelo chat para mostrar o saldo da wallet
+    conectada do usuário — não confundir com /wallet/balance (treasury do agente).
+    """
+    import re as _re
+
+    if not _re.fullmatch(r"0x[0-9a-fA-F]{40}", address):
+        raise HTTPException(status_code=422, detail="address must be a 0x EVM address")
+    if not settings.arc_rpc_url or not settings.arc_usdc_address:
+        raise HTTPException(status_code=503, detail="ARC_RPC_URL/ARC_USDC_ADDRESS not configured")
+
+    try:
+        balance = await read_arc_usdc_balance(address)
+    except Exception as exc:
+        LOG.warning("arc.balance read failed for %s: %s", address, exc)
+        raise HTTPException(status_code=503, detail=f"arc rpc read failed: {exc}")
+
+    return {"address": address, "chain": "arc", "usdc_balance": balance}
+
+
+async def read_arc_usdc_balance(address: str) -> float:
+    """Lê o saldo USDC (6 decimais) de um endereço 0x direto no RPC do Arc.
+
+    Reutilizada pela rota acima e pela tool agêntica do chat (orchestration).
+    """
+    import asyncio
+
+    def _read() -> float:
+        from web3 import Web3
+
+        w3 = Web3(Web3.HTTPProvider(settings.arc_rpc_url, request_kwargs={"timeout": 15}))
+        erc20_abi = [{
+            "name": "balanceOf", "type": "function", "stateMutability": "view",
+            "inputs": [{"name": "account", "type": "address"}],
+            "outputs": [{"name": "", "type": "uint256"}],
+        }]
+        usdc = w3.eth.contract(
+            address=Web3.to_checksum_address(settings.arc_usdc_address), abi=erc20_abi
+        )
+        raw = usdc.functions.balanceOf(Web3.to_checksum_address(address)).call()
+        return raw / 1_000_000
+
+    return await asyncio.to_thread(_read)
 
 
 # ---------------------------------------------------------------------------

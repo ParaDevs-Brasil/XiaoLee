@@ -93,6 +93,139 @@ export async function signEvmMessage(address: string, message: string): Promise<
   })) as string;
 }
 
+export interface EvmTxRequest {
+  to: string;
+  data: string;
+  value?: string;
+}
+
+interface ArcChainConfig {
+  chainIdHex: string;
+  chainName: string;
+  rpcUrls: string[];
+  blockExplorerUrls: string[];
+  nativeCurrency: { name: string; symbol: string; decimals: number };
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_CORE_API_URL || "http://localhost:8000";
+
+/**
+ * Garante que a wallet esteja na rede Arc antes de assinar — sem isso o
+ * eth_sendTransaction vai para a rede ativa da wallet (ex: Ethereum) e a
+ * simulação falha porque o contrato USDC do Arc não existe lá.
+ */
+async function ensureArcNetwork(provider: Eip1193Provider): Promise<void> {
+  let cfg: ArcChainConfig;
+  try {
+    const resp = await fetch(`${API_BASE}/v1/arc/chain-config`);
+    if (!resp.ok) return; // sem config → segue e deixa a wallet decidir
+    cfg = (await resp.json()) as ArcChainConfig;
+  } catch {
+    return;
+  }
+
+  const current = (await provider.request({ method: "eth_chainId" })) as string;
+  if (current?.toLowerCase() === cfg.chainIdHex.toLowerCase()) return;
+
+  try {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: cfg.chainIdHex }],
+    });
+  } catch (err) {
+    // 4902 = chain desconhecida na wallet → tenta adicionar e o switch é implícito
+    const code = (err as { code?: number })?.code;
+    if (code === 4902 || code === -32603) {
+      try {
+        await provider.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: cfg.chainIdHex,
+            chainName: cfg.chainName,
+            rpcUrls: cfg.rpcUrls,
+            blockExplorerUrls: cfg.blockExplorerUrls,
+            nativeCurrency: cfg.nativeCurrency,
+          }],
+        });
+      } catch {
+        // Wallets como a Phantom recusam redes EVM customizadas (só suportam as
+        // chains grandes). Erro claro apontando para MetaMask/Rabby.
+        throw new Error(
+          "Sua wallet não suporta a rede Arc testnet (a Phantom só aceita chains grandes). " +
+          "Conecte a MetaMask ou a Rabby pelo Connect Wallet para transferir USDC no Arc."
+        );
+      }
+    } else {
+      throw new Error(
+        "Sua wallet não suporta a rede Arc testnet. Conecte a MetaMask ou a Rabby pelo Connect Wallet."
+      );
+    }
+  }
+}
+
+/**
+ * Envia uma transação pela wallet EVM conectada (eth_sendTransaction) — mesmo
+ * resolver de provider do signEvmMessage. Retorna o tx hash.
+ */
+export async function sendEvmTransaction(tx: EvmTxRequest): Promise<string> {
+  const { resolveEvmProvider, getStoredConnectedWallet } = await import("./walletProviders");
+  const connected = getStoredConnectedWallet();
+  const from = connected?.address ?? getStoredEvmAddress();
+  if (!from) throw new Error("no_wallet_connected");
+
+  const provider = (await resolveEvmProvider(from)) ?? getInjectedProvider();
+  if (!provider) throw new Error("no_wallet");
+
+  const accounts = (await provider.request({ method: "eth_accounts" })) as string[];
+  if (!accounts?.some((a) => a.toLowerCase() === from.toLowerCase())) {
+    await provider.request({ method: "eth_requestAccounts" });
+  }
+
+  await ensureArcNetwork(provider);
+
+  const params: Record<string, string> = {
+    from,
+    to: tx.to,
+    data: tx.data,
+    value: tx.value ?? "0x0",
+  };
+
+  // Estima o gas nós mesmos e envia explícito: wallets como a Rabby desabilitam o
+  // "Sign" quando não conseguem SIMULAR numa testnet custom (Arc). Com o gas já no
+  // payload, elas não dependem da simulação para liberar a assinatura.
+  try {
+    const est = (await provider.request({
+      method: "eth_estimateGas",
+      params: [{ from, to: tx.to, data: tx.data, value: tx.value ?? "0x0" }],
+    })) as string;
+    const withBuffer = Math.ceil(parseInt(est, 16) * 1.3); // +30% de folga
+    params.gas = "0x" + withBuffer.toString(16);
+  } catch {
+    // estimativa falhou — segue sem gas explícito (wallet estima do jeito dela)
+  }
+
+  // Fee EIP-1559 explícito: sem isso a MetaMask mostra "Network fee: Unavailable"
+  // e não deixa assinar na testnet custom (não consegue estimar o fee sozinha).
+  try {
+    const resp = await fetch(`${API_BASE}/v1/arc/gas-fees`);
+    if (resp.ok) {
+      const fees = (await resp.json()) as {
+        maxFeePerGasHex: string;
+        maxPriorityFeePerGasHex: string;
+      };
+      params.maxFeePerGas = fees.maxFeePerGasHex;
+      params.maxPriorityFeePerGas = fees.maxPriorityFeePerGasHex;
+    }
+  } catch {
+    // sem fee explícito — a wallet tenta estimar do jeito dela
+  }
+
+  return (await provider.request({
+    method: "eth_sendTransaction",
+    params: [params],
+  })) as string;
+}
+
 export function shortEvmAddress(address: string, front = 6, back = 4): string {
   if (!address || address.length <= front + back + 2) return address;
   return `${address.slice(0, front)}…${address.slice(-back)}`;
