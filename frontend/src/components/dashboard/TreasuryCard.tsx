@@ -36,7 +36,7 @@ function ChainRow({ b }: { b: TreasuryChainBalance }) {
       {b.status === "ok" && (
         <div className="text-right">
           <p className="text-sm font-bold text-[var(--ink)]">
-            {b.usdcBalance !== null ? b.usdcBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}{" "}
+            {b.usdcBalance != null ? b.usdcBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}{" "}
             <span className="text-[10px] text-[var(--ink-2)] font-semibold">USDC</span>
           </p>
           {b.sandbox && (

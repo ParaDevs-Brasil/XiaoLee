@@ -55,6 +55,14 @@ function discoverEip6963(timeoutMs = 200): Promise<Eip6963ProviderDetail[]> {
   });
 }
 
+// Algumas extensões anunciam o ícone EIP-6963 com whitespace/caractere de
+// controle no início — o <Image> do Next rejeita o data URI. Só repassa URIs limpos.
+function sanitizeIcon(icon: string | undefined): string | undefined {
+  const trimmed = icon?.trim();
+  if (!trimmed) return undefined;
+  return /^(data:image\/|https:\/\/)/.test(trimmed) ? trimmed : undefined;
+}
+
 async function detectEvmWallets(): Promise<DetectedWallet[]> {
   const announced = await discoverEip6963();
   if (announced.length > 0) {
@@ -62,7 +70,7 @@ async function detectEvmWallets(): Promise<DetectedWallet[]> {
       id: info.rdns,
       name: info.name,
       chain: "arc" as const,
-      icon: info.icon,
+      icon: sanitizeIcon(info.icon),
       connect: () => connectEvmProvider(provider),
     }));
   }
@@ -137,4 +145,37 @@ export async function detectWallets(): Promise<DetectedWallet[]> {
   if (typeof window === "undefined") return [];
   const [evm, stellar] = await Promise.all([detectEvmWallets(), detectStellarWallets()]);
   return [...evm, ...detectSolanaWallets(), ...stellar];
+}
+
+// ── Wallet conectada (qualquer chain) — persistência da sessão ─────────────
+
+const CONNECTED_KEY = "xiaolee_wallet";
+
+export interface ConnectedWallet {
+  address: string;
+  chain: Chain;
+  walletName: string;
+}
+
+export function storeConnectedWallet(wallet: ConnectedWallet): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CONNECTED_KEY, JSON.stringify(wallet));
+}
+
+export function getStoredConnectedWallet(): ConnectedWallet | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(CONNECTED_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as ConnectedWallet;
+    return parsed.address ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearStoredConnectedWallet(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(CONNECTED_KEY);
+  window.localStorage.removeItem(EVM_STORAGE_KEY);
 }

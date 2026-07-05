@@ -438,7 +438,9 @@ async def chat_compat(
 
     wallet_address = payload.get("wallet_address")
     if wallet_address:
-        text = f"[System Note: User connected wallet is {wallet_address}] {text}"
+        wallet_chain = payload.get("wallet_chain")
+        chain_suffix = f" on {wallet_chain}" if wallet_chain else ""
+        text = f"[System Note: User connected wallet is {wallet_address}{chain_suffix}] {text}"
 
     stellar_wallet = payload.get("stellar_wallet")
     if stellar_wallet:

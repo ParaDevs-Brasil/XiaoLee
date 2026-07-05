@@ -43,7 +43,8 @@ async function fetchChainBalance(chain: Chain): Promise<TreasuryChainBalance> {
     return {
       chain,
       status: "ok",
-      usdcBalance: resp.data.usdc_balance,
+      // Stellar treasury não retorna usdc_balance (sem endpoint de saldo no client) — normaliza para null
+      usdcBalance: resp.data.usdc_balance ?? null,
       address: resp.data.address,
       sandbox: resp.data.sandbox,
     };

@@ -53,12 +53,16 @@ STELLAR_AGENT_TOOLS = [
 ]
 
 _PLATFORM_CONTEXT = (
-    "You are XiaoLee — a conversational AI layer for DeFi on Stellar. "
-    "You help users interact with the Stellar network via natural language: "
-    "check XLM/USDC balances, swap via Stellar DEX (path payments), deposit via SEP-24 anchors, "
-    "pay for AI queries using the x402 protocol, and participate in creator campaigns to earn $XLEE tokens. "
-    "Authentication is non-custodial via SEP-10 + Freighter wallet — private keys never touch the backend. "
-    "Be proactive: if the user has a Freighter wallet connected, offer to check their balance or suggest campaigns. "
+    "You are XiaoLee — an agentic AI companion for multi-chain DeFi, built on Arc (EVM chain with "
+    "native USDC, by Circle). Core capabilities: an autonomous agent (Claude) that discovers, evaluates "
+    "and pays creators in REAL USDC — directly on Arc, or cross-chain to Solana and Stellar via Circle "
+    "CCTP V2 (burn on Arc → mint on the destination chain, Arc is the hub of every route); x402 HTTP-402 "
+    "micropayments in USDC on Arc; creator campaigns that reward $XLEE; PQC (ML-DSA-87) signed receipts "
+    "for every payment. Users connect ANY compatible wallet — EVM (MetaMask, Rabby, Phantom-EVM, Coinbase), "
+    "Solana (Phantom/Solflare) or Stellar (Freighter) — the chain is auto-detected from the address and the "
+    "agent picks the right payout rail. NEVER say XiaoLee does not support EVM wallets — Arc IS an EVM chain "
+    "and EVM is the primary rail. Stellar (Freighter, SEP-10, SEP-24, Stellar DEX swaps) remains a fully "
+    "supported rail for swaps and anchor deposits on testnet. "
     "Respond in the same language the user writes in (PT-BR or EN). "
     "Never execute transactions without explicit user confirmation."
 )
@@ -126,6 +130,20 @@ class OrchestrationService:
         """Pull the Stellar G... wallet from [System Note: Stellar wallet G...]"""
         match = re.search(r"\[System Note: Stellar wallet (G[A-Z0-9]{55})\]", text)
         return match.group(1) if match else None
+
+    def _extract_evm_wallet_from_note(self, text: str) -> str | None:
+        """Pull the EVM 0x... wallet from [System Note: User connected wallet is 0x...]"""
+        match = re.search(r"\[System Note: User connected wallet is (0x[0-9a-fA-F]{40})[^\]]*\]", text)
+        return match.group(1) if match else None
+
+    def _evm_wallet_ctx(self, wallet: str | None) -> str:
+        if wallet:
+            return (
+                f"EVM wallet conectada: {wallet} (Arc/EVM — MetaMask, Rabby ou similar). "
+                "Se o usuário perguntar qual wallet está conectada, responda com este endereço. "
+                "É este endereço que identifica o usuário nas campanhas e recebe payouts USDC no Arc."
+            )
+        return ""
 
     def _is_stellar_context(self, text: str) -> bool:
         """Detect if the message refers to Stellar chain."""
@@ -208,6 +226,59 @@ class OrchestrationService:
     # Intent detection
     # ------------------------------------------------------------------
 
+    def _detect_arc_intent(self, clean: str) -> IntentResponse | None:
+        """Detecção determinística das intents do trilho Arc/Circle (sprint Lepton).
+
+        Usada em dois pontos: no fallback de detect_intent E como pré-roteamento em
+        execute() — o caminho agêntico (Claude+tools Stellar) não conhece o agente
+        Arc, então essas intents precisam desviar para os handlers Arc ANTES dele.
+        """
+        lowered = clean.lower()
+
+        _arc_run_kw = (
+            "run campaign", "executar campanha", "disparar agente",
+            "start campaign", "iniciar campanha", "rodar agente", "rodar o agente",
+        )
+        _arc_pay_kw = (
+            "pay creator", "pagar creator", "nanopayment", "nano payment",
+            "usdc creator", "pagar usdc", "pagamento circle", "circle payment",
+            "pagar na solana", "pagar na stellar", "payout",
+        )
+        _arc_discover_kw = (
+            "discover creators", "buscar creators", "find creators",
+            "encontrar creators", "listar creators", "creators elegiveis",
+            "creators elegíveis", "eligible creators",
+        )
+        _arc_budget_kw = (
+            "check budget", "verificar budget", "saldo usdc", "usdc balance",
+            "quanto tenho usdc", "arc balance", "saldo no arc", "saldo da campanha",
+            "budget da campanha", "treasury", "tesouraria",
+        )
+        _arc_bridge_kw = ("cctp", "bridge", "cross-chain", "cross chain", "burn and mint")
+        _mentions_arc_rail = bool(re.search(r"\b(arc|circle)\b", lowered)) or any(
+            w in lowered for w in _arc_bridge_kw
+        )
+
+        if any(w in lowered for w in _arc_run_kw):
+            campaign_id = self._extract_amount(clean)
+            return IntentResponse(
+                action="run_campaign_agent",
+                confidence=0.85,
+                entities={"campaign_id": int(campaign_id) if campaign_id else None},
+            )
+        if any(w in lowered for w in _arc_pay_kw):
+            return IntentResponse(action="pay_creator", confidence=0.80, entities={})
+        if any(w in lowered for w in _arc_discover_kw):
+            return IntentResponse(action="discover_creators", confidence=0.80, entities={})
+        if any(w in lowered for w in _arc_budget_kw):
+            return IntentResponse(action="check_budget", confidence=0.80, entities={})
+        # Menção explícita a Arc/Circle/CCTP + saldo/pagamento → trilho Arc, não Stellar
+        if _mentions_arc_rail and any(
+            w in lowered for w in ("saldo", "balance", "pagar", "pay", "transfer", "enviar")
+        ):
+            return IntentResponse(action="check_budget", confidence=0.75, entities={})
+        return None
+
     async def detect_intent(self, text: str, user_id: str, history: list = None) -> IntentResponse:
         clean = self._clean_text(text)
         ai_intent = await self.gemini.classify_intent(clean, history=history)
@@ -239,6 +310,13 @@ class OrchestrationService:
                     entities={"amount": amount, "from": from_asset, "to": to_asset},
                 )
 
+        # --- intents do agente Arc/Circle (sprint Lepton) ---
+        # ANTES dos genéricos de saldo/swap: "saldo usdc"/"pagar creator" são do trilho
+        # Arc/Circle e o branch genérico de check_balance capturava "saldo" primeiro.
+        arc_intent = self._detect_arc_intent(clean)
+        if arc_intent is not None:
+            return arc_intent
+
         if any(w in lowered for w in ("saldo", "balance", "quanto tenho", "meus tokens", "my balance")):
             wallet = self._extract_wallet(clean)
             return IntentResponse(action="check_balance", confidence=0.75, entities={"wallet": wallet})
@@ -259,41 +337,6 @@ class OrchestrationService:
         if any(w in lowered for w in ("oi", "olá", "hello", "hi", "hey", "ola", "bom dia", "boa tarde", "boa noite")):
             return IntentResponse(action="greeting", confidence=0.75, entities={})
 
-        # --- intents do agente Arc (sprint Lepton) ---
-        _arc_run_kw = (
-            "run campaign", "executar campanha", "disparar agente",
-            "start campaign", "iniciar campanha", "rodar agente",
-        )
-        _arc_pay_kw = (
-            "pay creator", "pagar creator", "nanopayment",
-            "usdc creator", "pagar usdc",
-        )
-        _arc_discover_kw = (
-            "discover creators", "buscar creators", "find creators",
-            "encontrar creators", "listar creators",
-        )
-        _arc_budget_kw = (
-            "check budget", "verificar budget", "saldo usdc",
-            "quanto tenho usdc", "arc balance",
-        )
-
-        if any(w in lowered for w in _arc_run_kw):
-            campaign_id = self._extract_amount(clean)
-            return IntentResponse(
-                action="run_campaign_agent",
-                confidence=0.85,
-                entities={"campaign_id": int(campaign_id) if campaign_id else None},
-            )
-
-        if any(w in lowered for w in _arc_pay_kw):
-            return IntentResponse(action="pay_creator", confidence=0.80, entities={})
-
-        if any(w in lowered for w in _arc_discover_kw):
-            return IntentResponse(action="discover_creators", confidence=0.80, entities={})
-
-        if any(w in lowered for w in _arc_budget_kw):
-            return IntentResponse(action="check_budget", confidence=0.80, entities={})
-
         # --- intent miss logging (#17) ---
         logger.warning(
             "intent_miss user=%s confidence=%.2f gemini_action=%s text_preview=%s",
@@ -308,18 +351,31 @@ class OrchestrationService:
     # Agentic execution (Claude)
     # ------------------------------------------------------------------
 
-    def _build_agentic_system_prompt(self, stellar_wallet: str | None, platform: str) -> str:
-        wallet_ctx = self._stellar_wallet_ctx(stellar_wallet)
+    def _build_agentic_system_prompt(
+        self, stellar_wallet: str | None, platform: str, evm_wallet: str | None = None
+    ) -> str:
+        # Contexto de wallet cobre os dois trilhos: EVM (primário, Arc) e Stellar (swaps/anchor)
+        wallet_lines = []
+        evm_ctx = self._evm_wallet_ctx(evm_wallet)
+        if evm_ctx:
+            wallet_lines.append(evm_ctx)
+        wallet_lines.append(self._stellar_wallet_ctx(stellar_wallet))
+        wallet_ctx = "\n".join(wallet_lines)
         return (
             f"{_PLATFORM_CONTEXT}\n{_STELLAR_CONTEXT}\n{wallet_ctx}\n\n"
             "FERRAMENTAS DISPONÍVEIS:\n"
-            "- stellar_get_balance: chame quando o usuário perguntar sobre o saldo dele (XLM/USDC).\n"
+            "- stellar_get_balance: chame quando o usuário perguntar sobre o saldo dele (XLM/USDC na Stellar).\n"
             "- stellar_swap_quote: chame quando o usuário quiser trocar/swap ativos (ex: XLM↔USDC). "
             "Ela gera o quote e prepara a transação para o Freighter. Apresente o quote e diga que é só "
             "assinar no Freighter — você NÃO executa o swap sozinha.\n\n"
+            "SOBRE O AGENTE ARC/CIRCLE (sem ferramenta no chat ainda): se o usuário perguntar sobre pagar "
+            "creators, rodar campanha com o agente, budget USDC, CCTP ou bridge, explique que o agente "
+            "autônomo faz isso via POST /v1/agent/run-campaign (descobre → avalia → paga USDC no trilho "
+            "certo: Arc direto, ou Solana/Stellar via CCTP) e aponte o dashboard de campanhas.\n\n"
             "Para saudações, dúvidas sobre campanhas/$XLEE, SEP-24, x402 ou crypto em geral, responda "
-            "direto com sua personalidade, sem ferramentas. Se uma operação exigir carteira e ela não "
-            "estiver conectada, peça gentilmente para conectar o Freighter. Responda SEMPRE no idioma do usuário."
+            "direto com sua personalidade, sem ferramentas. Se uma operação Stellar exigir carteira e ela "
+            "não estiver conectada, peça para conectar via 'Connect Wallet' na navbar (qualquer wallet "
+            "compatível: MetaMask, Rabby, Phantom, Freighter). Responda SEMPRE no idioma do usuário."
         )
 
     def _make_stellar_executor(self, stellar_wallet: str | None, captured: Dict[str, Any]):
@@ -400,10 +456,11 @@ class OrchestrationService:
     async def _execute_agentic(self, text: str, user_id: str, history: list = None,
                                platform: str = "web") -> Dict[str, Any]:
         stellar_wallet = self._extract_stellar_wallet_from_note(text)
+        evm_wallet = self._extract_evm_wallet_from_note(text)
         clean_text = self._clean_text(text)
         captured: Dict[str, Any] = {"actions": [], "execution": None, "last_swap_args": {}}
 
-        system_prompt = self._build_agentic_system_prompt(stellar_wallet, platform)
+        system_prompt = self._build_agentic_system_prompt(stellar_wallet, platform, evm_wallet=evm_wallet)
         executor = self._make_stellar_executor(stellar_wallet, captured)
 
         result = await self.claude_engine.run(
@@ -424,8 +481,12 @@ class OrchestrationService:
     # ------------------------------------------------------------------
 
     async def execute(self, text: str, user_id: str, history: list = None, platform: str = "web") -> Dict[str, Any]:
+        # Intents do agente Arc/Circle desviam ANTES do caminho agêntico: o loop
+        # Claude do chat só tem tools Stellar e responderia genérico ("help").
+        arc_intent = self._detect_arc_intent(self._clean_text(text))
+
         # 🤖 Agentic path (Claude) — falls back to the Gemini state machine on error.
-        if self.claude_engine is not None:
+        if self.claude_engine is not None and arc_intent is None:
             try:
                 return await self._execute_agentic(text, user_id, history=history, platform=platform)
             except Exception as exc:
@@ -444,7 +505,7 @@ class OrchestrationService:
             wallet_address = inline_wallet
 
         wallet_ctx = self._wallet_ctx(wallet_address, platform=platform)
-        intent = await self.detect_intent(text, user_id, history=history)
+        intent = arc_intent or await self.detect_intent(text, user_id, history=history)
 
         # Override: if a wallet was found inline, always check balance.
         if inline_wallet and intent.action not in ("check_balance",):
@@ -638,6 +699,23 @@ class OrchestrationService:
                     "e pagar os melhores em USDC via Arc/Circle. "
                     "Diga que pode fazer isso via API: POST /v1/agent/run-campaign. "
                     "Seja animada e direta — máximo 2 frases."
+                )
+            elif intent.action == "check_budget":
+                # Saldo REAL da treasury Arc — read-only, alto valor de demo
+                treasury_line = ""
+                try:
+                    from server.routes.arc_routes import _arc_client
+                    balance = await _arc_client().get_usdc_balance()
+                    treasury_line = f"Saldo REAL da treasury no Arc agora: {balance:.2f} USDC. "
+                except Exception as exc:
+                    logger.warning("check_budget: falha ao buscar saldo Arc: %s", exc)
+                instruction = (
+                    f"{_PLATFORM_CONTEXT} "
+                    f"{treasury_line}"
+                    "O usuário perguntou sobre budget/saldo USDC do trilho Arc/Circle. "
+                    "Se o saldo real foi informado acima, apresente-o com destaque. "
+                    "Explique que é a treasury que o agente usa para pagar creators "
+                    "(Arc direto ou Solana/Stellar via CCTP)."
                 )
             else:
                 instruction = (

@@ -7,7 +7,7 @@ import { IconSpark } from "@/components/icons";
 import Transacoes from "./Transacoes";
 import Historico from "./Historico";
 import Wallet from "./Wallet";
-import EvmWallet from "./EvmWallet";
+import WalletConnect from "./WalletConnect";
 import { TypeUserData } from "@/interfaces";
 import UserData from "../UserData";
 import dynamic from "next/dynamic";
@@ -300,7 +300,7 @@ export default function Navbar() {
                         </div>
                       </div>
 
-                      {/* EVM Wallet */}
+                      {/* Wallet Connect — qualquer wallet compatível (EVM/Solana/Stellar) */}
                       <div
                         onClick={() => {
                           setShouldOpenEvmWallet(true);
@@ -309,11 +309,11 @@ export default function Navbar() {
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center font-bold">
-                          Ξ
+                          ◈
                         </div>
                         <div className="text-left">
-                          <div className="font-semibold">EVM Wallet</div>
-                          <div className="text-xs text-[var(--navbar-text-gradient-middle)]/70">Arc · Circle · USDC · x402</div>
+                          <div className="font-semibold">Connect Wallet</div>
+                          <div className="text-xs text-[var(--navbar-text-gradient-middle)]/70">Arc · Solana · Stellar · USDC</div>
                         </div>
                       </div>
 
@@ -474,7 +474,7 @@ export default function Navbar() {
           : null}
 
           {shouldOpenEvmWallet ?
-            <EvmWallet
+            <WalletConnect
               shouldOpen={shouldOpenEvmWallet}
               onClose={() => setShouldOpenEvmWallet(false)}
             />

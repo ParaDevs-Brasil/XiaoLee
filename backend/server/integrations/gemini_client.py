@@ -107,8 +107,14 @@ class GeminiClient:
 
         prompt = (
             "Classify the user's intent. Return ONLY valid JSON: "
-            '{"action": "check_balance|swap_quote|swap_execute|campaign_info|greeting|help", '
+            '{"action": "check_balance|swap_quote|swap_execute|campaign_info|greeting|help'
+            '|run_campaign_agent|pay_creator|discover_creators|check_budget", '
             '"confidence": 0.0, "entities": {}}. '
+            "Context: XiaoLee is an agentic DeFi app on Arc (Circle, USDC). "
+            "run_campaign_agent = user wants the autonomous agent to run/execute a campaign; "
+            "pay_creator = pay a creator in USDC (Arc/Circle nanopayment, cross-chain/CCTP); "
+            "discover_creators = find/list eligible creators; "
+            "check_budget = campaign USDC budget/treasury questions. "
             "Use confidence >= 0.8 only when intent is crystal clear. "
             "User message: " + clean
         )

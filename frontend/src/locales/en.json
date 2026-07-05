@@ -307,5 +307,22 @@
     "session_linked": "Wallet linked to your campaign session.",
     "connect_error": "Could not connect wallet.",
     "hint": "This wallet identifies you in campaigns and receives USDC payouts."
+  },
+  "wallet_connect": {
+    "title": "Connect Wallet",
+    "subtitle": "Arc · Solana · Stellar · USDC",
+    "detecting": "Looking for installed wallets…",
+    "pick_hint": "Pick any compatible wallet installed in your browser. The chain is detected automatically.",
+    "none_installed": "No compatible wallet detected. Install MetaMask, Phantom or Freighter — or paste your address at onboarding.",
+    "install": "Install MetaMask",
+    "connected": "Connected",
+    "address": "Address",
+    "network": "Network",
+    "copy": "Copy address",
+    "copied": "Address copied!",
+    "disconnect": "Disconnect",
+    "session_linked": "Wallet linked to your campaign session.",
+    "connect_error": "Could not connect wallet.",
+    "hint": "This wallet identifies you in campaigns and receives USDC payouts — on Arc directly or via CCTP on Solana/Stellar."
   }
 }

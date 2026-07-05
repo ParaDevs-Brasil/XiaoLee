@@ -7,6 +7,31 @@ const api = axios.create({
   },
 });
 
+// SEC-003: endpoints como /user/{id} exigem Bearer da própria sessão. Lê o
+// localStorage direto (não importa UserData — evitaria ciclo api→UserData→useUser→api)
+// com a mesma prioridade de UserData.getSessionId(): auth real > sessão devnet.
+function getSessionToken(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const info = window.localStorage.getItem("xiaolee_user_info");
+    if (info) {
+      const parsed = JSON.parse(info) as { twitter_user_id?: string };
+      if (parsed.twitter_user_id?.trim()) return parsed.twitter_user_id.trim();
+    }
+  } catch {
+    // user_info corrompido — cai para a sessão devnet
+  }
+  return window.localStorage.getItem("xiaolee_devnet_session")?.trim() ?? "";
+}
+
+api.interceptors.request.use((config) => {
+  if (!config.headers.Authorization) {
+    const token = getSessionToken();
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => {
     return response;
