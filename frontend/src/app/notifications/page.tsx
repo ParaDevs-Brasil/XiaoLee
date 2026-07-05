@@ -13,8 +13,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function NotificationsPage() {
   const { t } = useLanguage();
   const { notifications, loading, error, refetch, ackNotification, isAckLoading } = useNotifications();
-  const sessionId = UserData.getSessionId();
-  const walletPublicKey = UserData.getDevnetWalletPublicKey();
+  // Sessão/wallet vêm do localStorage — ler só após o mount evita hydration mismatch
+  // (SSR renderiza vazio e o cliente renderiza o valor real).
+  const [sessionId, setSessionId] = React.useState('');
+  const [walletPublicKey, setWalletPublicKey] = React.useState('');
+  React.useEffect(() => {
+    setSessionId(UserData.getSessionId());
+    setWalletPublicKey(UserData.getDevnetWalletPublicKey());
+  }, []);
 
   const deliveredCount = notifications.filter((n) => n.status === 'delivered').length;
   const pendingCount = notifications.length - deliveredCount;

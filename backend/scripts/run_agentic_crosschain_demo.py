@@ -92,6 +92,8 @@ async def seed() -> int:
                 creator_twitter_user_id="demo_lepton",
                 name=CAMPAIGN_NAME,
                 description="Demo: agente decide o trilho de pagamento por creator (Arc vs CCTP cross-chain)",
+                # sem campaign_type o GET /campaigns 500a (response model exige str)
+                campaign_type="engagement",
                 reward_token="USDC",
                 reward_per_participant=0.05,
                 max_participants=10,

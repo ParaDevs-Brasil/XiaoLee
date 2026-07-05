@@ -69,6 +69,30 @@ export function clearStoredEvmAddress(): void {
   }
 }
 
+/**
+ * Assina uma mensagem UTF-8 via EIP-191 personal_sign — retorna a assinatura 0x… (65 bytes hex).
+ * Resolve o provider da wallet que CONECTOU (não o window.ethereum genérico, que com
+ * várias extensões pode ser outra wallet) e pede autorização do site antes de assinar.
+ */
+export async function signEvmMessage(address: string, message: string): Promise<string> {
+  const { resolveEvmProvider } = await import("./walletProviders");
+  const provider = (await resolveEvmProvider(address)) ?? getInjectedProvider();
+  if (!provider) throw new Error("no_wallet");
+
+  // personal_sign falha com "not authorized" se o site não está conectado nessa wallet
+  const accounts = (await provider.request({ method: "eth_accounts" })) as string[];
+  if (!accounts?.some((a) => a.toLowerCase() === address.toLowerCase())) {
+    await provider.request({ method: "eth_requestAccounts" });
+  }
+
+  const hexMessage =
+    "0x" + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, "0")).join("");
+  return (await provider.request({
+    method: "personal_sign",
+    params: [hexMessage, address],
+  })) as string;
+}
+
 export function shortEvmAddress(address: string, front = 6, back = 4): string {
   if (!address || address.length <= front + back + 2) return address;
   return `${address.slice(0, front)}…${address.slice(-back)}`;

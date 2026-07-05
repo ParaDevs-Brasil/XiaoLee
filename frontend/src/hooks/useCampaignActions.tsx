@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import api from '../api/api';
 import UserData from '../components/UserData';
+import { signEvmMessage } from '@/lib/evmWallet';
+import { getStoredConnectedWallet } from '@/lib/walletProviders';
 import { 
   JoinCampaignResponse,
   VerifyTasksResponse,
@@ -86,13 +88,16 @@ export const useCampaignActions = () => {
         throw new Error('Nao foi possivel iniciar sessao Devnet');
       }
 
-      // Custodial wallet (Google/Telegram) takes priority over Phantom
+      // Prioridade: custodial (Google/Telegram) > wallet universal (Connect Wallet) > legado devnet
       const custodialWallet = UserData.getUserInfo()?.custodial_wallet_address;
-      const phantomWallet = UserData.getDevnetWalletPublicKey();
-      const walletPublicKey = custodialWallet || phantomWallet;
+      // Sessão custodial dispensa assinatura mesmo sem custodial_wallet_address — o
+      // backend valida pela Bearer session (mesma regra de _verify_claim_proof).
+      const isCustodialSession = /^(google_|tg_)/.test(sessionId);
+      const connected = getStoredConnectedWallet();
+      const walletPublicKey = custodialWallet || connected?.address || UserData.getDevnetWalletPublicKey();
 
       if (!walletPublicKey) {
-        throw new Error('Nenhuma wallet encontrada. Faça login com Google, Telegram ou conecte a Phantom.');
+        throw new Error('Nenhuma wallet encontrada. Faça login com Google/Telegram ou use o Connect Wallet na navbar.');
       }
 
       const proofMessage = `XiaoLee Devnet claim|campaign:${campaignId}|session:${sessionId}|wallet:${walletPublicKey}|ts:${Date.now()}`;
@@ -103,24 +108,29 @@ export const useCampaignActions = () => {
         wallet_signature: undefined as string | undefined,
       };
 
-      // Only attempt Phantom signing for non-custodial (Phantom) sessions
-      if (!custodialWallet) {
-        const provider = (window as Window & {
-          solana?: {
-            signMessage?: (message: Uint8Array, display?: string) => Promise<{ signature: Uint8Array }>;
-          };
-        }).solana;
-
-        if (provider?.signMessage) {
-          const encoded = new TextEncoder().encode(proofMessage);
-          const signed = await provider.signMessage(encoded, 'utf8');
-          proofPayload.proof_encoding = 'base64';
-          proofPayload.wallet_signature = toBase64(signed.signature);
+      // Não-custodial: assina a prova com a wallet conectada (EVM via EIP-191, Solana via Phantom)
+      if (!custodialWallet && !isCustodialSession) {
+        if (walletPublicKey.startsWith('0x')) {
+          proofPayload.proof_encoding = 'eip191';
+          proofPayload.wallet_signature = await signEvmMessage(walletPublicKey, proofMessage);
         } else {
-          throw new Error('Conecte a Phantom para assinar o claim da campanha');
+          const provider = (window as Window & {
+            solana?: {
+              signMessage?: (message: Uint8Array, display?: string) => Promise<{ signature: Uint8Array }>;
+            };
+          }).solana;
+
+          if (provider?.signMessage) {
+            const encoded = new TextEncoder().encode(proofMessage);
+            const signed = await provider.signMessage(encoded, 'utf8');
+            proofPayload.proof_encoding = 'base64';
+            proofPayload.wallet_signature = toBase64(signed.signature);
+          } else {
+            throw new Error('Conecte uma wallet pelo Connect Wallet da navbar para assinar o claim');
+          }
         }
       }
-      // Custodial users: authenticated via Bearer session_id header — no Phantom needed
+      // Custodial users: authenticated via Bearer session_id header — no signature needed
 
       const response = await api.post<ClaimRewardResponse>(`/campaigns/claim`, {
         campaign_identifier: campaignId.toString(),

@@ -54,11 +54,16 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ shouldOpen = false, onClo
     try {
       const address = await wallet.connect();
       const chain = detectChainFromAddress(address) ?? wallet.chain;
-      const next: ConnectedWallet = { address, chain, walletName: wallet.name };
+      const next: ConnectedWallet = { address, chain, walletName: wallet.name, providerId: wallet.id };
       storeConnectedWallet(next);
       setConnected(next);
       setNetworkName(chain === "arc" ? await getEvmChainName() : "");
-      UserData.setDevnetWalletSession(address);
+      // Sessão custodial (Google/Telegram) NÃO é sobrescrita — a wallet vira só a
+      // identidade de payout; sem ela, a wallet também assume a sessão de campanhas.
+      const sessionId = UserData.getSessionId();
+      if (!/^(google_|tg_)/.test(sessionId)) {
+        UserData.setDevnetWalletSession(address);
+      }
       toast.success(t("wallet_connect.session_linked"));
     } catch {
       toast.error(t("wallet_connect.connect_error"));

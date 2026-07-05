@@ -198,7 +198,8 @@ def _campaign_to_dict(campaign: CampaignModel, completed_participants: int = 0) 
         "id": campaign.id,
         "name": campaign.name,
         "description": campaign.description,
-        "campaign_type": campaign.campaign_type,
+        # NULL no DB (ex: campanha criada por script sem o campo) não pode 500ar a listagem
+        "campaign_type": campaign.campaign_type or "custom",
         "completed_participants": completed_participants,
         "created_at": created_at.isoformat(),
         "creator_twitter_user_id": campaign.creator_twitter_user_id,
@@ -242,13 +243,28 @@ def _verify_claim_proof(payload: CampaignActionRequest, campaign_id: int, sessio
     if not message.startswith(expected_prefix):
         raise HTTPException(status_code=400, detail="Claim proof does not match the current campaign session")
 
-    if proof_encoding not in {"base64", "none"}:
+    if proof_encoding not in {"base64", "none", "eip191"}:
         raise HTTPException(status_code=400, detail="Unsupported claim proof encoding")
 
-    # Custodial users: identity verified via Bearer session — skip Ed25519 check
+    # Custodial users: identity verified via Bearer session — skip signature check
     if is_custodial:
         return
 
+    # EVM wallet (Connect Wallet universal): assinatura EIP-191 personal_sign —
+    # recupera o endereço via secp256k1 e compara com o wallet_public_key 0x…
+    if public_key.startswith("0x"):
+        from eth_account import Account
+        from eth_account.messages import encode_defunct
+
+        try:
+            recovered = Account.recover_message(encode_defunct(text=message), signature=signature)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Invalid claim proof payload") from exc
+        if recovered.lower() != public_key.lower():
+            raise HTTPException(status_code=400, detail="Invalid wallet signature for this claim")
+        return
+
+    # Solana (Phantom legado): assinatura Ed25519 sobre pubkey base58
     try:
         public_key_bytes = _b58decode_pubkey(public_key)
         signature_bytes = base64.b64decode(signature)

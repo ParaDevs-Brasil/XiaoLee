@@ -155,6 +155,8 @@ export interface ConnectedWallet {
   address: string;
   chain: Chain;
   walletName: string;
+  /** rdns EIP-6963 do provider usado na conexão (ex: io.rabby) — assinar sempre pelo mesmo */
+  providerId?: string;
 }
 
 export function storeConnectedWallet(wallet: ConnectedWallet): void {
@@ -178,4 +180,35 @@ export function clearStoredConnectedWallet(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(CONNECTED_KEY);
   window.localStorage.removeItem(EVM_STORAGE_KEY);
+}
+
+/**
+ * Resolve o provider EVM certo para ASSINAR: com múltiplas extensões instaladas
+ * (Rabby/MetaMask/Phantom/Backpack), window.ethereum é de quem venceu a disputa —
+ * não necessariamente a wallet que o usuário conectou. Ordem: rdns salvo na conexão
+ * → provider anunciado cujo eth_accounts contém o endereço → window.ethereum.
+ */
+export async function resolveEvmProvider(address?: string): Promise<Eip1193Provider | null> {
+  if (typeof window === "undefined") return null;
+  const announced = await discoverEip6963();
+  const storedId = getStoredConnectedWallet()?.providerId;
+
+  if (storedId) {
+    const match = announced.find((d) => d.info.rdns === storedId);
+    if (match) return match.provider;
+  }
+
+  if (address) {
+    for (const { provider } of announced) {
+      try {
+        const accounts = (await provider.request({ method: "eth_accounts" })) as string[];
+        if (accounts?.some((a) => a.toLowerCase() === address.toLowerCase())) return provider;
+      } catch {
+        // provider indisponível — tenta o próximo
+      }
+    }
+  }
+
+  const eth = (window as Window & { ethereum?: Eip1193Provider }).ethereum;
+  return announced[0]?.provider ?? eth ?? null;
 }
