@@ -427,6 +427,45 @@ class TestToolExecutors:
         assert intent.arc_tx_hash is not None
 
     @pytest.mark.asyncio
+    async def test_pay_creator_with_0x_registered_wallet_skips_circle_lookup(self, db_session: AsyncSession):
+        """
+        REGRESSÃO (achado em produção, 6 jul): creator registrado via
+        POST /v1/creator/register com endereço 0x (Connect Wallet) direto — não um
+        Circle Wallet ID (UUID). O pay tool NÃO pode chamar arc_client.get_wallet_info()
+        nesse caso: a Circle API espera um UUID no path e retorna 400 (código 156009,
+        "Fail to parse id as UUID in url"), derrubando TODO pagamento a creators que
+        conectaram wallet direto em vez do fluxo legado App Kit. O destino 0x deve ser
+        usado tal como está.
+        """
+        from unittest.mock import AsyncMock
+        from server.metrics import register_creator, clear_metrics
+
+        clear_metrics()
+        register_creator("carol", "0xAbC1230000000000000000000000000000000456")
+
+        repo = DatabaseRepository(db_session)
+        arc = ArcClient(sandbox=True)
+        arc.get_wallet_info = AsyncMock(side_effect=AssertionError(
+            "get_wallet_info NÃO deveria ser chamado para wallet já em formato 0x"
+        ))
+        campaign = _make_campaign(db_session)
+        await db_session.flush()
+
+        executors = make_tool_executors(
+            repo=repo, arc_client=arc,
+            campaign_id=campaign.id, budget_usdc=50.0, reward_per_creator=5.0,
+        )
+
+        result = await executors["pay_creator_nanopayment"](
+            {"intent_id": str(uuid.uuid4()), "to": "@carol", "amount_usdc": 5.0}, {}
+        )
+
+        assert "error" not in result, result
+        assert result["status"] == "submitted"
+        arc.get_wallet_info.assert_not_called()
+        clear_metrics()
+
+    @pytest.mark.asyncio
     async def test_pay_creator_idempotent_duplicate(self, db_session: AsyncSession):
         """
         Pagar duas vezes com o mesmo intent_id deve retornar o mesmo resultado

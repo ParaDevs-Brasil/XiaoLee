@@ -325,12 +325,18 @@ def make_tool_executors(
 
         try:
             # 2. Resolve destino: "to" registrado como creator (handle) resolve para o
-            # endereço EVM da wallet W3S do creator via ArcClient.get_wallet_info(); "to"
-            # já como endereço EVM (0x...) é usado direto. Circle Payments API
-            # (transfer_usdc/`/v1/transfers`) NÃO é usada aqui — retorna 403 Forbidden
-            # com credenciais de Programmable Wallets (W3S) sandbox, produto incompatível.
+            # endereço EVM da wallet do creator. Desde que o onboarding passou a aceitar
+            # endereço 0x direto (Connect Wallet), o valor registrado JÁ é o endereço EVM
+            # na maioria dos casos — só quando é um Circle Wallet ID (UUID, fluxo legado
+            # App Kit) que precisa do lookup via ArcClient.get_wallet_info(). Chamar
+            # get_wallet_info() com um 0x… quebra (a Circle espera UUID no path, erro
+            # 156009 "Fail to parse id as UUID"). Circle Payments API (transfer_usdc/
+            # `/v1/transfers`) NÃO é usada aqui — retorna 403 Forbidden com credenciais de
+            # Programmable Wallets (W3S) sandbox, produto incompatível.
             registered_wallet_id = _get_registered_wallet(to)
-            if registered_wallet_id:
+            if registered_wallet_id and registered_wallet_id.startswith("0x"):
+                destination_address = registered_wallet_id
+            elif registered_wallet_id:
                 wallet_info = await arc_client.get_wallet_info(registered_wallet_id)
                 destination_address = wallet_info.get("address", "")
                 if not destination_address:
