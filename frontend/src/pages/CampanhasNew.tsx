@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from "next/link";
 import { toast } from 'react-toastify';
 import useCampaigns from '@/hooks/useCampaigns';
@@ -50,6 +50,21 @@ const IconBell = () => (
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
   </svg>
 );
+const IconChevronLeft = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <polyline points="15 18 9 12 15 6"/>
+  </svg>
+);
+const IconChevronRight = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <polyline points="9 18 15 12 9 6"/>
+  </svg>
+);
+const IconChevronDown = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+);
 const IconX = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -76,7 +91,36 @@ export default function Campaigns() {
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Aba ativa — organiza o conteúdo em views para cortar o scroll (sobretudo no mobile)
+  const [tab, setTab] = useState<'explore' | 'mine' | 'rewards'>('explore');
+  // Carrossel horizontal das campanhas ativas (um card por vez, com setas + swipe)
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [carIdx, setCarIdx] = useState(0);
+  // "Como funciona" recolhível no topo — acessível sem custar scroll
+  const [howOpen, setHowOpen] = useState(false);
   const currentUserId = UserData.getSessionId();
+
+  const scrollToCard = (i: number) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const clamped = Math.max(0, Math.min(i, el.children.length - 1));
+    const child = el.children[clamped] as HTMLElement | undefined;
+    if (child) el.scrollTo({ left: child.offsetLeft - el.offsetLeft, behavior: 'smooth' });
+    setCarIdx(clamped);
+  };
+
+  const onScrollerScroll = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    // card ativo = aquele cujo início está mais próximo da borda esquerda do scroller
+    let best = 0, bestDist = Infinity;
+    for (let i = 0; i < el.children.length; i++) {
+      const c = el.children[i] as HTMLElement;
+      const dist = Math.abs(c.offsetLeft - el.offsetLeft - el.scrollLeft);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    }
+    setCarIdx(best);
+  };
 
   useEffect(() => {
     if (userCampaigns) UserData.updateCampaigns(userCampaigns);
@@ -247,26 +291,96 @@ export default function Campaigns() {
           )}
         </div>
 
-        {/* ── Create Campaign Button ───────────────────────────────────── */}
-        <div className="mb-6">
+        {/* ── Tab bar (segmented pills) — uma seção por vez, sem scroll infinito ── */}
+        <div className="sticky top-2 z-10 mb-6 flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/85 backdrop-blur px-1.5 py-1.5 shadow-sm">
+          <div className="flex flex-1 items-center gap-1 overflow-x-auto no-scrollbar">
+            {([
+              { id: 'explore', label: t('campaigns.tab_explore'), count: campaigns.length },
+              { id: 'mine', label: t('campaigns.tab_mine'), count: userCampaigns?.length ?? 0 },
+              { id: 'rewards', label: t('campaigns.tab_rewards'), count: notifications.length },
+            ] as const).map((tItem) => {
+              const active = tab === tItem.id;
+              return (
+                <button
+                  key={tItem.id}
+                  onClick={() => setTab(tItem.id)}
+                  aria-pressed={active}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold transition-all ${
+                    active
+                      ? 'bg-[var(--accent)] text-white shadow-sm'
+                      : 'text-gray-500 hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]'
+                  }`}
+                >
+                  {tItem.label}
+                  {tItem.count > 0 && (
+                    <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-extrabold leading-none ${
+                      active ? 'bg-white/25 text-white' : 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                    }`}>
+                      {tItem.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+            title={t('campaigns.create_campaign')}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] px-3 py-2 text-sm font-bold text-white shadow-sm active:scale-95 transition-all"
           >
-            <IconPlus />
-            {t('campaigns.create_campaign')}
+            <IconPlus /><span className="hidden sm:inline">{t('campaigns.create_campaign')}</span>
           </button>
         </div>
 
-        {/* ── My Campaigns ────────────────────────────────────────────── */}
-        {userCampaigns && userCampaigns.length > 0 && (
-          <div className="mb-6">
-            <UserCampaignsList campaigns={userCampaigns} title="My Campaigns" />
+        {/* ── Como funciona (recolhível) ─────────────────────────────── */}
+        <div className="mb-6 rounded-2xl border border-[var(--border)] bg-white shadow-sm overflow-hidden">
+          <button
+            onClick={() => setHowOpen((v) => !v)}
+            aria-expanded={howOpen}
+            className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[var(--accent-soft)]/50 transition-colors"
+          >
+            <span className="text-[var(--accent)]"><IconTarget /></span>
+            <h3 className="flex-1 text-xs font-bold text-gray-500 uppercase tracking-widest">{t('campaigns.how_title')}</h3>
+            <span className={`text-gray-400 transition-transform duration-300 ${howOpen ? 'rotate-180' : ''}`}><IconChevronDown /></span>
+          </button>
+          <div className={`grid transition-all duration-300 ease-out ${howOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <ol className="space-y-2 px-4 pb-4">
+                {[t('campaigns.how_1'), t('campaigns.how_2'), t('campaigns.how_3'), t('campaigns.how_4')].map((step, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
+                    <span className="w-4 h-4 rounded-full bg-[var(--accent-soft)] border border-[var(--border)] text-[var(--accent)] font-bold flex items-center justify-center shrink-0 text-[10px]">
+                      {i + 1}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
+        </div>
+
+        {/* ── My Campaigns ────────────────────────────────────────────── */}
+        {tab === 'mine' && (
+          userCampaigns && userCampaigns.length > 0 ? (
+            <div className="mb-6">
+              <UserCampaignsList campaigns={userCampaigns} title="My Campaigns" />
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm p-12 text-center mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-[var(--accent-soft)] border border-[var(--border)] flex items-center justify-center mx-auto mb-4 text-[var(--accent)]">
+                <IconTarget />
+              </div>
+              <h2 className="text-sm font-bold text-gray-600 mb-1">{t('campaigns.mine_empty_title')}</h2>
+              <p className="text-xs text-gray-400 mb-5 leading-relaxed">{t('campaigns.mine_empty_sub')}</p>
+              <button onClick={() => setTab('explore')} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-semibold shadow-sm active:scale-95 transition-all">
+                {t('campaigns.tab_explore')}
+              </button>
+            </div>
+          )
         )}
 
         {/* ── Recent Rewards (Notifications) ──────────────────────────── */}
-        {(notifications.length > 0 || notificationsLoading || notificationsError) && (
+        {tab === 'rewards' && (notifications.length > 0 || notificationsLoading || notificationsError) && (
           <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm mb-6 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-2">
@@ -336,8 +450,19 @@ export default function Campaigns() {
           </div>
         )}
 
+        {/* ── Rewards vazio ────────────────────────────────────────────── */}
+        {tab === 'rewards' && notifications.length === 0 && !notificationsLoading && !notificationsError && (
+          <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm p-12 text-center mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--accent-soft)] border border-[var(--border)] flex items-center justify-center mx-auto mb-4 text-[var(--accent)]">
+              <IconBell />
+            </div>
+            <h2 className="text-sm font-bold text-gray-600 mb-1">{t('campaigns.rewards_empty_title')}</h2>
+            <p className="text-xs text-gray-400 leading-relaxed">{t('campaigns.rewards_empty_sub')}</p>
+          </div>
+        )}
+
         {/* ── Campaign List ────────────────────────────────────────────── */}
-        {campaigns.length === 0 ? (
+        {tab === 'explore' && (campaigns.length === 0 ? (
           <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm p-12 text-center">
             <div className="w-12 h-12 rounded-2xl bg-[var(--accent-soft)] border border-[var(--border)] flex items-center justify-center mx-auto mb-4 text-[var(--accent)]">
               <IconMegaphone />
@@ -355,62 +480,80 @@ export default function Campaigns() {
           </div>
         ) : (
           <>
-            {/* List header */}
+            {/* List header + navegação do carrossel */}
             <div className="flex items-center justify-between mb-4 px-1">
               <p className="text-sm font-bold text-gray-600 uppercase tracking-widest">
-                <span className="text-[var(--accent)]">{campaigns.length}</span> campanha{campaigns.length !== 1 ? 's' : ''} ativa{campaigns.length !== 1 ? 's' : ''}
+                <span className="text-[var(--accent)]">{carIdx + 1}</span>
+                <span className="text-gray-400">/{campaigns.length}</span> ativa{campaigns.length !== 1 ? 's' : ''}
               </p>
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[var(--accent)] font-semibold transition-colors disabled:opacity-50"
-              >
-                <IconRefresh />
-                {refreshing ? t('campaigns.refreshing') : t('campaigns.refresh')}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[var(--accent)] font-semibold transition-colors disabled:opacity-50 mr-1"
+                >
+                  <IconRefresh />
+                  <span className="hidden sm:inline">{refreshing ? t('campaigns.refreshing') : t('campaigns.refresh')}</span>
+                </button>
+                <button
+                  onClick={() => scrollToCard(carIdx - 1)}
+                  disabled={carIdx <= 0}
+                  aria-label={t('campaigns.prev')}
+                  className="grid h-8 w-8 place-items-center rounded-xl border border-[var(--border)] bg-white text-[var(--accent)] shadow-sm hover:bg-[var(--accent-soft)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <IconChevronLeft />
+                </button>
+                <button
+                  onClick={() => scrollToCard(carIdx + 1)}
+                  disabled={carIdx >= campaigns.length - 1}
+                  aria-label={t('campaigns.next')}
+                  className="grid h-8 w-8 place-items-center rounded-xl border border-[var(--border)] bg-white text-[var(--accent)] shadow-sm hover:bg-[var(--accent-soft)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <IconChevronRight />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4">
+            {/* Carrossel horizontal — um card por vez, swipe no mobile, snap */}
+            <div
+              ref={scrollerRef}
+              onScroll={onScrollerScroll}
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1"
+            >
               {campaigns.map((campaign) => (
-                <CampaignCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  userCampaigns={userCampaigns ?? []}
-                  onJoin={handleJoinCampaign}
-                  onVerify={handleVerifyTasks}
-                  onClaim={handleClaimReward}
-                  isJoining={isJoinLoading}
-                  isVerifying={isVerifyLoading}
-                  isClaiming={isClaimLoading}
-                  isCreator={!!currentUserId && currentUserId === campaign.creator_twitter_user_id}
-                />
+                <div key={campaign.id} className="w-full shrink-0 snap-start">
+                  <CampaignCard
+                    campaign={campaign}
+                    userCampaigns={userCampaigns ?? []}
+                    onJoin={handleJoinCampaign}
+                    onVerify={handleVerifyTasks}
+                    onClaim={handleClaimReward}
+                    isJoining={isJoinLoading}
+                    isVerifying={isVerifyLoading}
+                    isClaiming={isClaimLoading}
+                    isCreator={!!currentUserId && currentUserId === campaign.creator_twitter_user_id}
+                  />
+                </div>
               ))}
             </div>
-          </>
-        )}
 
-        {/* ── Footer ──────────────────────────────────────────────────── */}
-        <div className="mt-10 rounded-2xl border border-[var(--border)] bg-white p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[var(--accent)]"><IconTarget /></span>
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Como funciona — Testnet</h3>
-          </div>
-          <ol className="space-y-2">
-            {[
-              'Participe de uma campanha e complete as etapas exigidas.',
-              'Verifique as tasks para desbloquear o claim de reward.',
-              'Reivindique o reward usando sua identidade de sessão Testnet.',
-              'Atualize para sincronizar o status mais recente das campanhas.',
-            ].map((step, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
-                <span className="w-4 h-4 rounded-full bg-[var(--accent-soft)] border border-[var(--border)] text-[var(--accent)] font-bold flex items-center justify-center shrink-0 text-[10px]">
-                  {i + 1}
-                </span>
-                {step}
-              </li>
-            ))}
-          </ol>
-        </div>
+            {/* Bolinhas de posição */}
+            {campaigns.length > 1 && (
+              <div className="mt-4 flex items-center justify-center gap-1.5">
+                {campaigns.map((c, i) => (
+                  <button
+                    key={c.id}
+                    onClick={() => scrollToCard(i)}
+                    aria-label={`${t('campaigns.go_to')} ${i + 1}`}
+                    className={`h-2 rounded-full transition-all ${
+                      i === carIdx ? 'w-6 bg-[var(--accent)]' : 'w-2 bg-[var(--border)] hover:bg-[var(--accent-soft)]'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ))}
 
       </div>
 

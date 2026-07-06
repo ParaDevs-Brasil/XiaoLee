@@ -65,16 +65,24 @@ export type CreatorChain = "arc" | "solana" | "stellar";
  * `circle_wallet_id` segue no payload por compatibilidade com o contrato
  * anterior; o backend novo lê `wallet_address` + `chain`.
  */
+export interface CreatorRegisterProof {
+  signed_message: string;
+  signature: string;
+  proof_encoding: "eip191" | "base64";
+}
+
 export async function registerCreator(
   twitterHandle: string,
   walletAddress: string,
   chain: CreatorChain,
+  proof: CreatorRegisterProof,
 ): Promise<CreatorRegisterResult> {
   const res = await api.post<CreatorRegisterResult>("/v1/creator/register", {
     twitter_handle: twitterHandle,
     wallet_address: walletAddress,
     chain,
     circle_wallet_id: walletAddress,
+    ...proof,
   });
   return res.data;
 }

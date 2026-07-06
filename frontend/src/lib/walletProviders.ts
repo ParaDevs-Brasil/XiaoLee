@@ -14,15 +14,28 @@
 import type { Chain } from "./chains";
 import type { Eip1193Provider } from "./evmWallet";
 
+export interface WalletProof {
+  signature: string;
+  encoding: "eip191" | "base64";
+}
+
 export interface DetectedWallet {
   id: string;
   name: string;
   chain: Chain;
   icon?: string;
   connect: () => Promise<string>;
+  /** Assina o desafio de posse — prova que o usuário controla o endereço conectado */
+  sign: (message: string) => Promise<WalletProof>;
 }
 
 const EVM_STORAGE_KEY = "xiaolee_evm_address";
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  bytes.forEach((b) => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+}
 
 // ── EVM · EIP-6963 multi-provider discovery ────────────────────────────────
 
@@ -63,6 +76,15 @@ function sanitizeIcon(icon: string | undefined): string | undefined {
   return /^(data:image\/|https:\/\/)/.test(trimmed) ? trimmed : undefined;
 }
 
+async function signEvmProvider(provider: Eip1193Provider, message: string): Promise<WalletProof> {
+  const accounts = (await provider.request({ method: "eth_accounts" })) as string[];
+  const from = accounts?.[0];
+  if (!from) throw new Error("no_account");
+  const hex = "0x" + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, "0")).join("");
+  const signature = (await provider.request({ method: "personal_sign", params: [hex, from] })) as string;
+  return { signature, encoding: "eip191" };
+}
+
 async function detectEvmWallets(): Promise<DetectedWallet[]> {
   const announced = await discoverEip6963();
   if (announced.length > 0) {
@@ -72,6 +94,7 @@ async function detectEvmWallets(): Promise<DetectedWallet[]> {
       chain: "arc" as const,
       icon: sanitizeIcon(info.icon),
       connect: () => connectEvmProvider(provider),
+      sign: (message: string) => signEvmProvider(provider, message),
     }));
   }
   // Fallback legado: provider único injetado em window.ethereum
@@ -83,6 +106,7 @@ async function detectEvmWallets(): Promise<DetectedWallet[]> {
       name: eth.isMetaMask ? "MetaMask" : "Carteira EVM",
       chain: "arc",
       connect: () => connectEvmProvider(eth),
+      sign: (message: string) => signEvmProvider(eth, message),
     },
   ];
 }
@@ -92,6 +116,15 @@ async function detectEvmWallets(): Promise<DetectedWallet[]> {
 interface SolanaProvider {
   isPhantom?: boolean;
   connect: () => Promise<{ publicKey: { toString(): string } }>;
+  signMessage?: (message: Uint8Array, display?: string) => Promise<{ signature: Uint8Array }>;
+}
+
+function signSolana(provider: SolanaProvider) {
+  return async (message: string): Promise<WalletProof> => {
+    if (!provider.signMessage) throw new Error("no_sign_support");
+    const { signature } = await provider.signMessage(new TextEncoder().encode(message), "utf8");
+    return { signature: bytesToBase64(signature), encoding: "base64" };
+  };
 }
 
 function detectSolanaWallets(): DetectedWallet[] {
@@ -109,6 +142,7 @@ function detectSolanaWallets(): DetectedWallet[] {
       name: "Phantom",
       chain: "solana",
       connect: async () => (await phantom.connect()).publicKey.toString(),
+      sign: signSolana(phantom),
     });
   }
   if (w.solflare?.isSolflare) {
@@ -118,6 +152,7 @@ function detectSolanaWallets(): DetectedWallet[] {
       name: "Solflare",
       chain: "solana",
       connect: async () => (await solflare.connect()).publicKey.toString(),
+      sign: signSolana(solflare),
     });
   }
   return wallets;
@@ -134,6 +169,17 @@ async function detectStellarWallets(): Promise<DetectedWallet[]> {
       name: "Freighter",
       chain: "stellar",
       connect: connectFreighter,
+      sign: async (message: string): Promise<WalletProof> => {
+        // Freighter v3: signMessage assina os bytes crus com Ed25519 (SEP-53), compatível
+        // com a verificação Ed25519(pubkey, message) do backend.
+        const { signMessage, getAddress } = await import("@stellar/freighter-api");
+        const { address } = await getAddress();
+        const res = await signMessage(message, { address });
+        const signed = (res as { signedMessage?: Uint8Array | string }).signedMessage;
+        if (!signed) throw new Error("no_signature");
+        const bytes = typeof signed === "string" ? Uint8Array.from(atob(signed), (c) => c.charCodeAt(0)) : signed;
+        return { signature: bytesToBase64(bytes), encoding: "base64" };
+      },
     },
   ];
 }

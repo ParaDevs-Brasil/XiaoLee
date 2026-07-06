@@ -7,7 +7,8 @@ import { ThemeProviderWrapper } from "@/providers/ThemeProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { registerCreator, CreatorRegisterResult, CreatorChain } from "@/api/api";
 import { detectWallets, type DetectedWallet } from "@/lib/walletProviders";
-import { detectChainFromAddress, CHAIN_LABEL, type Chain } from "@/lib/chains";
+import { CHAIN_LABEL, type Chain } from "@/lib/chains";
+import { shortEvmAddress } from "@/lib/evmWallet";
 import { IconUser, IconWallet, IconCheck, IconDollar, IconArrow, IconActivity } from "@/components/icons";
 
 type Step = "form" | "loading" | "success" | "error";
@@ -16,31 +17,25 @@ export default function OnboardingPage() {
   const { t } = useLanguage();
   const [step, setStep] = useState<Step>("form");
   const [handle, setHandle] = useState("");
-  const [walletId, setWalletId] = useState("");
   const [result, setResult] = useState<CreatorRegisterResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [connecting, setConnecting] = useState<string | null>(null);
   const [wallets, setWallets] = useState<DetectedWallet[]>([]);
-  const [chain, setChain] = useState<Chain | null>(null);
+  // Wallet CONECTADA (endereço + chain + como assinar) — a única fonte de endereço.
+  // Não há mais campo de texto livre: só entra endereço provado por assinatura.
+  const [connected, setConnected] = useState<{ address: string; chain: Chain; wallet: DetectedWallet } | null>(null);
 
   // Detecta todas as wallets instaladas: EVM (EIP-6963), Phantom/Solflare, Freighter
   useEffect(() => {
     detectWallets().then(setWallets);
   }, []);
 
-  // Auto-detect da chain pelo formato do endereço (ROADMAP F0.1):
-  // 0x + 40 hex → arc · base58 32-44 → solana · G + 55 → stellar
-  const handleWalletChange = (value: string) => {
-    setWalletId(value);
-    setChain(detectChainFromAddress(value));
-  };
-
   const handleConnectWallet = async (wallet: DetectedWallet) => {
     setConnecting(wallet.id);
     setErrorMsg("");
     try {
       const address = await wallet.connect();
-      handleWalletChange(address);
+      setConnected({ address, chain: wallet.chain, wallet });
     } catch {
       setErrorMsg(t("onboarding.error_wallet"));
     } finally {
@@ -48,26 +43,33 @@ export default function OnboardingPage() {
     }
   };
 
-  const addressInvalid = walletId.trim().length > 0 && chain === null;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const h = handle.trim().replace(/^@/, "");
-    const w = walletId.trim();
-    if (!h || !w || !chain) return;
+    if (!h || !connected) return;
 
     setStep("loading");
     try {
-      const data = await registerCreator(h, w, chain as CreatorChain);
+      // Prova de posse: a wallet conectada assina um desafio vinculado ao endereço + handle.
+      const challenge = `XiaoLee creator registration|wallet:${connected.address}|handle:@${h}|ts:${Date.now()}`;
+      const proof = await connected.wallet.sign(challenge);
+      const data = await registerCreator(h, connected.address, connected.chain as CreatorChain, {
+        signed_message: challenge,
+        signature: proof.signature,
+        proof_encoding: proof.encoding,
+      });
       setResult(data);
       setStep("success");
     } catch (err: unknown) {
       const httpStatus = (err as { response?: { status?: number } })?.response?.status;
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      const msg =
-        httpStatus === 422
-          ? t("onboarding.error_invalid_wallet")
-          : detail ?? t("onboarding.error_wallet");
+      // Rejeição da assinatura pela wallet (usuário cancelou / sem suporte)
+      const rejected = (err as { code?: number })?.code === 4001 || /sign|reject|denied|no_sign/i.test(String((err as Error)?.message));
+      const msg = rejected
+        ? t("onboarding.error_signature")
+        : httpStatus === 422 || httpStatus === 400
+          ? (detail ?? t("onboarding.error_invalid_wallet"))
+          : t("onboarding.error_wallet");
       setErrorMsg(msg);
       setStep("error");
     }
@@ -117,29 +119,40 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* EVM Wallet */}
+              {/* Connect wallet — sem campo de texto: só endereço provado por assinatura */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
                   <span className="text-[var(--accent)]"><IconWallet className="w-5 h-5" /></span>
                   {t("onboarding.wallet_label")}
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={walletId}
-                    onChange={(e) => handleWalletChange(e.target.value)}
-                    placeholder={t("onboarding.wallet_placeholder")}
-                    required
-                    disabled={step === "loading"}
-                    className={`flex-1 min-w-0 px-4 py-3 rounded-xl border bg-gray-50 text-sm font-mono text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[rgba(216,27,120,0.35)] focus:border-[rgba(216,27,120,0.45)] disabled:opacity-60 transition ${
-                      addressInvalid ? "border-red-300" : "border-gray-200"
-                    }`}
-                  />
-                </div>
 
-                {/* Wallets detectadas — EVM (EIP-6963) · Phantom/Solflare · Freighter */}
-                {wallets.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-1">
+                {connected ? (
+                  /* Wallet conectada — endereço + chain + botão trocar */
+                  <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                    <span className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                      <IconCheck className="w-4 h-4" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-sm font-bold text-gray-800 truncate">{shortEvmAddress(connected.address, 8, 6)}</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-bold text-[10px] uppercase shrink-0">
+                          {CHAIN_LABEL[connected.chain]}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">{t("onboarding.wallet_connected")}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setConnected(null)}
+                      disabled={step === "loading"}
+                      className="shrink-0 text-xs font-bold text-gray-400 hover:text-[var(--accent)] disabled:opacity-50 transition-colors"
+                    >
+                      {t("onboarding.wallet_change")}
+                    </button>
+                  </div>
+                ) : wallets.length > 0 ? (
+                  /* Wallets instaladas — clicar conecta (a assinatura é pedida no submit) */
+                  <div className="flex flex-wrap gap-1.5">
                     {wallets.map((w) => (
                       <button
                         key={w.id}
@@ -160,31 +173,20 @@ export default function OnboardingPage() {
                       </button>
                     ))}
                   </div>
+                ) : (
+                  /* Nenhuma wallet instalada */
+                  <div className="rounded-xl border border-dashed border-[var(--border)] bg-gray-50 px-4 py-3 text-center">
+                    <p className="text-xs text-gray-500 font-medium">{t("onboarding.wallet_none_installed")}</p>
+                  </div>
                 )}
-                {/* Chain detectada / inválida */}
-                {chain && (
-                  <p className="text-xs mt-0.5 flex items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-bold text-[10px] uppercase">
-                      {CHAIN_LABEL[chain]}
-                    </span>
-                    <span className="text-gray-400">{t("onboarding.chain_detected")}</span>
-                  </p>
-                )}
-                {addressInvalid && (
-                  <p className="text-xs text-red-500 mt-0.5 font-medium">
-                    {t("onboarding.chain_unknown")}
-                  </p>
-                )}
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {t("onboarding.wallet_hint_no_wallet")}{" "}
-                  <span className="text-[var(--accent)] font-semibold">{t("onboarding.wallet_hint_coming")}</span>
-                </p>
+
+                <p className="text-xs text-gray-400 mt-0.5">{t("onboarding.wallet_ownership_hint")}</p>
               </div>
 
               {/* Submit */}
               <button
                 type="submit"
-                disabled={step === "loading" || !handle.trim() || !walletId.trim() || !chain}
+                disabled={step === "loading" || !handle.trim() || !connected}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[var(--accent)] text-white text-sm font-bold shadow-lg hover:bg-[var(--accent-hover)] focus:outline-none focus:ring-4 focus:ring-[rgba(216,27,120,0.25)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 {step === "loading" ? (
@@ -254,7 +256,7 @@ export default function OnboardingPage() {
               </Link>
 
               <button
-                onClick={() => { setStep("form"); setHandle(""); setWalletId(""); setResult(null); }}
+                onClick={() => { setStep("form"); setHandle(""); setConnected(null); setResult(null); }}
                 className="text-xs text-gray-400 hover:text-[var(--accent)] transition-colors"
               >
                 {t("onboarding.register_another")}

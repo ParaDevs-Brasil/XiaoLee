@@ -106,18 +106,74 @@ class TestCreatorRegisterEndpoint:
         yield
         object.__setattr__(app_module.settings, "circle_api_key", original_circle_key)
 
+    @staticmethod
+    def _signed_register(handle: str):
+        """Monta um payload de registro com prova de posse EVM válida (assinatura própria)."""
+        from eth_account import Account
+        from eth_account.messages import encode_defunct
+
+        acct = Account.create()
+        h = handle.lstrip("@")
+        msg = f"XiaoLee creator registration|wallet:{acct.address}|handle:@{h}|ts:1"
+        sig = acct.sign_message(encode_defunct(text=msg)).signature.hex()
+        if not sig.startswith("0x"):
+            sig = "0x" + sig
+        return {
+            "twitter_handle": handle,
+            "wallet_address": acct.address,
+            "chain": "arc",
+            "circle_wallet_id": acct.address,
+            "signed_message": msg,
+            "signature": sig,
+            "proof_encoding": "eip191",
+        }, acct
+
     def test_register_creator_happy_path(self):
-        resp = self._client.post("/v1/creator/register", json={"twitter_handle": "@newcreator", "circle_wallet_id": "wallet-1"})
+        payload, _ = self._signed_register("@newcreator")
+        resp = self._client.post("/v1/creator/register", json=payload)
         assert resp.status_code == 200
         body = resp.json()
         assert body["creator"] == "@newcreator"
         assert body["already_registered"] is False
 
     def test_register_creator_idempotent(self):
-        first = self._client.post("/v1/creator/register", json={"twitter_handle": "@same", "circle_wallet_id": "w1"})
-        second = self._client.post("/v1/creator/register", json={"twitter_handle": "@same", "circle_wallet_id": "w2"})
+        p1, _ = self._signed_register("@same")
+        p2, _ = self._signed_register("@same")
+        first = self._client.post("/v1/creator/register", json=p1)
+        second = self._client.post("/v1/creator/register", json=p2)
         assert first.json()["already_registered"] is False
         assert second.json()["already_registered"] is True
+
+    def test_register_creator_rejects_foreign_wallet(self):
+        """SEGURANÇA: registrar o endereço de outra pessoa (assinatura de chave alheia) é rejeitado."""
+        from eth_account import Account
+        from eth_account.messages import encode_defunct
+
+        victim = Account.create()
+        attacker = Account.create()  # assina com a própria chave, mas informa o endereço da vítima
+        msg = f"XiaoLee creator registration|wallet:{victim.address}|handle:@thief|ts:1"
+        forged = attacker.sign_message(encode_defunct(text=msg)).signature.hex()
+        if not forged.startswith("0x"):
+            forged = "0x" + forged
+        resp = self._client.post("/v1/creator/register", json={
+            "twitter_handle": "@thief",
+            "wallet_address": victim.address,
+            "chain": "arc",
+            "circle_wallet_id": victim.address,
+            "signed_message": msg,
+            "signature": forged,
+            "proof_encoding": "eip191",
+        })
+        assert resp.status_code == 400
+
+    def test_register_creator_requires_signature(self):
+        """Sem prova de posse (campo de texto livre) o registro é rejeitado."""
+        resp = self._client.post("/v1/creator/register", json={
+            "twitter_handle": "@nosig",
+            "wallet_address": "0x1111111111111111111111111111111111111111",
+            "chain": "arc",
+        })
+        assert resp.status_code == 400
 
     def test_register_creator_empty_handle_rejected(self):
         resp = self._client.post("/v1/creator/register", json={"twitter_handle": "", "circle_wallet_id": "w1"})

@@ -10,6 +10,7 @@ Endpoints:
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 from datetime import datetime, timezone
@@ -143,25 +144,75 @@ async def payment_settled(
 
 # ── POST /v1/creator/register ──────────────────────────────────────────────
 
+def _verify_wallet_ownership(address: str, chain: str, message: str, signature: str) -> None:
+    """Prova de POSSE da wallet: recupera/valida o signatário e confirma que é `address`.
+
+    Sem isso, o campo de endereço seria texto livre e qualquer um poderia registrar a
+    wallet de outra pessoa para desviar os payouts. A assinatura só pode ser produzida por
+    quem tem a chave privada, então prova o controle do endereço.
+    """
+    if not message or not signature:
+        raise HTTPException(status_code=400, detail="Wallet ownership proof (signed message) is required")
+    # Vincula a assinatura a ESTE endereço (evita reuso de uma assinatura de outro propósito)
+    if f"wallet:{address}" not in message:
+        raise HTTPException(status_code=400, detail="Proof message does not match the connected wallet")
+
+    if chain == "arc":
+        from eth_account import Account
+        from eth_account.messages import encode_defunct
+        try:
+            recovered = Account.recover_message(encode_defunct(text=message), signature=signature)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Invalid wallet signature") from exc
+        if recovered.lower() != address.lower():
+            raise HTTPException(status_code=400, detail="Signature does not match the connected wallet")
+        return
+
+    # Solana e Stellar: Ed25519 sobre os bytes da mensagem; a chave pública sai do endereço
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    from cryptography.exceptions import InvalidSignature
+    try:
+        if chain == "solana":
+            from server.campaigns_routes import _b58decode_pubkey
+            pub_bytes = _b58decode_pubkey(address)
+        elif chain == "stellar":
+            from stellar_sdk import StrKey
+            pub_bytes = StrKey.decode_ed25519_public_key(address)
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported chain for ownership proof")
+        sig_bytes = base64.b64decode(signature)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid wallet proof payload") from exc
+
+    try:
+        Ed25519PublicKey.from_public_bytes(pub_bytes).verify(sig_bytes, message.encode("utf-8"))
+    except InvalidSignature as exc:
+        raise HTTPException(status_code=400, detail="Signature does not match the connected wallet") from exc
+
+
 @router.post("/v1/creator/register", status_code=200)
 async def creator_register(payload: CreatorRegisterRequest) -> dict:
     """
-    Onboarding de creator: associa Circle wallet_id ao @handle.
-    Idempotente — re-registro do mesmo handle retorna 200 com already_registered=True.
-    Valida que a Circle wallet existe quando CIRCLE_API_KEY está configurada.
+    Onboarding de creator: associa a wallet conectada ao @handle, com PROVA DE POSSE.
+    A wallet só é aceita mediante assinatura da própria wallet (impede registrar endereço
+    de terceiros). Idempotente — re-registro do mesmo handle retorna already_registered=True.
     """
     handle = payload.twitter_handle.lstrip("@").lower()
     if not handle:
         raise HTTPException(status_code=422, detail="twitter_handle is required")
-    wallet_id = payload.circle_wallet_id.strip()
+    # Endereço vem do campo dedicado (wallet conectada) com fallback ao legado circle_wallet_id
+    wallet_id = (payload.wallet_address or payload.circle_wallet_id or "").strip()
     if not wallet_id:
-        raise HTTPException(status_code=422, detail="circle_wallet_id is required")
+        raise HTTPException(status_code=422, detail="wallet_address is required")
 
-    # Valida wallet na Circle API (só bloqueia se a chave estiver configurada)
-    if settings.circle_api_key:
-        wallet_data = await get_wallet(wallet_id)
-        if wallet_data is None:
-            raise HTTPException(status_code=422, detail="circle_wallet_id not found in Circle — check the ID and try again")
+    chain = (payload.chain or "").strip().lower()
+    if chain not in ("arc", "solana", "stellar"):
+        raise HTTPException(status_code=422, detail="chain must be arc, solana or stellar")
+
+    # PROVA DE POSSE — a wallet precisa assinar o desafio; sem isso, rejeita.
+    _verify_wallet_ownership(wallet_id, chain, payload.signed_message or "", payload.signature or "")
 
     result = register_creator(handle, wallet_id)
 

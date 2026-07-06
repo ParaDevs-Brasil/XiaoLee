@@ -73,5 +73,12 @@ class TractionSnapshot(BaseModel):
 
 
 class CreatorRegisterRequest(BaseModel):
-    circle_wallet_id: str = Field(description="EVM wallet address (Sepolia, 0x...) or Circle App Kit wallet ID")
     twitter_handle: str = Field(description="@handle do creator no X/Twitter")
+    # Legado — mantido para compat; o endereço agora vem de wallet_address (wallet conectada)
+    circle_wallet_id: Optional[str] = Field(default=None, description="Legado: endereço/Circle wallet ID")
+    # Prova de posse: assinatura da wallet conectada (impede registrar endereço de terceiros).
+    wallet_address: Optional[str] = Field(default=None, description="Endereço nativo da wallet conectada")
+    chain: Optional[str] = Field(default=None, description="arc | solana | stellar")
+    signed_message: Optional[str] = Field(default=None, description="Mensagem-desafio assinada pela wallet")
+    signature: Optional[str] = Field(default=None, description="Assinatura da mensagem (hex EIP-191 ou base64 Ed25519)")
+    proof_encoding: Optional[str] = Field(default=None, description="eip191 | base64")

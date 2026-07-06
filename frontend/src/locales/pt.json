@@ -36,7 +36,22 @@
       "Atualize para sincronizar o status mais recente das campanhas."
     ],
     "new_campaign": "Nova Campanha",
-    "modal_close": "Cancelar"
+    "modal_close": "Cancelar",
+    "tab_explore": "Explorar",
+    "tab_mine": "Minhas",
+    "tab_rewards": "Recompensas",
+    "mine_empty_title": "Você ainda não entrou em nenhuma campanha",
+    "mine_empty_sub": "Explore as campanhas ativas e participe para começar a ganhar.",
+    "rewards_empty_title": "Nenhuma recompensa ainda",
+    "rewards_empty_sub": "Complete tarefas de campanhas para receber recompensas em USDC e $XLEE aqui.",
+    "prev": "Anterior",
+    "next": "Próxima",
+    "go_to": "Ir para a campanha",
+    "how_title": "Como funciona — Testnet",
+    "how_1": "Participe de uma campanha e complete as etapas exigidas.",
+    "how_2": "Verifique as tasks para desbloquear o claim de reward.",
+    "how_3": "Reivindique o reward usando sua identidade de sessão Testnet.",
+    "how_4": "Atualize para sincronizar o status mais recente das campanhas."
   },
   "campaign_card": {
     "claimed_badge": "Reivindicado",
@@ -289,7 +304,12 @@
     "error_wallet": "Não foi possível conectar a carteira. Tente novamente.",
     "chain_detected": "chain detectada automaticamente",
     "chain_unknown": "Formato de endereço não reconhecido — use um endereço Arc (0x…), Solana (base58) ou Stellar (G…).",
-    "error_invalid_wallet": "A carteira foi rejeitada pelo servidor (422). Confira o formato do endereço e a chain selecionada."
+    "error_invalid_wallet": "A carteira foi rejeitada pelo servidor (422). Confira o formato do endereço e a chain selecionada.",
+    "wallet_connected": "Conectada — pronta para provar posse",
+    "wallet_change": "Trocar",
+    "wallet_none_installed": "Nenhuma carteira detectada. Instale MetaMask, Rabby, Phantom ou Freighter para continuar.",
+    "wallet_ownership_hint": "Você assina uma mensagem rápida para provar que a carteira é sua — nada é gasto, sem taxas.",
+    "error_signature": "Assinatura necessária para provar a posse da carteira. Aprove a solicitação e tente de novo."
   },
   "evm_wallet": {
     "title": "Carteira EVM",

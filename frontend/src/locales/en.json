@@ -36,7 +36,22 @@
       "Refresh to sync the latest campaign status."
     ],
     "new_campaign": "New Campaign",
-    "modal_close": "Cancel"
+    "modal_close": "Cancel",
+    "tab_explore": "Explore",
+    "tab_mine": "My Campaigns",
+    "tab_rewards": "Rewards",
+    "mine_empty_title": "You haven't joined any campaign yet",
+    "mine_empty_sub": "Explore active campaigns and join to start earning.",
+    "rewards_empty_title": "No rewards yet",
+    "rewards_empty_sub": "Complete campaign tasks to receive USDC and $XLEE rewards here.",
+    "prev": "Previous",
+    "next": "Next",
+    "go_to": "Go to campaign",
+    "how_title": "How it works — Testnet",
+    "how_1": "Join a campaign and complete the required steps.",
+    "how_2": "Verify your tasks to unlock the reward claim.",
+    "how_3": "Claim the reward using your Testnet session identity.",
+    "how_4": "Refresh to sync the latest campaign status."
   },
   "campaign_card": {
     "claimed_badge": "Claimed",
@@ -289,7 +304,12 @@
     "error_wallet": "Could not connect wallet. Try again.",
     "chain_detected": "chain detected automatically",
     "chain_unknown": "Unrecognized address format — use an Arc (0x…), Solana (base58) or Stellar (G…) address.",
-    "error_invalid_wallet": "The wallet was rejected by the server (422). Check the address format and the selected chain."
+    "error_invalid_wallet": "The wallet was rejected by the server (422). Check the address format and the selected chain.",
+    "wallet_connected": "Connected — ready to prove ownership",
+    "wallet_change": "Change",
+    "wallet_none_installed": "No wallet detected. Install MetaMask, Rabby, Phantom or Freighter to continue.",
+    "wallet_ownership_hint": "You'll sign a quick message to prove you own this wallet — no funds move, no gas.",
+    "error_signature": "Signature required to prove wallet ownership. Please approve the request and try again."
   },
   "evm_wallet": {
     "title": "EVM Wallet",

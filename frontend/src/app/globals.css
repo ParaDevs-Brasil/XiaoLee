@@ -653,3 +653,6 @@ body {
 .custom-scrollbar:hover::-webkit-scrollbar-thumb:hover {
   background: rgba(168, 85, 247, 0.5);
 }
+/* Esconde a scrollbar da barra de abas (campanhas) mantendo o scroll horizontal no mobile */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
