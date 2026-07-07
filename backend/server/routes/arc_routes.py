@@ -11,8 +11,11 @@ CCTP é protegido por flag CCTP_ENABLED — retorna 503 se desabilitado.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import os
+import time
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
@@ -22,6 +25,23 @@ from server.settings import settings
 
 LOG = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/arc", tags=["arc"])
+
+# Every connected wallet polls these idempotent, read-only methods on its own
+# timer (chain id, gas price, latest block, balance) — with many browser tabs
+# sharing the single upstream Canteen RPC token, the duplicate traffic alone
+# is enough to trip its rate limit and MetaMask's own "-32002 too many
+# errors" breaker. Short TTL cache keyed by (method, params) cuts that
+# duplicate load; safe with a single backend worker (in-process, no
+# cross-worker staleness).
+_RPC_CACHE_TTL: dict[str, float] = {
+    "eth_chainId": 300.0,
+    "eth_gasPrice": 3.0,
+    "eth_blockNumber": 2.0,
+    "eth_feeHistory": 3.0,
+    "eth_getBalance": 2.0,
+    "eth_getBlockByNumber": 2.0,
+}
+_rpc_cache: dict[tuple[str, str], tuple[float, object]] = {}
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -121,22 +141,52 @@ async def arc_rpc_proxy(request: Request):
         raise HTTPException(status_code=503, detail="ARC_RPC_URL not configured")
     import httpx
 
+    raw_body = await request.body()
     try:
-        body = await request.body()
+        payload = json.loads(raw_body)
+    except ValueError:
+        payload = None
+
+    method = payload.get("method") if isinstance(payload, dict) else None
+    ttl = _RPC_CACHE_TTL.get(method) if method else None
+    cache_key = (method, json.dumps(payload.get("params"), sort_keys=True)) if ttl else None
+
+    if cache_key:
+        cached = _rpc_cache.get(cache_key)
+        if cached and cached[0] > time.monotonic():
+            body = json.dumps({"jsonrpc": "2.0", "id": payload.get("id"), "result": cached[1]}).encode()
+            return Response(content=body, media_type="application/json")
+
+    async def _forward() -> "httpx.Response":
         async with httpx.AsyncClient(timeout=20) as client:
-            upstream = await client.post(
+            return await client.post(
                 settings.arc_rpc_url,
-                content=body,
+                content=raw_body,
                 headers={"Content-Type": "application/json"},
             )
-        return Response(
-            content=upstream.content,
-            status_code=upstream.status_code,
-            media_type="application/json",
-        )
+
+    try:
+        upstream = await _forward()
+        if upstream.status_code >= 500:
+            await asyncio.sleep(0.3)
+            upstream = await _forward()
     except Exception as exc:
         LOG.warning("arc rpc proxy failed: %s", exc)
         raise HTTPException(status_code=502, detail=f"arc rpc proxy failed: {exc}")
+
+    if cache_key and upstream.status_code == 200:
+        try:
+            data = upstream.json()
+        except ValueError:
+            data = {}
+        if "result" in data:
+            _rpc_cache[cache_key] = (time.monotonic() + ttl, data["result"])
+
+    return Response(
+        content=upstream.content,
+        status_code=upstream.status_code,
+        media_type="application/json",
+    )
 
 
 @router.get("/gas-fees")
