@@ -42,6 +42,16 @@ STELLAR_AGENT_TOOLS = [
         "parameters": {"type": "object", "properties": {}},
     }},
     {"type": "function", "function": {
+        "name": "list_campaigns",
+        "description": (
+            "Lista as campanhas de creators ativas (nome, descrição, tipo, reward por participante, "
+            "token de recompensa, participantes já pagos). Use quando o usuário perguntar quais "
+            "campanhas existem, rewards disponíveis ou quiser saber o que pode participar — não peça "
+            "para ele ir no dashboard, responda direto com os dados desta tool."
+        ),
+        "parameters": {"type": "object", "properties": {}},
+    }},
+    {"type": "function", "function": {
         "name": "stellar_swap_quote",
         "description": (
             "Gera uma cotação de swap no Stellar DEX (path payment) e prepara a transação para o "
@@ -456,11 +466,17 @@ class OrchestrationService:
             "- stellar_get_balance: chame quando o usuário perguntar sobre o saldo dele (XLM/USDC na Stellar).\n"
             "- stellar_swap_quote: chame quando o usuário quiser trocar/swap ativos (ex: XLM↔USDC). "
             "Ela gera o quote e prepara a transação para o Freighter. Apresente o quote e diga que é só "
-            "assinar no Freighter — você NÃO executa o swap sozinha.\n\n"
-            "SOBRE O AGENTE ARC/CIRCLE (sem ferramenta no chat ainda): se o usuário perguntar sobre pagar "
-            "creators, rodar campanha com o agente, budget USDC, CCTP ou bridge, explique que o agente "
-            "autônomo faz isso via POST /v1/agent/run-campaign (descobre → avalia → paga USDC no trilho "
-            "certo: Arc direto, ou Solana/Stellar via CCTP) e aponte o dashboard de campanhas.\n\n"
+            "assinar no Freighter — você NÃO executa o swap sozinha.\n"
+            "- list_campaigns: chame quando o usuário perguntar quais campanhas existem, rewards "
+            "disponíveis ou quiser saber o que pode participar. Responda direto com os dados reais "
+            "desta tool (nome, tipo, reward, quantos já participaram) — NUNCA diga que não tem essa "
+            "informação ou que precisa olhar o dashboard, você TEM essa tool.\n\n"
+            "SOBRE O AGENTE ARC/CIRCLE (rodar campanha, sem ferramenta no chat ainda): se o usuário "
+            "perguntar sobre pagar creators, rodar UMA NOVA campanha com o agente, budget USDC, CCTP ou "
+            "bridge, explique que o agente autônomo faz isso via POST /v1/agent/run-campaign (descobre → "
+            "avalia → paga USDC no trilho certo: Arc direto, ou Solana/Stellar via CCTP) e aponte o "
+            "dashboard de campanhas. Isso é diferente de LISTAR campanhas existentes — para isso use "
+            "list_campaigns.\n\n"
             "Para saudações, dúvidas sobre campanhas/$XLEE, SEP-24, x402 ou crypto em geral, responda "
             "direto com sua personalidade, sem ferramentas. Se uma operação Stellar exigir carteira e ela "
             "não estiver conectada, peça para conectar via 'Connect Wallet' na navbar (qualquer wallet "
@@ -491,6 +507,17 @@ class OrchestrationService:
                     "chain": "arc", "wallet": evm_wallet, "usdc_balance": balance,
                 }
                 return json.dumps({"wallet": evm_wallet, "chain": "arc", "usdc_balance": balance})
+
+            if tool_name == "list_campaigns":
+                try:
+                    from database.database import SessionLocal
+                    from server.campaigns_routes import list_campaigns as _list_campaigns_route
+                    async with SessionLocal() as db:
+                        resp = await _list_campaigns_route(db)
+                except Exception as exc:
+                    return json.dumps({"error": "campaigns_read_failed", "message": str(exc)})
+                captured["actions"].append("list_campaigns")
+                return json.dumps({"campaigns": [c.model_dump() for c in resp.campaigns]})
 
             if tool_name == "stellar_get_balance":
                 if not stellar_wallet:
