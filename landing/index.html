@@ -22,7 +22,6 @@
     body { margin: 0; -webkit-font-smoothing: antialiased; }
     @keyframes xlBob { 0%,100% { transform: rotate(-6deg) translateY(0); } 50% { transform: rotate(-6deg) translateY(-10px); } }
     .xl-mascot { animation: xlBob 5s ease-in-out infinite; }
-    .xl-scrollrow::-webkit-scrollbar { display: none; }
     @keyframes swpTwinkle { 0%,100% { opacity:0.15; transform:scale(0.8); } 50% { opacity:1; transform:scale(1.15); } }
     @keyframes swpBeam { 0% { transform:translateX(-120%); } 100% { transform:translateX(220%); } }
     @keyframes xlWordIn { from { opacity:0; transform:translateY(0.5em); filter:blur(4px); } to { opacity:1; transform:none; filter:blur(0); } }
@@ -89,10 +88,12 @@
     @media (max-width: 900px) {
       .xl-grid { grid-template-columns: 1fr !important; }
       .xl-grid--steps { grid-template-columns: 1fr 1fr !important; }
+      .xl-grid--features { grid-template-columns: 1fr 1fr 1fr !important; }
       .xl-nav { display: none !important; }
     }
     @media (max-width: 560px) {
       .xl-grid--steps { grid-template-columns: 1fr !important; }
+      .xl-grid--features { grid-template-columns: 1fr 1fr !important; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -112,19 +113,14 @@
   <div class="xl-blob" aria-hidden="true" style="top:-140px; left:-160px; width:520px; height:520px; background:radial-gradient(circle, rgba(247,201,224,.5), transparent 65%);"></div>
   <div class="xl-blob" aria-hidden="true" style="top:180px; right:-200px; width:560px; height:560px; background:radial-gradient(circle, rgba(216,212,247,.45), transparent 65%);"></div>
 
-  <!-- NAV — floating pill -->
-  <header style="position:sticky; top:18px; z-index:50; padding:0 20px;">
-    <div style="max-width:1240px; margin:0 auto; background:#fff; border-radius:999px; box-shadow:0 14px 36px -18px rgba(26,25,23,.22), 0 1px 0 rgba(255,255,255,.7) inset; padding:12px 14px 12px 28px; display:flex; align-items:center; justify-content:space-between;">
+  <!-- NAV — full-width bar -->
+  <header style="position:sticky; top:0; left:0; right:0; z-index:50; width:100%; background:rgba(246,244,241,.82); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid #ece9e4; box-shadow:0 8px 24px -16px rgba(26,25,23,.18);">
+    <div style="max-width:1240px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; justify-content:space-between;">
       <div style="display:flex; align-items:center; gap:14px;">
-        <img src="assets/xiaolee-icon-512.png" alt="Xiaolee" style="width:58px; height:58px; border-radius:999px; object-fit:cover;" />
-        <span style="font-family:'Candice',cursive; font-size:34px; color:#1a1917;">Xiao<span style="color:#d81b78;">lee</span></span>
+        <img src="assets/xiaolee-icon-512.png" alt="Xiaolee" style="width:44px; height:44px; border-radius:999px; object-fit:cover;" />
+        <span style="font-family:'Candice',cursive; font-size:28px; color:#1a1917;">Xiao<span style="color:#d81b78;">lee</span></span>
       </div>
-      <nav class="xl-nav" style="display:flex; align-items:center; gap:42px;">
-        <a href="#run-on" style="font-size:18px; font-weight:700; color:#6b6862; text-decoration:none;">Product</a>
-        <a href="#how" style="font-size:18px; font-weight:700; color:#6b6862; text-decoration:none;">How it works</a>
-        <a href="#token" style="font-size:18px; font-weight:700; color:#6b6862; text-decoration:none;">$XLEE</a>
-      </nav>
-      <a href="https://xiaolee-frontend-production-96d7.up.railway.app" target="_blank" rel="noopener noreferrer" class="xl-btn" style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap; border-radius:999px; padding:16px 30px; font-size:17px; font-weight:700; color:#fff; text-decoration:none; background:#d81b78; box-shadow:0 10px 26px -12px rgba(216,27,120,.45), 0 1px 0 rgba(255,255,255,.25) inset;">Launch app <span class="xl-btn__arr">↗</span></a>
+      <a href="https://xiaolee-frontend-production.up.railway.app" target="_blank" rel="noopener noreferrer" class="xl-btn" style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap; border-radius:999px; padding:14px 28px; font-size:16px; font-weight:700; color:#fff; text-decoration:none; background:#d81b78; box-shadow:0 10px 26px -12px rgba(216,27,120,.45), 0 1px 0 rgba(255,255,255,.25) inset;">Launch app <span class="xl-btn__arr">↗</span></a>
     </div>
   </header>
 
@@ -188,144 +184,11 @@
     </div>
   </section>
 
-  <!-- SEE WHAT YOU CAN RUN ON XIAOLEE -->
-  <section id="run-on" style="max-width:1140px; margin:0 auto; padding:64px 24px 24px; scroll-margin-top:80px;">
-    <h2 data-reveal="1" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); margin:0; font-weight:700; letter-spacing:-0.02em; font-size:clamp(28px,4vw,44px); line-height:1.2; color:#1a1917;">
-      The ultimate content creator hub.
-    </h2>
-    <p data-reveal="1" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1) .06s, transform .7s cubic-bezier(.16,1,.3,1) .06s; margin:14px 0 0; max-width:520px; font-size:17px; line-height:1.7; color:#6b6862;">
-      Create, post, and monetize your digital presence with Xiaolee.
-    </p>
-
-    <div class="xl-grid" style="margin-top:36px; display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-      <!-- swap card -->
-      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); background:#f0eeea; border-radius:24px; padding:32px; grid-column:1 / -1;">
-        <h3 style="margin:0; font-weight:700; font-size:22px; color:#1a1917;">Swap in seconds, in plain language.</h3>
-        <p style="margin:8px 0 0; max-width:520px; font-size:15px; line-height:1.6; color:#6b6862;">Just type what you want — Xiaolee finds the best route on Arc and you sign once.</p>
-        <div style="margin-top:20px; max-width:420px; border-radius:16px; background:#fff; padding:16px 18px;">
-          <div style="display:flex; justify-content:flex-end;">
-            <div style="max-width:80%; border-radius:14px 14px 3px 14px; background:#d81b78; padding:9px 13px; font-size:13.5px; font-weight:600; color:#fff;">swap 50 USDC for $XLEE ✨</div>
-          </div>
-          <div style="margin-top:10px; display:flex; align-items:flex-end; gap:8px;">
-            <img src="assets/xiaolee-icon-512.png" alt="" style="width:24px; height:24px; border-radius:999px; object-fit:cover;" />
-            <div style="max-width:84%; border-radius:14px 14px 14px 3px; border:1px solid #ece9e4; background:#f6f4f1; padding:9px 13px; font-size:13.5px; color:#1a1917;">Best route found on Arc — fee &lt; $0.01. Confirm?</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- verified & paid -->
-      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); background:#f0eeea; border-radius:24px; padding:32px;">
-        <h3 style="margin:0; font-weight:700; font-size:20px; color:#1a1917;">Get verified &amp; paid.</h3>
-        <p style="margin:8px 0 0; font-size:14.5px; line-height:1.6; color:#6b6862;">Complete a task, Xiaolee checks it, the reward lands in your wallet.</p>
-        <div style="margin-top:18px; border-radius:16px; background:#fff; padding:16px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <img src="assets/xiaolee-icon-512.png" alt="" style="width:26px; height:26px; border-radius:999px; object-fit:cover;" />
-            <span style="font-weight:700; font-size:13px; color:#1a1917;">BrazillianCare</span>
-            <span style="border-radius:999px; background:#fdf0f6; padding:2px 8px; font-size:10.5px; font-weight:700; color:#d81b78;">ParaBuilders [Arc]</span>
-            <span style="font-size:11px; color:#9a968f;">19:53</span>
-          </div>
-          <p style="margin:8px 0 0; font-size:13px; line-height:1.5; color:#1a1917;">Task verified. Releasing 10 $XLEE now ✓</p>
-        </div>
-      </div>
-
-      <!-- cash out -->
-      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1) .08s, transform .7s cubic-bezier(.16,1,.3,1) .08s; border-radius:24px; padding:32px; color:#fff; background:linear-gradient(160deg,#3a1626,#1a1917 70%);">
-        <h3 style="margin:0; font-weight:700; font-size:20px; color:#fff;">Cash out anywhere.</h3>
-        <p style="margin:8px 0 0; font-size:14.5px; line-height:1.6; color:rgba(255,255,255,.68);">Keep it in USDC, or bridge out to Solana, EVM or Stellar — your call.</p>
-        <div style="margin-top:18px; display:inline-flex; align-items:center; gap:8px; border-radius:999px; background:rgba(255,255,255,.12); padding:8px 14px; font-size:13px; font-weight:700; color:#fff;">
-          <span style="width:8px; height:8px; border-radius:999px; background:#34d399;"></span> Withdrawal complete · 100 USDC
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- FEATURE STRIP -->
-  <section style="padding:24px 0 64px;">
-    <div class="xl-scrollrow" style="display:flex; gap:16px; overflow-x:auto; padding:8px 24px; scroll-snap-type:x proximity;">
-      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); scroll-snap-align:start; flex:0 0 240px; background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
-        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#1f8a5b;"><span style="width:6px; height:6px; border-radius:999px; background:#1f8a5b;"></span> Live</span>
-        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Join campaigns</h4>
-        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">Complete social tasks for creators you follow.</p>
-      </div>
-      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1) .05s, transform .6s cubic-bezier(.16,1,.3,1) .05s; scroll-snap-align:start; flex:0 0 240px; background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
-        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#1f8a5b;"><span style="width:6px; height:6px; border-radius:999px; background:#1f8a5b;"></span> Live</span>
-        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Send by @handle</h4>
-        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">No 0x-address needed — just their handle.</p>
-      </div>
-      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1) .1s, transform .6s cubic-bezier(.16,1,.3,1) .1s; scroll-snap-align:start; flex:0 0 240px; background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
-        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#1f8a5b;"><span style="width:6px; height:6px; border-radius:999px; background:#1f8a5b;"></span> Live</span>
-        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Cash out in USDC</h4>
-        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">Withdraw straight to your wallet, no exchange needed.</p>
-      </div>
-      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1) .15s, transform .6s cubic-bezier(.16,1,.3,1) .15s; scroll-snap-align:start; flex:0 0 240px; background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
-        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#9a968f;"><span style="width:6px; height:6px; border-radius:999px; background:#9a968f;"></span> Coming soon</span>
-        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Multi-chain deposits</h4>
-        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">Bring funds from Solana, EVM or Stellar straight in.</p>
-      </div>
-      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1) .2s, transform .6s cubic-bezier(.16,1,.3,1) .2s; scroll-snap-align:start; flex:0 0 240px; background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
-        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#1f8a5b;"><span style="width:6px; height:6px; border-radius:999px; background:#1f8a5b;"></span> Live</span>
-        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Track rewards</h4>
-        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">Every payout receipted and viewable on-chain.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- WAVE DIVIDER -->
-  <div style="position:relative; height:140px; overflow:hidden;">
-    <svg viewBox="0 0 1440 200" preserveAspectRatio="none" style="position:absolute; bottom:0; width:100%; height:100%;">
-      <path d="M0,90 C240,150 480,20 720,90 C960,160 1200,20 1440,90 L1440,200 L0,200 Z" fill="#fdf0f6"></path>
-      <path d="M0,120 C240,60 480,180 720,120 C960,60 1200,180 1440,120 L1440,200 L0,200 Z" fill="#f7c9e0" opacity="0.6"></path>
-      <path d="M0,150 C240,110 480,190 720,150 C960,110 1200,190 1440,150 L1440,200 L0,200 Z" fill="#1a1917"></path>
-    </svg>
-  </div>
-
-  <!-- STATS -->
-  <section style="background:#1a1917; color:#fff; padding:24px 24px 72px;">
-    <div class="xl-grid xl-grid--steps" style="max-width:1140px; margin:0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:32px; text-align:center;">
-      <div data-reveal="1" data-count-to="10000" data-count-suffix="+" data-count-prefix="" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);">
-        <div data-count-target="1" style="font-weight:700; font-size:clamp(34px,5vw,52px); line-height:1;">0</div>
-        <div style="margin-top:8px; font-size:14px; font-weight:600; color:rgba(255,255,255,.6);">Tasks verified</div>
-      </div>
-      <div data-reveal="1" data-count-to="220000" data-count-suffix="+" data-count-prefix="$" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1) .08s, transform .7s cubic-bezier(.16,1,.3,1) .08s;">
-        <div data-count-target="1" style="font-weight:700; font-size:clamp(34px,5vw,52px); line-height:1;">$0</div>
-        <div style="margin-top:8px; font-size:14px; font-weight:600; color:rgba(255,255,255,.6);">Rewards distributed</div>
-      </div>
-      <div data-reveal="1" data-count-to="3" data-count-suffix="" data-count-prefix="" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1) .16s, transform .7s cubic-bezier(.16,1,.3,1) .16s;">
-        <div data-count-target="1" style="font-weight:700; font-size:clamp(34px,5vw,52px); line-height:1;">0</div>
-        <div style="margin-top:8px; font-size:14px; font-weight:600; color:rgba(255,255,255,.6);">Chains supported</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CROSS-CHAIN -->
-  <section id="chains" style="max-width:1140px; margin:0 auto; padding:80px 24px; scroll-margin-top:80px;">
-    <div data-reveal="1" class="xl-grid" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); display:grid; grid-template-columns:1.1fr .9fr; gap:48px; align-items:center;">
-      <div>
-        <h2 style="margin:0; font-weight:700; letter-spacing:-0.02em; font-size:clamp(28px,3.8vw,42px); line-height:1.15; color:#1a1917; text-wrap:balance;">The AI-Powered Payout Engine Bringing Crypto from Any Blockchain Straight to Arc.</h2>
-        <p style="margin:16px 0 0; max-width:460px; font-size:16px; line-height:1.7; color:#6b6862;">You can bring money from Solana, EVM and Stellar. Xiaolee taps Solana and Stellar liquidity directly through Arc's core — no separate bridge UI, no manual swaps.</p>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div class="xl-card" style="display:flex; align-items:center; justify-content:space-between; border:1px solid #ece9e4; background:#fff; border-radius:14px; padding:14px 18px;">
-          <span style="font-weight:700; font-size:15px; color:#1a1917;">Solana</span>
-          <span style="font-size:13px; font-weight:600; color:#9a968f;">→ Arc</span>
-        </div>
-        <div class="xl-card" style="display:flex; align-items:center; justify-content:space-between; border:1px solid #ece9e4; background:#fff; border-radius:14px; padding:14px 18px;">
-          <span style="font-weight:700; font-size:15px; color:#1a1917;">EVM chains</span>
-          <span style="font-size:13px; font-weight:600; color:#9a968f;">→ Arc</span>
-        </div>
-        <div class="xl-card" style="display:flex; align-items:center; justify-content:space-between; border:1px solid #ece9e4; background:#fff; border-radius:14px; padding:14px 18px;">
-          <span style="font-weight:700; font-size:15px; color:#1a1917;">Stellar</span>
-          <span style="font-size:13px; font-weight:600; color:#9a968f;">→ Arc</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- HOW IT WORKS -->
-  <section id="how" style="max-width:1140px; margin:0 auto; padding:0 24px 80px; scroll-margin-top:80px;">
+  <section id="how" style="max-width:1140px; margin:0 auto; padding:64px 24px 80px; scroll-margin-top:80px;">
     <div data-reveal="1" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);">
-      <h2 style="margin:0; font-weight:700; letter-spacing:-0.02em; font-size:clamp(28px,3.8vw,42px); color:#1a1917;">Four steps. You stay in control.</h2>
-      <p style="margin:14px 0 0; max-width:520px; font-size:16px; line-height:1.7; color:#6b6862;">Wallet-first and non-custodial from end to end — the backend orchestrates, your keys decide.</p>
+      <h2 style="margin:0; font-weight:700; letter-spacing:-0.02em; font-size:clamp(28px,3.8vw,42px); color:#1a1917;">The ultimate content creator hub.</h2>
+      <p style="margin:14px 0 0; max-width:520px; font-size:16px; line-height:1.7; color:#6b6862;">Create, post, and monetize your digital presence with Xiaolee.</p>
     </div>
     <div class="xl-grid--steps" style="margin-top:36px; display:grid; grid-template-columns:repeat(4,1fr); gap:28px;">
       <div data-reveal="1" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);">
@@ -335,24 +198,24 @@
       </div>
       <div data-reveal="1" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1) .08s, transform .7s cubic-bezier(.16,1,.3,1) .08s;">
         <div style="font-family:monospace; font-size:13px; font-weight:700; color:#d81b78;">02</div>
-        <h3 style="margin:6px 0 0; font-weight:700; font-size:17px; color:#1a1917;">Just talk</h3>
-        <p style="margin:8px 0 0; font-size:14px; line-height:1.6; color:#6b6862;">Ask in plain language, EN or PT. Xiaolee figures out the intent and the route.</p>
+        <h3 style="margin:6px 0 0; font-weight:700; font-size:17px; color:#1a1917;">Join campaigns</h3>
+        <p style="margin:8px 0 0; font-size:14px; line-height:1.6; color:#6b6862;">Browse available marketing campaigns. Match with brands and monetize your social media presence instantly.</p>
       </div>
       <div data-reveal="1" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1) .16s, transform .7s cubic-bezier(.16,1,.3,1) .16s;">
         <div style="font-family:monospace; font-size:13px; font-weight:700; color:#d81b78;">03</div>
-        <h3 style="margin:6px 0 0; font-weight:700; font-size:17px; color:#1a1917;">Confirm in-wallet</h3>
-        <p style="margin:8px 0 0; font-size:14px; line-height:1.6; color:#6b6862;">Xiaolee shows the quote, fee and path. Nothing moves until you sign it yourself.</p>
+        <h3 style="margin:6px 0 0; font-weight:700; font-size:17px; color:#1a1917;">Earn rewards</h3>
+        <p style="margin:8px 0 0; font-size:14px; line-height:1.6; color:#6b6862;">Engage with your audience and complete tasks. Earnings are paid out directly to your connected wallet.</p>
       </div>
       <div data-reveal="1" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1) .24s, transform .7s cubic-bezier(.16,1,.3,1) .24s;">
         <div style="font-family:monospace; font-size:13px; font-weight:700; color:#d81b78;">04</div>
-        <h3 style="margin:6px 0 0; font-weight:700; font-size:17px; color:#1a1917;">Done, on-chain</h3>
-        <p style="margin:8px 0 0; font-size:14px; line-height:1.6; color:#6b6862;">Settled on Arc in seconds for fractions of a cent. A receipt lands in your inbox.</p>
+        <h3 style="margin:6px 0 0; font-weight:700; font-size:17px; color:#1a1917;">Manage & Track</h3>
+        <p style="margin:8px 0 0; font-size:14px; line-height:1.6; color:#6b6862;">Monitor your active campaigns, track performance metrics, and use Xiaolee Agent to manage your balance all in one single dashboard.</p>
       </div>
     </div>
   </section>
 
   <!-- CAMPAIGNS -->
-  <section style="max-width:1140px; margin:0 auto; padding:0 24px 80px;">
+  <section style="max-width:1140px; margin:0 auto; padding:0 24px 24px;">
     <div data-reveal="1" class="xl-grid" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); border-radius:24px; background:#ffffff; border:1px solid #ece9e4; padding:40px; display:grid; grid-template-columns:1fr .85fr; gap:48px; align-items:center;">
       <div>
         <h2 style="margin:0; font-weight:700; letter-spacing:-0.02em; font-size:clamp(28px,3.8vw,42px); line-height:1.15; color:#1a1917;">Creator campaigns, verified in the open.</h2>
@@ -379,21 +242,68 @@
     </div>
   </section>
 
-  <!-- TOKEN -->
-  <section id="token" style="max-width:1140px; margin:0 auto; padding:0 24px 80px; scroll-margin-top:80px;">
-    <div class="xl-grid" style="display:grid; grid-template-columns:.8fr 1fr; gap:48px; align-items:center;">
-      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); border:1px solid #ece9e4; border-radius:20px; padding:24px; background:#fff;">
-        <div style="font-weight:700; font-size:20px; color:#1a1917;">$XLEE</div>
-        <div style="font-size:12.5px; font-weight:600; color:#9a968f;">Tokenomics</div>
-        <div style="margin-top:16px;">
-          <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #ece9e4;"><span style="font-size:14px; color:#6b6862;">Standard</span><span style="font-size:14px; font-weight:700; color:#1a1917;">ERC-20 on Arc</span></div>
-          <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #ece9e4;"><span style="font-size:14px; color:#6b6862;">Transfer fee</span><span style="font-size:14px; font-weight:700; color:#1a1917;">0.5% native</span></div>
-          <div style="display:flex; justify-content:space-between; padding:10px 0;"><span style="font-size:14px; color:#6b6862;">Rewards</span><span style="font-size:14px; font-weight:700; color:#1a1917;">Distributed via x402</span></div>
-        </div>
+  <!-- FEATURE STRIP -->
+  <section style="max-width:1140px; margin:0 auto; padding:24px 24px 64px;">
+    <div class="xl-grid--features" style="display:grid; grid-template-columns:repeat(5,1fr); gap:16px;">
+      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#1f8a5b;"><span style="width:6px; height:6px; border-radius:999px; background:#1f8a5b;"></span> Live</span>
+        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Join campaigns</h4>
+        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">Complete social tasks for creators you follow.</p>
       </div>
-      <div data-reveal="1" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1) .1s, transform .7s cubic-bezier(.16,1,.3,1) .1s;">
-        <h2 style="margin:0; font-weight:700; letter-spacing:-0.02em; font-size:clamp(28px,3.8vw,42px); line-height:1.15; color:#1a1917;">Money that can't be blocked.</h2>
-        <p style="margin:16px 0 0; max-width:460px; font-size:16px; line-height:1.7; color:#6b6862;">$XLEE is a standard ERC-20 on Arc, plugged into the USDC economy from day one — settled through audited x402 nanopayments, no custom token risk.</p>
+      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1) .05s, transform .6s cubic-bezier(.16,1,.3,1) .05s; background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#1f8a5b;"><span style="width:6px; height:6px; border-radius:999px; background:#1f8a5b;"></span> Live</span>
+        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Send by @handle</h4>
+        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">No 0x-address needed — just their handle.</p>
+      </div>
+      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1) .1s, transform .6s cubic-bezier(.16,1,.3,1) .1s; background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#1f8a5b;"><span style="width:6px; height:6px; border-radius:999px; background:#1f8a5b;"></span> Live</span>
+        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Cash out in USDC</h4>
+        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">Withdraw straight to your wallet, no exchange needed.</p>
+      </div>
+      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1) .15s, transform .6s cubic-bezier(.16,1,.3,1) .15s; background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#9a968f;"><span style="width:6px; height:6px; border-radius:999px; background:#9a968f;"></span> Coming soon</span>
+        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Multi-chain deposits</h4>
+        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">Bring funds from Solana, EVM or Stellar straight in.</p>
+      </div>
+      <div data-reveal="1" class="xl-card" style="opacity:0; transform:translateY(16px); transition:opacity .6s cubic-bezier(.16,1,.3,1) .2s, transform .6s cubic-bezier(.16,1,.3,1) .2s; background:#fff; border:1px solid #ece9e4; border-radius:18px; padding:20px;">
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:#1f8a5b;"><span style="width:6px; height:6px; border-radius:999px; background:#1f8a5b;"></span> Live</span>
+        <h4 style="margin:10px 0 0; font-weight:700; font-size:16px; color:#1a1917;">Track rewards</h4>
+        <p style="margin:6px 0 0; font-size:13px; line-height:1.5; color:#6b6862;">Every payout receipted and viewable on-chain.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WAVE DIVIDER -->
+  <div style="position:relative; height:140px; overflow:hidden;">
+    <svg viewBox="0 0 1440 200" preserveAspectRatio="none" style="position:absolute; bottom:0; width:100%; height:100%;">
+      <path d="M0,90 C240,150 480,20 720,90 C960,160 1200,20 1440,90 L1440,200 L0,200 Z" fill="#fdf0f6"></path>
+      <path d="M0,120 C240,60 480,180 720,120 C960,60 1200,180 1440,120 L1440,200 L0,200 Z" fill="#f7c9e0" opacity="0.6"></path>
+      <path d="M0,150 C240,110 480,190 720,150 C960,110 1200,190 1440,150 L1440,200 L0,200 Z" fill="#1a1917"></path>
+    </svg>
+  </div>
+
+
+
+  <!-- CROSS-CHAIN -->
+  <section id="chains" style="max-width:1140px; margin:0 auto; padding:80px 24px; scroll-margin-top:80px;">
+    <div data-reveal="1" class="xl-grid" style="opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); display:grid; grid-template-columns:1.1fr .9fr; gap:48px; align-items:center;">
+      <div>
+        <h2 style="margin:0; font-weight:700; letter-spacing:-0.02em; font-size:clamp(28px,3.8vw,42px); line-height:1.15; color:#1a1917; text-wrap:balance;">The AI-Powered Payout Engine Bringing Crypto from Any Blockchain Straight to Arc.</h2>
+        <p style="margin:16px 0 0; max-width:460px; font-size:16px; line-height:1.7; color:#6b6862;">You can bring money from Solana, EVM and Stellar. Xiaolee taps Solana and Stellar liquidity directly through Arc's core — no separate bridge UI, no manual swaps.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="xl-card" style="display:flex; align-items:center; justify-content:space-between; border:1px solid #ece9e4; background:#fff; border-radius:14px; padding:14px 18px;">
+          <span style="font-weight:700; font-size:15px; color:#1a1917;">Solana</span>
+          <span style="font-size:13px; font-weight:600; color:#9a968f;">→ Arc</span>
+        </div>
+        <div class="xl-card" style="display:flex; align-items:center; justify-content:space-between; border:1px solid #ece9e4; background:#fff; border-radius:14px; padding:14px 18px;">
+          <span style="font-weight:700; font-size:15px; color:#1a1917;">EVM chains</span>
+          <span style="font-size:13px; font-weight:600; color:#9a968f;">→ Arc</span>
+        </div>
+        <div class="xl-card" style="display:flex; align-items:center; justify-content:space-between; border:1px solid #ece9e4; background:#fff; border-radius:14px; padding:14px 18px;">
+          <span style="font-weight:700; font-size:15px; color:#1a1917;">Stellar</span>
+          <span style="font-size:13px; font-weight:600; color:#9a968f;">→ Arc</span>
+        </div>
       </div>
     </div>
   </section>

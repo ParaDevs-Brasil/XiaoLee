@@ -146,7 +146,7 @@ export default function Navbar() {
                 className="text-2xl md:text-[32px] text-[var(--text-primary)]"
                 style={{ fontFamily: "var(--font-candice), cursive" }}
               >
-                Xiao<span className="text-grad">lee</span>
+                Xiao<span style={{ color: "#d81b78" }}>lee</span>
               </span>
               <IconSpark size={13} className="text-[var(--accent)] -translate-y-1.5" />
             </Link>
