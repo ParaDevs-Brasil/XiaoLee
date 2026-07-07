@@ -206,6 +206,7 @@ export async function sendEvmTransaction(tx: EvmTxRequest): Promise<string> {
 
   // Fee EIP-1559 explícito: sem isso a MetaMask mostra "Network fee: Unavailable"
   // e não deixa assinar na testnet custom (não consegue estimar o fee sozinha).
+  let triedEip1559 = false;
   try {
     const resp = await fetch(`${API_BASE}/v1/arc/gas-fees`);
     if (resp.ok) {
@@ -215,15 +216,51 @@ export async function sendEvmTransaction(tx: EvmTxRequest): Promise<string> {
       };
       params.maxFeePerGas = fees.maxFeePerGasHex;
       params.maxPriorityFeePerGas = fees.maxPriorityFeePerGasHex;
+      triedEip1559 = true;
     }
   } catch {
     // sem fee explícito — a wallet tenta estimar do jeito dela
   }
 
-  return (await provider.request({
-    method: "eth_sendTransaction",
-    params: [params],
-  })) as string;
+  try {
+    return (await provider.request({
+      method: "eth_sendTransaction",
+      params: [params],
+    })) as string;
+  } catch (err) {
+    // Algumas wallets (ex: MetaMask com o chain Arc já cacheado de uma sessão
+    // anterior/instável) recusam o tipo EIP-1559 mesmo a chain suportando —
+    // erro -32602 "does not support EIP-1559". Refaz como tx legada (gasPrice)
+    // em vez de propagar o erro pro usuário.
+    const code = (err as { code?: number } | null)?.code;
+    const message = (err as { message?: string } | null)?.message ?? "";
+    const rejectedEip1559 = code === -32602 && /EIP-1559/i.test(message);
+    if (!rejectedEip1559 || !triedEip1559) throw err;
+
+    delete params.maxFeePerGas;
+    delete params.maxPriorityFeePerGas;
+    try {
+      params.gasPrice = (await provider.request({ method: "eth_gasPrice" })) as string;
+    } catch {
+      // sem gasPrice explícito — a wallet estima do jeito dela
+    }
+    return (await provider.request({
+      method: "eth_sendTransaction",
+      params: [params],
+    })) as string;
+  }
+}
+
+/**
+ * Provider errors from injected wallets (MetaMask/Rabby) are plain
+ * `{code, message}` objects, not `Error` instances — `instanceof Error`
+ * misses them and `String(err)` collapses to "[object Object]".
+ */
+export function getErrorMessage(err: unknown): string {
+  if (err && typeof err === "object" && "message" in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
 }
 
 export function shortEvmAddress(address: string, front = 6, back = 4): string {

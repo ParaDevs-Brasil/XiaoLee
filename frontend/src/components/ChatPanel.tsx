@@ -4,7 +4,7 @@ import Video from "./Video";
 import UserData from "./UserData";
 import handleAuth, { AuthStatus } from "@/hooks/useAuth";
 import { signTransactionXdr, submitToHorizon } from "@/utils/stellar";
-import { sendEvmTransaction, shortEvmAddress } from "@/lib/evmWallet";
+import { sendEvmTransaction, shortEvmAddress, getErrorMessage } from "@/lib/evmWallet";
 import { explorerTxUrl } from "@/lib/chains";
 import { IconSend, IconCheck, IconSpark } from "@/components/icons";
 import { XiaoleeBubble } from "@/components/landing/primitives";
@@ -163,7 +163,7 @@ export default function ChatPanel() {
         return updated;
       });
     } catch (err) {
-      alert(`Erro ao assinar swap: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`Erro ao assinar swap: ${getErrorMessage(err)}`);
     } finally {
       setSwapSigning(prev => ({ ...prev, [messageIndex]: false }));
     }
@@ -182,7 +182,7 @@ export default function ChatPanel() {
         return updated;
       });
     } catch (err) {
-      alert(`Erro ao assinar transação: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`Erro ao assinar transação: ${getErrorMessage(err)}`);
     } finally {
       setEvmTxSigning(prev => ({ ...prev, [messageIndex]: false }));
     }
