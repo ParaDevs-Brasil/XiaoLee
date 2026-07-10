@@ -48,7 +48,7 @@ const actions = {
   Love: "xiaolee_love.mp4",
   Hello: "xiaolee_hello.mov",
   Surprise: "xiaolee_surprise.mov",
-  Uncomfortable: "xiaolee_unconfortable.mov",
+  Uncomfortable: "xiaolee_uncomfortable.mov",
   Ouch: "xiaolee_ouch.mov",
   "Think Low": "xiaolee_thinklow.mov",
   Salute: "xiaolee_salute.mov",

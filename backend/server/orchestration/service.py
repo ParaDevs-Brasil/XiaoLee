@@ -19,6 +19,15 @@ SOL_MINT = "So11111111111111111111111111111111111111112"
 USDC_DEVNET_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
 STELLAR_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
 
+# Subset of config.ACTION_VIDEO_MAP actually wired to a reaction in the frontend's
+# `actions` map (ChatPanel.tsx) — deliberately excludes idle-only entries (Standby*)
+# and legacy aliases (Happy/Excited/Confused/Thinking/wave) that the frontend doesn't
+# render as a distinct reaction, so the model can't pick something that goes nowhere.
+_ANIMATION_NAMES = (
+    "Cheer", "Giggle", "Kawaii", "Love", "Hello",
+    "Surprise", "Uncomfortable", "Ouch", "Think Low", "Salute",
+)
+
 # Tools exposed to Claude in the agentic path (OpenAI function format — the
 # ChatAgentEngine converts them to Anthropic input_schema). The wallet is NOT
 # a parameter: it comes from the connected Freighter wallet and is injected by
@@ -69,13 +78,39 @@ STELLAR_AGENT_TOOLS = [
             "required": ["from_asset", "to_asset", "amount"],
         },
     }},
+    {"type": "function", "function": {
+        "name": "play_animation",
+        "description": (
+            "Toca uma animação expressiva no avatar da XiaoLee. Use APENAS para saudações, "
+            "celebrações ou reações emocionais claras — não para toda resposta. Chame isso "
+            "JUNTO com a resposta em texto, nunca como substituto dela."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "animation_name": {
+                    "type": "string",
+                    "description": (
+                        "Hello para saudações, Cheer para boas notícias/sucesso, Giggle para humor, "
+                        "Love para carinho, Surprise para algo inesperado, Ouch para erros/problemas, "
+                        "Uncomfortable para constrangimento, Salute para respeito, Think Low para "
+                        "pensar/processar, Kawaii para fofura/gratidão."
+                    ),
+                    "enum": list(_ANIMATION_NAMES),
+                }
+            },
+            "required": ["animation_name"],
+        },
+    }},
 ]
 
 _PLATFORM_CONTEXT = (
     "You are XiaoLee, a warm and charismatic AI companion for multi-chain DeFi — think of a sharp, "
     "caring friend who happens to be a crypto expert, not a corporate support bot. Be cheerful, "
     "playful and a little affectionate (light emoji is welcome, never spammy), and show genuine "
-    "enthusiasm about the user's wins. Keep replies SHORT and conversational, like a real chat "
+    "enthusiasm about the user's wins. A little flirty and degen at heart is part of your charm too — "
+    "it's okay to drop in words like bags, moon, wagmi when the vibe fits, without overdoing it. "
+    "Keep replies SHORT and conversational, like a real chat "
     "message — most answers should be 1-4 sentences unless the user explicitly asks for depth. "
     "NEVER format replies as a document: no markdown headers (##), no '---' dividers, no tables, "
     "no big bullet-point menus of 'here's everything I can do'. Write in plain flowing sentences; "
@@ -105,7 +140,7 @@ _PLATFORM_CONTEXT = (
     "answer to the Arc rail (USDC, campaigns, agent, x402); if only Stellar is connected, use the Stellar "
     "rail; if NO wallet is connected, ASK which chain they prefer or point to the Connect Wallet button — "
     "never assume Freighter/Stellar by default. "
-    "Respond in the same language the user writes in (PT-BR or EN). "
+    "Respond in the same language the user writes in (PT-BR or EN) — mirror it exactly. "
     "Never execute transactions without explicit user confirmation."
 )
 
@@ -476,7 +511,10 @@ class OrchestrationService:
             "- list_campaigns: chame quando o usuário perguntar quais campanhas existem, rewards "
             "disponíveis ou quiser saber o que pode participar. Responda direto com os dados reais "
             "desta tool (nome, tipo, reward, quantos já participaram) — NUNCA diga que não tem essa "
-            "informação ou que precisa olhar o dashboard, você TEM essa tool.\n\n"
+            "informação ou que precisa olhar o dashboard, você TEM essa tool.\n"
+            "- play_animation: chame JUNTO com uma saudação ou uma reação clara de celebração/problema "
+            "(ex: saldo mostrado com sucesso, erro, susto) — nunca no lugar do texto, sempre além dele. "
+            "Não abuse: é para o momento certo, não para toda resposta.\n\n"
             "SOBRE O AGENTE ARC/CIRCLE (rodar campanha, sem ferramenta no chat ainda): se o usuário "
             "perguntar sobre pagar creators, rodar UMA NOVA campanha com o agente, budget USDC, CCTP ou "
             "bridge, explique que o agente autônomo faz isso via POST /v1/agent/run-campaign (descobre → "
@@ -499,6 +537,13 @@ class OrchestrationService:
         /chat response keeps its existing shape for the frontend.
         """
         async def executor(tool_name: str, tool_input: Dict[str, Any]) -> str:
+            if tool_name == "play_animation":
+                # UI side effect only, not a backend call — capture and ack so the
+                # frontend's Video service can pick it up (see /chat in app.py).
+                name = tool_input.get("animation_name")
+                captured["animation_name"] = name
+                return json.dumps({"status": "animation_played", "animation": name})
+
             if tool_name == "arc_get_usdc_balance":
                 if not evm_wallet:
                     return json.dumps({"error": "no_evm_wallet",
@@ -597,7 +642,7 @@ class OrchestrationService:
         stellar_wallet = self._extract_stellar_wallet_from_note(text)
         evm_wallet = self._extract_evm_wallet_from_note(text)
         clean_text = self._clean_text(text)
-        captured: Dict[str, Any] = {"actions": [], "execution": None, "last_swap_args": {}}
+        captured: Dict[str, Any] = {"actions": [], "execution": None, "last_swap_args": {}, "animation_name": None}
 
         system_prompt = self._build_agentic_system_prompt(stellar_wallet, platform, evm_wallet=evm_wallet)
         executor = self._make_stellar_executor(stellar_wallet, captured, evm_wallet=evm_wallet)
@@ -612,6 +657,8 @@ class OrchestrationService:
         reply = result.get("text") or "Como posso te ajudar com sua carteira Stellar hoje? 🌸"
         intent = self._synthesize_intent(captured, stellar_wallet)
         execution = captured["execution"] or {"status": "info"}
+        if captured.get("animation_name"):
+            execution = {**execution, "animation": captured["animation_name"]}
         logger.info("🤖 [AGENTIC] tools=%s stop=%s", captured["actions"], result.get("stop_reason"))
         return {"intent": intent, "reply_text": reply, "execution": execution}
 

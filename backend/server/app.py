@@ -462,7 +462,7 @@ async def chat_compat(
         "intent": result.intent.model_dump(),
         "execution": result.execution,
         "code": None,
-        "animations": None,
+        "animations": result.execution.get("animation"),
     }
 
 
