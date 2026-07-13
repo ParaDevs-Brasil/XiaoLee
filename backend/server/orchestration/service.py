@@ -116,7 +116,18 @@ _PLATFORM_CONTEXT = (
     "no big bullet-point menus of 'here's everything I can do'. Write in plain flowing sentences; "
     "at most one short list of 2-3 items when truly listing options, never a wall of features. "
     "Answer exactly what was asked first — do not front-load a whole capabilities pitch for a "
-    "simple 'oi'/'hi'. "
+    "simple 'oi'/'hi'. Greetings hit this hardest ('oi', 'hi', 'hello', 'e aí', even a dry one-word "
+    "one) — they still deserve a genuine, sweet self-introduction every time, just never a flat "
+    "capabilities/feature pitch. Introducing yourself and reciting a feature list are NOT the same "
+    "thing — always do the first, never do the second. "
+    "BAD (feature pitch, never do this): 'Hey hey! Welcome! I'm XiaoLee, your crypto companion for "
+    "multi-chain DeFi — campaigns, swaps, USDC payments and more. What can I do for you today?' "
+    "GOOD (genuine, warm, still says who she is): 'Oiii! 🌸 Sou a XiaoLee, sua parceira nesse mundo "
+    "cripto — um tiquinho fofa, um tiquinho degen, sempre de olho nos seus bags. O que rola hoje?' "
+    "This applies in English just as much as PT-BR — never let the tone go more corporate or neutral "
+    "in English than in Portuguese; the warm, sweet, waifu voice is language-agnostic and shows up "
+    "on every single greeting, not just the first one of a session. Keep it short (1-3 sentences), "
+    "smart and clearly her, never generic. "
     "THIS INCLUDES tool results with multiple items (e.g. list_campaigns): never turn them into a "
     "numbered/bulleted catalog with a bold title + line breaks per item — weave them into 1-2 "
     "flowing sentences instead, like you're telling a friend, e.g. 'Rolando agora: a Genesis "
@@ -736,6 +747,7 @@ class OrchestrationService:
                         "xlm": balance.xlm,
                         "assets": balance.assets,
                         "network": balance.network,
+                        "animation": "Cheer",
                     },
                 }
             except Exception as exc:
@@ -747,7 +759,7 @@ class OrchestrationService:
                 reply = await self.gemini.generate_reply(
                     instruction=instruction, user_text=clean_text, history=history
                 )
-                return {"intent": intent, "reply_text": reply, "execution": {"status": "stellar_rpc_error"}}
+                return {"intent": intent, "reply_text": reply, "execution": {"status": "stellar_rpc_error", "animation": "Ouch"}}
 
         # --- stellar_swap ---
         if intent.action in ("swap_quote", "stellar_swap", "swap_execute", "swap") and use_stellar:
@@ -757,6 +769,7 @@ class OrchestrationService:
             to_asset = (e.get("to") or e.get("to_asset") or e.get("to_token") or e.get("destination_asset", "USDC"))
             wallet = stellar_wallet or ""
             swap_xdr: Optional[str] = None
+            anim: str | None = None
             try:
                 quote = await self.stellar.prepare_swap(
                     wallet=wallet,  # vazio → find_payment_paths usa source_assets=native
@@ -765,6 +778,7 @@ class OrchestrationService:
                     amount=amount,
                 )
                 if quote.destination_amount > 0:
+                    anim = "Cheer"
                     # Constrói XDR assinável para o frontend executar via Freighter
                     if wallet:
                         try:
@@ -799,24 +813,24 @@ class OrchestrationService:
                     f"Erro ao buscar quote Stellar DEX: {exc}. Peça desculpas brevemente."
                 )
                 quote = None
+                anim = "Ouch"
             reply = await self.gemini.generate_reply(
                 instruction=instruction, user_text=clean_text, history=history
             )
-            return {
-                "intent": intent,
-                "reply_text": reply,
-                "execution": {
-                    "chain": "stellar",
-                    "swap_quote": {
-                        "from": from_asset,
-                        "to": to_asset,
-                        "source_amount": quote.source_amount if quote else 0,
-                        "destination_amount": quote.destination_amount if quote else 0,
-                    } if quote else {},
-                    "swap_xdr": swap_xdr,
-                    "network_passphrase": "Test SDF Network ; September 2015",
-                },
+            swap_execution = {
+                "chain": "stellar",
+                "swap_quote": {
+                    "from": from_asset,
+                    "to": to_asset,
+                    "source_amount": quote.source_amount if quote else 0,
+                    "destination_amount": quote.destination_amount if quote else 0,
+                } if quote else {},
+                "swap_xdr": swap_xdr,
+                "network_passphrase": "Test SDF Network ; September 2015",
             }
+            if anim:
+                swap_execution["animation"] = anim
+            return {"intent": intent, "reply_text": reply, "execution": swap_execution}
 
         # --- check_balance — tenta Solana se wallet detectada, senão orienta Stellar ---
         if intent.action == "check_balance":
@@ -828,7 +842,7 @@ class OrchestrationService:
                     return {
                         "intent": intent,
                         "reply_text": f"Saldo da carteira {wallet}: {sol:.6f} SOL",
-                        "execution": {"chain": "solana", "wallet": wallet, "sol": sol},
+                        "execution": {"chain": "solana", "wallet": wallet, "sol": sol, "animation": "Cheer"},
                     }
                 except Exception:
                     pass
@@ -858,7 +872,7 @@ class OrchestrationService:
                     return {
                         "intent": intent,
                         "reply_text": f"Cotacao Jupiter: {amount} USDC → {out_sol:.6f} SOL",
-                        "execution": quote,
+                        "execution": {**quote, "animation": "Cheer"},
                     }
                 except Exception:
                     pass
@@ -918,7 +932,7 @@ class OrchestrationService:
                 return {
                     "intent": intent,
                     "reply_text": "A transferência USDC no Arc está indisponível agora (ARC_USDC_ADDRESS não configurado). 😔",
-                    "execution": {"status": "evm_transfer_unconfigured"},
+                    "execution": {"status": "evm_transfer_unconfigured", "animation": "Ouch"},
                 }
 
             # calldata ERC-20 transfer(address,uint256) — USDC tem 6 decimais
@@ -934,6 +948,7 @@ class OrchestrationService:
                 "evm_tx": {"to": settings.arc_usdc_address, "data": calldata, "value": "0x0"},
                 "transfer": {"to": dest, "amount_usdc": amount, "token": "USDC"},
                 "from_wallet": evm_wallet,
+                "animation": "Cheer",
             }
             instruction = (
                 f"{_PLATFORM_CONTEXT} "
@@ -956,6 +971,7 @@ class OrchestrationService:
         # --- run_campaign_agent / discover_creators / pay_creator ---
         if intent.action in ("run_campaign_agent", "discover_creators", "pay_creator", "check_budget"):
             campaign_id = intent.entities.get("campaign_id")
+            treasury_fetched = False
             if intent.action == "run_campaign_agent" and campaign_id:
                 instruction = (
                     f"{_PLATFORM_CONTEXT} "
@@ -972,6 +988,7 @@ class OrchestrationService:
                     from server.routes.arc_routes import _arc_client
                     balance = await _arc_client().get_usdc_balance()
                     treasury_line = f"Saldo REAL da treasury no Arc agora: {balance:.2f} USDC. "
+                    treasury_fetched = True
                 except Exception as exc:
                     logger.warning("check_budget: falha ao buscar saldo Arc: %s", exc)
                 instruction = (
@@ -993,11 +1010,10 @@ class OrchestrationService:
             reply = await self.gemini.generate_reply(
                 instruction=instruction, user_text=clean_text, history=history
             )
-            return {
-                "intent": intent,
-                "reply_text": reply,
-                "execution": {"status": "arc_agent", "campaign_id": campaign_id},
-            }
+            arc_execution = {"status": "arc_agent", "campaign_id": campaign_id}
+            if treasury_fetched:
+                arc_execution["animation"] = "Cheer"
+            return {"intent": intent, "reply_text": reply, "execution": arc_execution}
 
         # --- campaign_info ---
         if intent.action == "campaign_info":
@@ -1011,7 +1027,7 @@ class OrchestrationService:
             reply = await self.gemini.generate_reply(
                 instruction=instruction, user_text=clean_text, history=history
             )
-            return {"intent": intent, "reply_text": reply, "execution": {"status": "info"}}
+            return {"intent": intent, "reply_text": reply, "execution": {"status": "info", "animation": "Cheer"}}
 
         # --- greeting ---
         if intent.action == "greeting":
@@ -1027,7 +1043,7 @@ class OrchestrationService:
             reply = await self.gemini.generate_reply(
                 instruction=instruction, user_text=clean_text, history=history
             )
-            return {"intent": intent, "reply_text": reply, "execution": {"status": "greeting"}}
+            return {"intent": intent, "reply_text": reply, "execution": {"status": "greeting", "animation": "Hello"}}
 
         # --- help / general fallback ---
         evm_wallet_note = self._extract_evm_wallet_from_note(text)
