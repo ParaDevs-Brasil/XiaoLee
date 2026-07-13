@@ -5,6 +5,8 @@ import useCampaigns from '@/hooks/useCampaigns';
 import { useCampaignActions } from '@/hooks/useCampaignActions';
 import useUserCampaigns from '@/hooks/useUserCampaigns';
 import useNotifications from '@/hooks/useNotifications';
+import { useModal } from '@/hooks/useModal';
+import { Modal } from '@/components/ui/Modal';
 
 import UserData from '@/components/UserData';
 import { connectEvmWallet, getStoredEvmAddress, isEvmWalletInstalled } from '@/lib/evmWallet';
@@ -90,6 +92,10 @@ export default function Campaigns() {
   const [isCampaignReady, setIsCampaignReady] = useState(UserData.hasCampaignIdentity());
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const { isOpen: isCreateModalOpen, animateIn: createModalAnimateIn, closeModal: closeCreateModal } = useModal(
+    showCreateForm,
+    () => setShowCreateForm(false)
+  );
   const [refreshing, setRefreshing] = useState(false);
   // Aba ativa — organiza o conteúdo em views para cortar o scroll (sobretudo no mobile)
   const [tab, setTab] = useState<'explore' | 'mine' | 'rewards'>('explore');
@@ -214,7 +220,7 @@ export default function Campaigns() {
   };
 
   const handleCreateSuccess = () => {
-    setShowCreateForm(false);
+    closeCreateModal();
     toast.success('Campanha criada com sucesso!');
     handleRefresh();
     UserData.fetchData();
@@ -558,25 +564,26 @@ export default function Campaigns() {
       </div>
 
       {/* ── Create Campaign Modal ────────────────────────────────────── */}
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <Modal
+        isOpen={isCreateModalOpen}
+        animateIn={createModalAnimateIn}
+        onBackdropClick={closeCreateModal}
+        boxClassName="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+      >
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="text-base font-bold text-gray-800">Nova Campanha</h2>
-              <button onClick={() => setShowCreateForm(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={closeCreateModal} aria-label={t('common.close')} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <IconX />
               </button>
             </div>
             <div className="p-5">
               <CreateCampaignForm
                 onSuccess={handleCreateSuccess}
-                onCancel={() => setShowCreateForm(false)}
+                onCancel={closeCreateModal}
                 onError={(message) => toast.error(message)}
               />
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

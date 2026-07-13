@@ -3,23 +3,18 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { WalletProps } from "@/interfaces";
 import { useModal } from "@/hooks/useModal";
+import { Modal } from "@/components/ui/Modal";
 import api from "@/api/api";
-import { getStoredConnectedWallet } from "@/lib/walletProviders";
-import {
-  clearStoredEvmAddress,
-  connectEvmWallet,
-  getEvmChainName,
-  getStoredEvmAddress,
-  isEvmWalletInstalled,
-  shortEvmAddress,
-} from "@/lib/evmWallet";
+import { getStoredConnectedWallet, clearStoredConnectedWallet } from "@/lib/walletProviders";
+import { CHAIN_LABEL, type Chain } from "@/lib/chains";
+import { clearStoredEvmAddress, getEvmChainName, getStoredEvmAddress, shortEvmAddress } from "@/lib/evmWallet";
 
-const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClose }) => {
+const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClose, onRequestConnect }) => {
   const { isOpen, animateIn, closeModal } = useModal(shouldOpen, onClose);
 
   const [address, setAddress] = useState<string>("");
+  const [chain, setChain] = useState<Chain | null>(null);
   const [chainName, setChainName] = useState<string>("");
-  const [isConnecting, setIsConnecting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string>("");
   const [copied, setCopied] = useState(false);
   // Saldo USDC on-chain no Arc (lido pelo backend via RPC) — null = indisponível
@@ -30,46 +25,45 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
   }, []);
 
   useEffect(() => {
-    // Wallet universal (Connect Wallet) tem prioridade; chave EVM legada como fallback
+    // Wallet universal (Connect Wallet) tem prioridade e já sabe a chain; chave EVM legada é sempre Arc
     const connected = getStoredConnectedWallet();
-    const saved = connected?.address?.startsWith("0x") ? connected.address : getStoredEvmAddress();
-    if (saved) setAddress(saved);
+    if (connected?.address) {
+      setAddress(connected.address);
+      setChain(connected.chain);
+      return;
+    }
+    const legacy = getStoredEvmAddress();
+    if (legacy) {
+      setAddress(legacy);
+      setChain("arc");
+    }
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && address) loadChain();
-  }, [isOpen, address, loadChain]);
+    // Nome de rede (ex.: "Arc Sepolia") só existe pro trilho EVM — Solana/Stellar usam o rótulo fixo da chain
+    if (isOpen && address && chain === "arc") loadChain();
+  }, [isOpen, address, chain, loadChain]);
 
   useEffect(() => {
-    if (!isOpen || !address || !address.startsWith("0x")) return;
+    if (!isOpen || !address || chain !== "arc") return;
     setArcUsdc(null);
     api
       .get<{ usdc_balance: number }>(`/v1/arc/balance/${address}`)
       .then((resp) => setArcUsdc(resp.data.usdc_balance))
       .catch(() => setArcUsdc(null));
-  }, [isOpen, address]);
+  }, [isOpen, address, chain]);
 
-  const handleConnect = async () => {
-    if (!isEvmWalletInstalled()) {
-      setStatusMsg("Carteira EVM não encontrada. Instale a MetaMask (ou compatível) e recarregue.");
-      return;
-    }
-    setIsConnecting(true);
-    try {
-      const addr = await connectEvmWallet();
-      setAddress(addr);
-      setStatusMsg("Carteira conectada!");
-      await loadChain();
-    } catch (err) {
-      setStatusMsg(`Erro: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setIsConnecting(false);
-    }
+  const handleRequestConnect = () => {
+    // Deixa a animação de saída do próprio modal terminar antes de abrir o fluxo universal
+    closeModal();
+    setTimeout(() => onRequestConnect?.(), 300);
   };
 
   const handleDisconnect = () => {
+    clearStoredConnectedWallet();
     clearStoredEvmAddress();
     setAddress("");
+    setChain(null);
     setChainName("");
     setStatusMsg("Carteira desconectada.");
   };
@@ -83,22 +77,16 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
 
   const rewardTokens = Array.isArray(balance) ? balance : [];
   const totalUSD = rewardTokens.reduce((sum, t) => sum + (t.valueUSD ?? 0), 0);
-
-  if (!isOpen) return null;
+  // Nome de rede real (Arc) ou rótulo fixo da chain (Solana/Stellar não têm "nome de rede" dinâmico)
+  const chainLabel = chain === "arc" ? chainName : chain ? CHAIN_LABEL[chain] : "";
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${
-        animateIn ? "bg-black/30 backdrop-blur-sm" : "bg-black/0"
-      }`}
-      onClick={closeModal}
+    <Modal
+      isOpen={isOpen}
+      animateIn={animateIn}
+      onBackdropClick={closeModal}
+      boxClassName="bg-white rounded-3xl shadow-e3 border border-[var(--border)] max-w-2xl w-full max-h-[90vh] overflow-hidden"
     >
-      <div
-        className={`bg-white rounded-3xl shadow-e3 border border-[var(--border)] max-w-2xl w-full max-h-[90vh] overflow-hidden transition-all duration-300 transform ${
-          animateIn ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* ── Header ───────────────────────────────────────────────── */}
         <div className="border-b border-[var(--border)]">
           <div className="px-6 pt-6 flex items-center justify-between mb-4">
@@ -113,6 +101,7 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
                 <button
                   onClick={handleDisconnect}
                   title="Desconectar"
+                  aria-label="Desconectar carteira"
                   className="p-2 hover:bg-black/5 rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5 text-[var(--danger)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,7 +110,7 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
                   </svg>
                 </button>
               )}
-              <button onClick={closeModal} className="p-2 hover:bg-black/5 rounded-lg transition-colors">
+              <button onClick={closeModal} title="Fechar" aria-label="Fechar" className="p-2 hover:bg-black/5 rounded-lg transition-colors">
                 <svg className="w-5 h-5 text-[var(--ink-3)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -158,7 +147,9 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
                 <p className="text-sm text-[var(--ink-2)] mt-1">
                   {arcUsdc != null
                     ? `${arcUsdc.toFixed(2)} USDC no Arc${totalUSD > 0 ? " + recompensas" : ""}`
-                    : `Recompensas XiaoLee${chainName ? ` · ${chainName}` : ""}`}
+                    : chain && chain !== "arc"
+                    ? `Recompensas XiaoLee · saldo on-chain ${CHAIN_LABEL[chain]} em breve`
+                    : `Recompensas XiaoLee${chainLabel ? ` · ${chainLabel}` : ""}`}
                 </p>
               </>
             ) : (
@@ -172,7 +163,7 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
               <div>
                 <p className="text-xs font-mono font-semibold text-[var(--ink)]">{shortEvmAddress(address, 8, 6)}</p>
                 <p className="text-[10px] text-[var(--ink-2)]">
-                  XiaoLee{chainName ? ` · ${chainName}` : ""}
+                  XiaoLee{chainLabel ? ` · ${chainLabel}` : ""}
                 </p>
               </div>
               <button onClick={handleCopyAddress} className="text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
@@ -191,11 +182,10 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
                 Conecte sua carteira para ver seus saldos e recompensas XiaoLee
               </p>
               <button
-                onClick={handleConnect}
-                disabled={isConnecting}
-                className="px-8 py-2.5 rounded-xl btn-primary text-white font-semibold disabled:opacity-50 transition-all"
+                onClick={handleRequestConnect}
+                className="px-8 py-2.5 rounded-xl btn-primary text-white font-semibold transition-all"
               >
-                {isConnecting ? "Conectando..." : "Conectar Carteira"}
+                Conectar Carteira
               </button>
             </div>
           ) : (
@@ -261,8 +251,7 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
             Secured by XiaoLee · USDC · x402
           </p>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

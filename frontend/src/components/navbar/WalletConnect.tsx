@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import { useModal } from "@/hooks/useModal";
+import { Modal } from "@/components/ui/Modal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import UserData from "../UserData";
 import {
@@ -84,21 +85,13 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ shouldOpen = false, onClo
     setNetworkName("");
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${
-        animateIn ? "bg-black/30 backdrop-blur-sm" : "bg-black/0"
-      }`}
-      onClick={closeModal}
+    <Modal
+      isOpen={isOpen}
+      animateIn={animateIn}
+      onBackdropClick={closeModal}
+      boxClassName="bg-gradient-to-br from-[var(--modal-bg-start)] via-[var(--modal-bg-middle)] to-[var(--modal-bg-end)] rounded-3xl shadow-2xl border-2 border-[var(--modal-border)] max-w-md w-full overflow-hidden"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className={`bg-gradient-to-br from-[var(--modal-bg-start)] via-[var(--modal-bg-middle)] to-[var(--modal-bg-end)] rounded-3xl shadow-2xl border-2 border-[var(--modal-border)] max-w-md w-full overflow-hidden transition-all duration-300 transform ${
-          animateIn ? "scale-100 opacity-100" : "scale-95 opacity-0"
-        }`}
-      >
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-[var(--modal-border)]/40">
           <div>
@@ -219,8 +212,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ shouldOpen = false, onClo
             </>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

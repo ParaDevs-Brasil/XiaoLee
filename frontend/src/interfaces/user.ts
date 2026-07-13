@@ -115,6 +115,8 @@ export interface WalletProps {
   shouldOpen?: boolean;
   onClose?: () => void;
   onRefresh?: () => void;
+  /** Sem carteira conectada: abre o fluxo universal (Arc/Solana/Stellar) em vez de conectar por conta própria. */
+  onRequestConnect?: () => void;
 }
 
 export interface TransacoesProps {

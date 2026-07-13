@@ -470,6 +470,7 @@ export default function Navbar() {
               balance={userData?.balances}
               shouldOpen={shouldOpenWallet}
               onClose={() => setShouldOpenWallet(false)}
+              onRequestConnect={() => setShouldOpenEvmWallet(true)}
             />
           : null}
 
