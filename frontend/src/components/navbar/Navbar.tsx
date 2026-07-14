@@ -2,8 +2,22 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from 'react-toastify';
-import { ChevronDownIcon, UserIcon, RocketLaunchIcon, BellIcon, ChartBarIcon, CurrencyDollarIcon } from "@heroicons/react/24/outline";
-import { IconSpark } from "@/components/icons";
+import {
+  IconSpark,
+  IconChevronDown,
+  IconUser,
+  IconRocket,
+  IconBell,
+  IconBarChart,
+  IconDollar,
+  IconWallet,
+  IconClipboard,
+  IconClock,
+  IconLink,
+  IconDownload,
+  IconUpload,
+  IconLogout,
+} from "@/components/icons";
 import Transacoes from "./Transacoes";
 import Historico from "./Historico";
 import Wallet from "./Wallet";
@@ -163,7 +177,7 @@ export default function Navbar() {
                     : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
                 }`}
               >
-                <RocketLaunchIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
+                <IconRocket className="w-4 h-4 md:w-[18px] md:h-[18px] shrink-0" />
                 <span className="hidden lg:inline">{t('navbar.campaigns')}</span>
               </Link>
 
@@ -175,7 +189,7 @@ export default function Navbar() {
                     : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
                 }`}
               >
-                <CurrencyDollarIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
+                <IconDollar className="w-4 h-4 md:w-[18px] md:h-[18px] shrink-0" />
                 <span className="hidden lg:inline">Traction</span>
               </Link>
 
@@ -189,14 +203,14 @@ export default function Navbar() {
                     : 'text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)]'
                 }`}
               >
-                <BellIcon className="w-4 h-4 md:w-5 md:h-5 stroke-2 shrink-0" />
+                <IconBell className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
               </Link>
 
               <Link
                 href="/dashboard"
                 className={`inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl btn-primary px-0 sm:px-3 md:px-5 text-[11px] md:text-sm font-bold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11 ${pathname === '/dashboard' ? 'ring-2 ring-[rgba(216,27,120,0.3)]' : ''}`}
               >
-                <ChartBarIcon className="w-4 h-4 md:w-[18px] md:h-[18px] stroke-2 shrink-0" />
+                <IconBarChart className="w-4 h-4 md:w-[18px] md:h-[18px] shrink-0" />
                 <span className="hidden sm:inline lg:hidden whitespace-nowrap">{t('navbar.dashboard').slice(0,4)}</span>
                 <span className="hidden lg:inline">{t('navbar.dashboard')}</span>
               </Link>
@@ -210,7 +224,7 @@ export default function Navbar() {
                   className="inline-flex items-center justify-center gap-x-0 sm:gap-x-1.5 md:gap-x-2 rounded-lg md:rounded-xl bg-white border border-[var(--navbar-border)] px-0 sm:px-3 md:px-4 text-[11px] md:text-sm font-semibold text-[var(--text-primary)] hover:bg-black/5 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(216,27,120,0.4)] backdrop-blur-sm active:scale-95 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 sm:w-auto sm:h-10 md:h-11"
                 >
                   <div className="w-5 h-5 md:w-6 md:h-6 bg-[var(--accent)] text-white rounded-full flex items-center justify-center shrink-0">
-                    <UserIcon className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden="true" />
+                    <IconUser className="h-3 w-3 md:h-3.5 md:w-3.5" sw={2.2} />
                   </div>
                   <span className="hidden lg:inline">
                     {userData.session_id?.startsWith('devnet_guest_')
@@ -219,11 +233,11 @@ export default function Navbar() {
                         ? `@${userData.user_info.twitter_handle.slice(0, 12)}`
                         : 'User'}
                   </span>
-                  <ChevronDownIcon
+                  <IconChevronDown
+                    sw={2.2}
                     className={`hidden sm:block h-3 w-3 md:h-4 md:w-4 shrink-0 transition-transform duration-200 ${
                       isDropdownOpen ? 'rotate-180' : ''
                     }`}
-                    aria-hidden="true"
                   />
                 </button>
                     
@@ -256,9 +270,7 @@ export default function Navbar() {
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                          </svg>
+                          <IconWallet className="w-5 h-5" />
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Wallet</div>
@@ -273,9 +285,7 @@ export default function Navbar() {
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                          </svg>
+                          <IconClipboard className="w-5 h-5" />
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Transactions</div>
@@ -290,9 +300,7 @@ export default function Navbar() {
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
+                          <IconClock className="w-5 h-5" />
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">History</div>
@@ -308,8 +316,8 @@ export default function Navbar() {
                         }}
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
-                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center font-bold">
-                          ◈
+                        <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
+                          <IconLink className="w-5 h-5" />
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Connect Wallet</div>
@@ -373,9 +381,7 @@ export default function Navbar() {
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
+                          <IconDownload className="w-5 h-5" />
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Withdraw</div>
@@ -392,9 +398,7 @@ export default function Navbar() {
                         className="group flex w-full items-center px-4 py-3 text-sm font-medium text-[var(--navbar-text-gradient-start)] hover:bg-[var(--accent-soft)] transition-all duration-200 cursor-pointer"
                       >
                         <div className="mr-3 text-lg bg-[var(--accent-soft)] text-[var(--accent)] w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                          </svg>
+                          <IconUpload className="w-5 h-5" />
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">Deposit</div>
@@ -412,9 +416,7 @@ export default function Navbar() {
                           className="group flex w-full items-center px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50/30 backdrop-blur-sm transition-all duration-200 cursor-pointer"
                         >
                           <div className="mr-3 bg-red-100 dark:bg-red-900/50 text-red-500 w-7 h-7 min-[360px]:w-8 min-[360px]:h-8 rounded-lg flex items-center justify-center">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
+                            <IconLogout className="w-4 h-4" />
                           </div>
                           <div className="text-left">
                             <div className="font-semibold">{t('navbar.logout')}</div>

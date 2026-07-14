@@ -1,22 +1,12 @@
 import React from 'react';
 import { useXiaoLeeProgram } from '../../hooks/useXiaoLeeProgram';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { IconWallet, IconBarChart } from '@/components/icons';
 
 interface UserStatsCardProps {
   twitterId?: string;
   isConnected: boolean;
 }
-
-const IconWallet = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <path d="M20 12V8H6a2 2 0 0 1 0-4h14v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
-  </svg>
-);
-const IconBarChart = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-  </svg>
-);
 
 export default function UserStatsCard({ twitterId, isConnected }: UserStatsCardProps) {
   const { t } = useLanguage();
@@ -26,12 +16,12 @@ export default function UserStatsCard({ twitterId, isConnected }: UserStatsCardP
     return (
       <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm p-5">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-[var(--accent)]"><IconBarChart /></span>
+          <span className="text-[var(--accent)]"><IconBarChart className="w-4 h-4" /></span>
           <h2 className="text-sm font-bold text-gray-700">{t('user_stats.title')}</h2>
         </div>
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <div className="w-12 h-12 rounded-2xl bg-[var(--accent-soft)] border border-[var(--border)] flex items-center justify-center mb-3 text-[var(--accent)]">
-            <IconWallet />
+            <IconWallet className="w-5 h-5" />
           </div>
           <h3 className="text-sm font-bold text-gray-700 mb-1">{t('user_stats.disconnected_title')}</h3>
           <p className="text-sm text-gray-600 max-w-xs leading-relaxed">
@@ -45,7 +35,7 @@ export default function UserStatsCard({ twitterId, isConnected }: UserStatsCardP
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm p-5">
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-[var(--accent)]"><IconBarChart /></span>
+        <span className="text-[var(--accent)]"><IconBarChart className="w-4 h-4" /></span>
         <h2 className="text-sm font-bold text-gray-700">{t('user_stats.title')}</h2>
       </div>
 

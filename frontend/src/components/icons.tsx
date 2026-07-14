@@ -54,3 +54,24 @@ export const IconTrendingUp = (p: IconProps) => <Svg {...p}><polyline points="23
 export const IconAward     = (p: IconProps) => <Svg {...p}><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></Svg>;
 export const IconWifi      = (p: IconProps) => <Svg {...p}><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></Svg>;
 export const IconInbox     = (p: IconProps) => <Svg {...p}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></Svg>;
+
+// ── Navbar + Campaigns (consolidado 2026-07 — substitui Heroicons/SVG inline/emoji duplicados) ──
+export const IconClipboard = (p: IconProps) => <Svg {...p}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2H11a2 2 0 0 1-2-2z"/><path d="M9 12h6M9 16h6M9 9h.01"/></Svg>;
+export const IconClock     = (p: IconProps) => <Svg {...p}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></Svg>;
+export const IconLink      = (p: IconProps) => <Svg {...p}><path d="M10 14a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 1 0-7.07-7.07L11.5 5.5"/><path d="M14 10a5 5 0 0 0-7.07 0L4.1 12.83a5 5 0 1 0 7.07 7.07L12.5 18.5"/></Svg>;
+export const IconDownload  = (p: IconProps) => <Svg {...p}><path d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1"/><path d="M12 4v12m0 0-4-4m4 4 4-4"/></Svg>;
+export const IconUpload    = (p: IconProps) => <Svg {...p}><path d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1"/><path d="M12 16V4m0 0 4 4m-4-4-4 4"/></Svg>;
+export const IconLogout    = (p: IconProps) => <Svg {...p}><path d="M17 16l4-4m0 0-4-4m4 4H7"/><path d="M13 20v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></Svg>;
+export const IconRocket    = (p: IconProps) => <Svg {...p}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 19 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></Svg>;
+export const IconBarChart  = (p: IconProps) => <Svg {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></Svg>;
+export const IconChevronDown  = (p: IconProps) => <Svg {...p}><polyline points="6 9 12 15 18 9"/></Svg>;
+export const IconChevronLeft  = (p: IconProps) => <Svg {...p}><polyline points="15 18 9 12 15 6"/></Svg>;
+export const IconChevronRight = (p: IconProps) => <Svg {...p}><polyline points="9 18 15 12 9 6"/></Svg>;
+export const IconBell      = (p: IconProps) => <Svg {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></Svg>;
+export const IconClose     = (p: IconProps) => <Svg {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Svg>;
+export const IconPlus      = (p: IconProps) => <Svg {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Svg>;
+export const IconAlert     = (p: IconProps) => <Svg {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Svg>;
+export const IconMegaphone = (p: IconProps) => <Svg {...p}><path d="M3 11l19-9-9 19-2-8-8-2z"/></Svg>;
+export const IconReceipt   = (p: IconProps) => <Svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16l3-2 2 2 2-2 2 2 2-2 3 2V4a2 2 0 0 0-2-2z"/></Svg>;
+export const IconRefresh   = (p: IconProps) => <Svg {...p}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></Svg>;
+export const IconList      = (p: IconProps) => <Svg {...p}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></Svg>;

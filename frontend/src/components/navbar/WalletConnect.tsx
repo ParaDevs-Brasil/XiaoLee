@@ -5,6 +5,7 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/Modal";
+import { IconClose } from "@/components/icons";
 import { useLanguage } from "@/contexts/LanguageContext";
 import UserData from "../UserData";
 import {
@@ -103,7 +104,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ shouldOpen = false, onClo
             aria-label={t("common.close")}
             className="w-8 h-8 grid place-items-center rounded-full text-[var(--text-secondary)] hover:bg-black/5 transition-colors"
           >
-            ✕
+            <IconClose className="w-4 h-4" sw={2} />
           </button>
         </div>
 

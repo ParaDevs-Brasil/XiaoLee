@@ -1,18 +1,7 @@
 import React from 'react';
 import ActionButton from '@/components/ActionButton';
 import { UserCampaignCardProps } from '@/interfaces/campaignComponents';
-
-// ── SVG Icons ──────────────────────────────────────────────────────────────
-const IconCheck = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-);
-const IconReceipt = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16l3-2 2 2 2-2 2 2 2-2 3 2V4a2 2 0 0 0-2-2z"/>
-  </svg>
-);
+import { IconCheck, IconReceipt } from '@/components/icons';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   enrolled:       { label: 'Inscrito',   bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100' },
@@ -36,7 +25,7 @@ export const UserCampaignCard: React.FC<UserCampaignCardProps> = ({
           <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">{campaign.campaign_type}</span>
         </div>
         <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-          {currentStatus === 'paid' && <IconCheck />}
+          {currentStatus === 'paid' && <IconCheck className="w-3 h-3" sw={2} />}
           {cfg.label}
         </span>
       </div>
@@ -63,7 +52,7 @@ export const UserCampaignCard: React.FC<UserCampaignCardProps> = ({
 
         {campaign.claim_receipt_id && (
           <div className="flex items-center gap-1.5 mb-3">
-            <span className="text-gray-300"><IconReceipt /></span>
+            <span className="text-gray-300"><IconReceipt className="w-3 h-3" /></span>
             <p className="text-[10px] text-gray-400 font-mono truncate">{campaign.claim_receipt_id}</p>
           </div>
         )}

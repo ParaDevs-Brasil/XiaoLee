@@ -8,6 +8,7 @@ import api from "@/api/api";
 import { getStoredConnectedWallet, clearStoredConnectedWallet } from "@/lib/walletProviders";
 import { CHAIN_LABEL, type Chain } from "@/lib/chains";
 import { clearStoredEvmAddress, getEvmChainName, getStoredEvmAddress, shortEvmAddress } from "@/lib/evmWallet";
+import { IconLogout, IconClose } from "@/components/icons";
 
 const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClose, onRequestConnect }) => {
   const { isOpen, animateIn, closeModal } = useModal(shouldOpen, onClose);
@@ -104,16 +105,11 @@ const Wallet: React.FC<WalletProps> = ({ balance = [], shouldOpen = false, onClo
                   aria-label="Desconectar carteira"
                   className="p-2 hover:bg-black/5 rounded-lg transition-colors"
                 >
-                  <svg className="w-5 h-5 text-[var(--danger)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
+                  <IconLogout className="w-5 h-5 text-[var(--danger)]" sw={2} />
                 </button>
               )}
               <button onClick={closeModal} title="Fechar" aria-label="Fechar" className="p-2 hover:bg-black/5 rounded-lg transition-colors">
-                <svg className="w-5 h-5 text-[var(--ink-3)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <IconClose className="w-5 h-5 text-[var(--ink-3)]" sw={2} />
               </button>
             </div>
           </div>

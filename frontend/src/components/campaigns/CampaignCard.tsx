@@ -4,24 +4,7 @@ import ActionButton from '@/components/ActionButton';
 import AgentStatus from './AgentStatus';
 import { CampaignCardProps } from '@/interfaces/campaignComponents';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-// ── SVG Icons ──────────────────────────────────────────────────────────────
-const IconCheck = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-);
-const IconList = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-  </svg>
-);
-const IconAlert = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-  </svg>
-);
+import { IconCheck, IconList, IconAlert } from '@/components/icons';
 
 export const CampaignCard: React.FC<CampaignCardProps> = ({
   campaign, userCampaigns, onJoin, onVerify, onClaim, isJoining, isVerifying, isClaiming, isCreator = false
@@ -59,7 +42,7 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
           </div>
           {(isPaid || isTasksClaimed) && (
             <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-              <IconCheck /> {t('campaign_card.claimed_badge')}
+              <IconCheck className="w-3.5 h-3.5" sw={2} /> {t('campaign_card.claimed_badge')}
             </span>
           )}
         </div>
@@ -122,7 +105,7 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
         <div className="px-5 pb-3">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--main-bg)] p-3">
             <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-[var(--text-secondary)]"><IconList /></span>
+              <span className="text-[var(--text-secondary)]"><IconList className="w-3.5 h-3.5" /></span>
               <span className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t('campaign_card.required_tasks')}</span>
             </div>
             <div className="space-y-1 text-sm text-[var(--text-secondary)]">
@@ -141,7 +124,7 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
       {!hasCampaignIdentity && (
         <div className="px-5 pb-3">
           <div className="flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-amber-600">
-            <IconAlert />
+            <IconAlert className="w-3.5 h-3.5" />
             <span className="text-sm font-semibold">{t('campaign_card.no_session')}</span>
           </div>
         </div>
@@ -151,7 +134,7 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
       {!!userCampaignParticipation && (
         <div className="px-5 pb-3">
           <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-600">
-            <IconCheck />
+            <IconCheck className="w-3.5 h-3.5" sw={2} />
             <span className="text-sm font-semibold">
               {isPaid ? t('campaign_card.status_paid') :
                isTasksVerified ? t('campaign_card.status_verified') :

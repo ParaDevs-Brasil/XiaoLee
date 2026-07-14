@@ -4,6 +4,7 @@ import React from "react";
 import { useTreasury, TreasuryChainBalance } from "@/hooks/useTreasury";
 import { CHAIN_LABEL } from "@/lib/chains";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { IconRefresh } from "@/components/icons";
 
 const CHAIN_ICON: Record<string, string> = {
   arc: "Ξ",
@@ -80,9 +81,7 @@ export default function TreasuryCard() {
           title="Atualizar"
           className="p-1.5 rounded-lg text-[var(--ink-3)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] transition-colors disabled:opacity-40"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}>
-            <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-          </svg>
+          <IconRefresh className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
       <p className="text-xs text-[var(--ink-2)] mb-3">{t("dashboard.treasury_sub")}</p>
